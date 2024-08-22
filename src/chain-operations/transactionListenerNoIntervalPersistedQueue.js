@@ -54,9 +54,10 @@ async function startOnchainListeners(contract, provider, issuerId, libraries, re
         isProcessing = true;
         const queueLength = await redisClient.lLen(`queue:${issuerId}`);
 
+        let event
         try {
             while (queueLength > 0) {
-                const event = await redisClient.lIndex(`queue:${issuerId}`); // Peak the first element
+                event = await redisClient.lIndex(`queue:${issuerId}`); // Peak the first element
 
                 await processEvent(JSON.parse(event));
                 await redisClient.lPop(`queue:${issuerId}`); // Pop event from queue only if successful
