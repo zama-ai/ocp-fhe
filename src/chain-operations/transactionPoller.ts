@@ -104,7 +104,6 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
     */
     let { _id: issuerId, last_processed_block: lastProcessedBlock, tx_hash: deployedTxHash } = issuer;
     const { number: latestBlock } = await provider.getBlock(finalizedOnly ? "finalized" : "latest");
-    const startTime = Date.now();
     if (lastProcessedBlock === null) {
         const receipt = await provider.getTransactionReceipt(deployedTxHash);
         if (!receipt) {
@@ -115,7 +114,7 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
             // console.log("Deployment tx not finalized", {receipt, lastFinalizedBlock: latestBlock});
             return;
         }
-        // 
+        //
         lastProcessedBlock = receipt.blockNumber - 1;
         // we've never processed this issuer before, process.
         await issuerDeployed(issuerId, lastProcessedBlock, contract, dbConn);
@@ -163,11 +162,7 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
         await persistEvents(issuerId, events);
         await updateLastProcessed(issuerId, endBlock);
     }, dbConn);
-    const endTime = Date.now();
-    console.log(`Time taken : ${endTime - startTime} ms`);
 };
-
-
 
 const issuerDeployed = async (issuerId, lastProcessedBlock, contract, dbConn) => {
     console.log("New issuer was deployed", { issuerId });
