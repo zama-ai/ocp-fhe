@@ -6,7 +6,7 @@ import { setupEnv } from "./utils/env";
 
 import { connectDB } from "./db/config/mongoose.ts";
 
-import startOnchainListeners from "./chain-operations/transactionListenerNoInterval.js";
+import startOnchainListeners from "./chain-operations/transactionListenerNoIntervalPersistedQueue.js";
 
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
@@ -25,6 +25,7 @@ import exportRoutes from "./routes/export.js";
 import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
 import { getContractInstance } from "./chain-operations/getContractInstances.js";
+import { connectRedis } from "./db/config/redis.ts";
 
 setupEnv();
 // const contractCache = {};
@@ -38,6 +39,7 @@ const chainMiddleware = (req, res, next) => {
     req.chain = CHAIN;
     next();
 };
+let redisConnection = null;
 
 // Middleware to get or create contract instance
 // the listener is first started on deployment, then here as a backup
@@ -57,7 +59,7 @@ const contractMiddleware = async (req, res, next) => {
         contractCache[req.body.issuerId] = { contract, provider, libraries };
 
         // Initialize listener for this contract
-        startOnchainListeners(contract, provider, req.body.issuerId, libraries);
+        startOnchainListeners(contract, provider, req.body.issuerId, libraries, redisConnection);
     }
 
     req.contract = contractCache[req.body.issuerId].contract;
@@ -91,6 +93,10 @@ const startServer = async () => {
     await connectDB();
     console.log("Connected to MongoDB");
 
+    console.log("Connecting to redis...");
+    redisConnection = await connectRedis();
+    console.log("Connected to redis");
+
     app.listen(PORT, async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
         // Fetch all issuers
@@ -104,7 +110,7 @@ const startServer = async () => {
 
                     // Initialize listener for this contract
                     try {
-                        startOnchainListeners(contract, provider, issuer._id, libraries);
+                        startOnchainListeners(contract, provider, issuer._id, libraries, redisConnection);
                     } catch (error) {
                         console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
                     }

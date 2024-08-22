@@ -12,3 +12,9 @@ services:
       - 27017:27017
     # Make sure log colors show up correctly
     tty: true
+  redis:
+    image: "redis:alpine"
+    restart: always
+    ports:
+      - "0.0.0.0:6379:6379"
+    tty: true
