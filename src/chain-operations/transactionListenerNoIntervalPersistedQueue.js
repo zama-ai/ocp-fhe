@@ -86,13 +86,6 @@ async function startOnchainListeners(contract, provider, issuerId, libraries, re
     contract.on("StockClassCreated", async (id, _) => {
         await queueAndProcessEvent({ type: "STOCK_CLASS_CREATED", data: id, issuerId });
     });
-    contract.on("IssuerCreated", async () => {
-        console.log("IssuerCreated event");
-        const queueLength = await redisClient.lLen(`queue:${issuerId}`);
-        if (queueLength === 0) {
-            console.log(`Queue for issuer ${issuerId} is empty or does not exist. Initializing...`);
-        }
-    });
 
     // Issuer Initialization: This is the first time we're processing the issuer.
     const issuerCreatedFilter = contract.filters.IssuerCreated;
