@@ -46,26 +46,34 @@ const txMapper = {
 async function startOnchainListeners(contract, provider, issuerId, libraries, redisClient) {
     console.log("🌐 | Initiating on-chain event listeners for issuer", issuerId, "at address", contract.target);
 
+    let isProcessing = false;
+
     const processEventQueue = async () => {
-        while (true) {
-            const event = await redisClient.lIndex(`queue:${issuerId}`); // Peak the first element
-            if (!event) break;
-            try {
+        if (isProcessing) return; // avoid unnecessary processing if there's already events in the queue.
+
+        isProcessing = true;
+        const queueLength = await redisClient.lLen(`queue:${issuerId}`);
+
+        try {
+            while (queueLength > 0) {
+                const event = await redisClient.lIndex(`queue:${issuerId}`); // Peak the first element
+
                 await processEvent(JSON.parse(event));
                 await redisClient.lPop(`queue:${issuerId}`); // Pop event from queue only if successful
-            } catch (error) {
-                console.error(`Error processing event of type ${event.type}:`, error);
-                // Consider adding the event back to the queue or to a separate error queue
+
             }
+        } catch (error) {
+            console.error(`Error processing event of type ${event.type}:`, error);
+            // Consider adding the event back to the queue or to a separate error queue
+        } finally {
+            isProcessing = false;
         }
     };
 
     const queueAndProcessEvent = async (event) => {
         // Ensure the queue exists by checking its length, in redis it auto creates a list if it doesn't exists when using push command
         const queueLength = await redisClient.lLen(`queue:${issuerId}`);
-        if (queueLength === 0) {
-            console.log(`Queue for issuer ${issuerId} is empty or does not exist. Initializing...`);
-        }
+        console.log("Issuer ", issuerId, "has queue length", queueLength);
         // push to the most right position of the array
         await redisClient.rPush(`queue:${issuerId}`, JSON.stringify(event));
         await processEventQueue();
