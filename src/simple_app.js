@@ -6,7 +6,7 @@ import { setupEnv } from "./utils/env";
 
 import { connectDB } from "./db/config/mongoose.ts";
 
-import startOnchainListeners from "./chain-operations/transactionListener.js";
+import startOnchainListeners from "./chain-operations/transactionListenerNoInterval.js";
 
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
@@ -24,7 +24,6 @@ import exportRoutes from "./routes/export.js";
 
 import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
-// import { getIssuerContract } from "./utils/caches.ts";
 import { getContractInstance } from "./chain-operations/getContractInstances.js";
 
 setupEnv();
