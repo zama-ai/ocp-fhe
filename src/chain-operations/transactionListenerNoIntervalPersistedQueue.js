@@ -27,7 +27,7 @@ import {
 import { readFairmintDataById } from "../db/operations/read.js";
 import { API_URL } from "../fairmint/config.js";
 import axios from "axios";
-
+import get from "lodash/get.js";
 const abiCoder = new AbiCoder();
 
 const txMapper = {
@@ -52,19 +52,23 @@ async function startOnchainListeners(contract, provider, issuerId, libraries, re
         if (isProcessing) return; // avoid unnecessary processing if there's already events in the queue.
 
         isProcessing = true;
-        const queueLength = await redisClient.lLen(`queue:${issuerId}`);
+        const queueLength = async () => await redisClient.lLen(`queue:${issuerId}`);
 
-        let event
+        let event;
         try {
-            while (queueLength > 0) {
-                event = await redisClient.lIndex(`queue:${issuerId}`); // Peak the first element
+            while ((await queueLength()) > 0) {
+                const rawEvent = await redisClient.lIndex(`queue:${issuerId}`, 0); // Peak the first element
+                console.log("rawEvent", rawEvent);
+                // TODO: decode TX if it's a TX event
+                // event = DECODE(rawEvent);
 
-                await processEvent(JSON.parse(event));
+                console.log("event", event);
+
+                await processEvent(event);
                 await redisClient.lPop(`queue:${issuerId}`); // Pop event from queue only if successful
-
             }
         } catch (error) {
-            console.error(`Error processing event of type ${event.type}:`, error);
+            console.error(`Error processing event ${get(event, "type", event)}`, error);
             // Consider adding the event back to the queue or to a separate error queue
         } finally {
             isProcessing = false;
@@ -75,6 +79,7 @@ async function startOnchainListeners(contract, provider, issuerId, libraries, re
         // Ensure the queue exists by checking its length, in redis it auto creates a list if it doesn't exists when using push command
         const queueLength = await redisClient.lLen(`queue:${issuerId}`);
         console.log("Issuer ", issuerId, "has queue length", queueLength);
+        console.log("Pushing event to queue", event);
         // push to the most right position of the array
         await redisClient.rPush(`queue:${issuerId}`, JSON.stringify(event));
         await processEventQueue();
