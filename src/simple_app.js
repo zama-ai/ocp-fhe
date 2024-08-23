@@ -89,21 +89,18 @@ const startServer = async () => {
     app.listen(PORT, async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
         // Fetch all issuers
-        const issuers = await readAllIssuers();
-        if (issuers && issuers.length > 0) {
-            for (const issuer of issuers) {
-                if (issuer.deployed_to) {
-                    // Create a new contract instance for each issuer
-                    console.log("issuer.deployed_to", issuer.deployed_to);
-                    const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
+        const issuers = (await readAllIssuers()) || [];
+        for (const issuer of issuers) {
+            if (!issuer.deployed_to) continue; // skip non deployed issuers
+            // Create a new contract instance for each issuer
+            console.log("issuer.deployed_to", issuer.deployed_to);
+            const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
 
-                    // Initialize listener for this contract
-                    try {
-                        startOnchainListeners(contract, provider, issuer._id, libraries);
-                    } catch (error) {
-                        console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
-                    }
-                }
+            // Initialize listener for this contract
+            try {
+                startOnchainListeners(contract, provider, issuer._id, libraries);
+            } catch (error) {
+                console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
             }
         }
     });
