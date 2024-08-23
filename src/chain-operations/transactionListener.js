@@ -161,7 +161,7 @@ async function processEvent(event) {
         case "INVALID":
             throw new Error("Invalid transaction type");
         default:
-            console.warn(`Unhandled event type: ${event.type}`);
+            console.warn(`Unhandled event type: ${get(event, "type")}`);
     }
 }
 
