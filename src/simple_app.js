@@ -1,7 +1,7 @@
 import express, { json, urlencoded } from "express";
 import { setupEnv } from "./utils/env";
 import { connectDB } from "./db/config/mongoose.ts";
-import startOnchainListeners from "./chain-operations/transactionListenerNoIntervalPersistedQueue.js";
+import startOnchainListeners from "./chain-operations/transactionListener.js";
 
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
