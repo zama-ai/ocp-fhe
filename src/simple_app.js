@@ -1,11 +1,6 @@
 import express, { json, urlencoded } from "express";
-
 import { setupEnv } from "./utils/env";
-
-// import connectDB from "./db/config/mongoose.js";
-
 import { connectDB } from "./db/config/mongoose.ts";
-
 import startOnchainListeners from "./chain-operations/transactionListener.js";
 
 // Routes
@@ -24,11 +19,9 @@ import exportRoutes from "./routes/export.js";
 
 import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
-// import { getIssuerContract } from "./utils/caches.ts";
 import { getContractInstance } from "./chain-operations/getContractInstances.js";
 
 setupEnv();
-// const contractCache = {};
 const app = express();
 
 const PORT = process.env.PORT;
@@ -74,6 +67,7 @@ app.use("/", chainMiddleware, mainRoutes);
 app.use("/issuer", chainMiddleware, issuerRoutes);
 app.use("/stakeholder", contractMiddleware, stakeholderRoutes);
 app.use("/stock-class", contractMiddleware, stockClassRoutes);
+
 // No middleware required since these are only created offchain
 app.use("/stock-legend", stockLegendRoutes);
 app.use("/stock-plan", stockPlanRoutes);
@@ -95,21 +89,18 @@ const startServer = async () => {
     app.listen(PORT, async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
         // Fetch all issuers
-        const issuers = await readAllIssuers();
-        if (issuers && issuers.length > 0) {
-            for (const issuer of issuers) {
-                if (issuer.deployed_to) {
-                    // Create a new contract instance for each issuer
-                    console.log("issuer.deployed_to", issuer.deployed_to);
-                    const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
+        const issuers = (await readAllIssuers()) || [];
+        for (const issuer of issuers) {
+            if (!issuer.deployed_to) continue; // skip non deployed issuers
+            // Create a new contract instance for each issuer
+            console.log("issuer.deployed_to", issuer.deployed_to);
+            const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
 
-                    // Initialize listener for this contract
-                    try {
-                        startOnchainListeners(contract, provider, issuer._id, libraries);
-                    } catch (error) {
-                        console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
-                    }
-                }
+            // Initialize listener for this contract
+            try {
+                startOnchainListeners(contract, provider, issuer._id, libraries);
+            } catch (error) {
+                console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
             }
         }
     });
