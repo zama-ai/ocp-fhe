@@ -39,7 +39,6 @@
     "joi": "^17.13.1",
     "mongoose": "^7.4.2",
     "npx": "^10.2.2",
-    "redis": "^4.7.0",
     "solc": "^0.8.20",
     "tsx": "^4.7.0",
     "xstate": "^4.38.2",
@@ -51,10 +50,10 @@
     "maintained node versions"
   ],
   "devDependencies": {
+    "@eslint/js": "^9.7.0",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.11.5",
     "@types/uuid": "^9.0.2",
-    "@eslint/js": "^9.7.0",
     "eslint": "9.x",
     "globals": "^15.8.0",
     "husky": "^8.0.1",
