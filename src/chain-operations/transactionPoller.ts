@@ -30,7 +30,7 @@ import {
     handleStockTransfer,
 } from "./transactionHandlers.js";
 import axios from "axios";
-import { API_URL } from "./utils.js";
+import { API_URL } from "../fairmint/config.js";
 
 const abiCoder = new AbiCoder();
 
@@ -75,9 +75,10 @@ export const stopEventProcessing = async () => {
     }
 };
 
-export const pollingSleepTime = 300000; // 5 mins
+export const pollingSleepTime = 5000;
 
 export const startEventProcessing = async (finalizedOnly: boolean, dbConn) => {
+    // flags to allow the process to get shut down elegantly
     _keepProcessing = true;
     _finishedProcessing = false;
     while (_keepProcessing) {
@@ -95,13 +96,14 @@ export const startEventProcessing = async (finalizedOnly: boolean, dbConn) => {
     _finishedProcessing = true;
 };
 
+// search across X number of blocks, but process up to maxEvents per loop.
 const processEvents = async (dbConn, contract, provider, issuer, txHelper, finalizedOnly, maxBlocks = 1500, maxEvents = 250) => {
+    console.log("Processing events for issuer", issuer._id);
     /*
     We process up to `maxEvents` across `maxBlocks` to ensure our transaction sizes dont get too big and bog down our db
     */
     let { _id: issuerId, last_processed_block: lastProcessedBlock, tx_hash: deployedTxHash } = issuer;
     const { number: latestBlock } = await provider.getBlock(finalizedOnly ? "finalized" : "latest");
-    // console.log("Processing for issuer", {issuerId, lastProcessedBlock, deployedTxHash, latestBlock});
     if (lastProcessedBlock === null) {
         const receipt = await provider.getTransactionReceipt(deployedTxHash);
         if (!receipt) {
@@ -112,7 +114,10 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
             // console.log("Deployment tx not finalized", {receipt, lastFinalizedBlock: latestBlock});
             return;
         }
-        lastProcessedBlock = await issuerDeployed(issuerId, receipt, contract, dbConn);
+        //
+        lastProcessedBlock = receipt.blockNumber - 1;
+        // we've never processed this issuer before, process.
+        await issuerDeployed(issuerId, lastProcessedBlock, contract, dbConn);
     }
     const startBlock = lastProcessedBlock + 1;
     let endBlock = Math.min(startBlock + maxBlocks, latestBlock);
@@ -159,17 +164,17 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
     }, dbConn);
 };
 
-const issuerDeployed = async (issuerId, receipt, contract, dbConn) => {
+const issuerDeployed = async (issuerId, lastProcessedBlock, contract, dbConn) => {
     console.log("New issuer was deployed", { issuerId });
-    const fairmintData: any = await readFairmintDataById(issuerId);
-    if (fairmintData !== null && fairmintData._id) {
-        console.log("Fairmint data", fairmintData._id);
-        console.log("Reflecting Issuer into fairmint...");
-        const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
-        const resp = await axios.post(webHookUrl, {});
-        console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
-        console.log("Fairmint response:", resp.data);
-    }
+    // const fairmintData: any = await readFairmintDataById(issuerId);
+    // if (fairmintData !== null && fairmintData._id) {
+    //     console.log("Fairmint data", fairmintData._id);
+    //     console.log("Reflecting Issuer into fairmint...");
+    //     const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
+    //     const resp = await axios.post(webHookUrl, {});
+    //     console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
+    //     console.log("Fairmint response:", resp.data);
+    // }
 
     const events = await contract.queryFilter(contract.filters.IssuerCreated);
     if (events.length === 0) {
@@ -177,12 +182,11 @@ const issuerDeployed = async (issuerId, receipt, contract, dbConn) => {
     }
     const issuerCreatedEventId = events[0].args[0];
     console.log("IssuerCreated event captured!", { issuerCreatedEventId });
-    const lastProcessedBlock = receipt.blockNumber - 1;
+
     await withGlobalTransaction(async () => {
         await verifyIssuerAndSeed(contract, issuerCreatedEventId);
         await updateLastProcessed(issuerId, lastProcessedBlock);
     }, dbConn);
-    return lastProcessedBlock;
 };
 
 const persistEvents = async (issuerId, events: QueuedEvent[]) => {
@@ -194,6 +198,7 @@ const persistEvents = async (issuerId, events: QueuedEvent[]) => {
         // console.log("persistEvent: ", {type, data, timestamp});
         if (txHandleFunc) {
             // @ts-ignore
+            // TODO: check if transaction exists in historical txs
             await txHandleFunc(data, issuerId, timestamp);
             continue;
         }
@@ -216,6 +221,7 @@ export const trimEvents = (origEvents: QueuedEvent[], maxEvents, endBlock) => {
         // Include the entire next block
         const includeBlock = events[index].o.blockNumber;
         index++;
+        // skipping blocs with the same blockNumber
         while (index < events.length && events[index].o.blockNumber === includeBlock) {
             index++;
         }
