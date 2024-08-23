@@ -46,8 +46,8 @@ export const readVestingTermsById = async (id) => {
     return await findById(VestingTerms, id);
 };
 
-export const readHistoricalTransactionById = async (tx) => {
-    return await findOne(HistoricalTransaction, { transaction: tx });
+export const readHistoricalTransactionById = async (txId) => {
+    return await findOne(HistoricalTransaction, { transaction: txId });
 };
 
 // READ Multiple
