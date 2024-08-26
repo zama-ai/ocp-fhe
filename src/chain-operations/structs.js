@@ -46,10 +46,21 @@ export const StockIssuance = {
                 { type: "string", baseType: "string", name: "stockholder_approval_date" },
                 { type: "string", baseType: "string", name: "consideration_text" },
                 {
-                    type: "string[]",
+                    type: "tuple(string, string)[]",
                     baseType: "array",
                     arrayLength: -1,
-                    arrayChildren: { type: "string", baseType: "string" },
+                    components: [
+                        {
+                            name: "description",
+                            type: "string",
+                            baseType: "string",
+                        },
+                        {
+                            name: "jurisdiction",
+                            type: "string",
+                            baseType: "string",
+                        },
+                    ],
                     name: "security_law_exemptions",
                 },
             ],
