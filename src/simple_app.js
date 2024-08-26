@@ -14,8 +14,9 @@ import stockPlanRoutes from "./routes/stockPlan.js";
 import transactionRoutes from "./routes/transactions.js";
 import valuationRoutes from "./routes/valuation.js";
 import vestingTermsRoutes from "./routes/vestingTerms.js";
-import dashboard from "./routes/dashboard.js";
+import dashboardRoutes from "./routes/dashboard.js";
 import exportRoutes from "./routes/export.js";
+import ocfRoutes from "./routes/ocf.js";
 
 import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
@@ -74,8 +75,9 @@ app.use("/stock-plan", stockPlanRoutes);
 app.use("/valuation", valuationRoutes);
 app.use("/vesting-terms", vestingTermsRoutes);
 app.use("/historical-transactions", historicalTransactions);
-app.use("/dashboard", dashboard);
+app.use("/dashboard", dashboardRoutes);
 app.use("/export", exportRoutes);
+app.use("/ocf", ocfRoutes);
 
 // transactions
 app.use("/transactions/", contractMiddleware, transactionRoutes);
