@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/console.sol";
 
 import "./CapTable.t.sol";
-import { InitialShares, IssuerInitialShares, StockClassInitialShares, Issuer, StockClass, StockIssuanceParams, ShareNumbersIssued, StockIssuance, StockTransfer, StockParams } from "../src/lib/Structs.sol";
+import { InitialShares, IssuerInitialShares, StockClassInitialShares, Issuer, StockClass, StockIssuanceParams, ShareNumbersIssued, StockIssuance, StockTransfer, StockParams, SecurityLawExemption} from "../src/lib/Structs.sol";
 
 contract StockIssuanceTest is CapTableTest {
     function createDummyStockIssuance(bytes16 stockClassId, bytes16 stakeholderId, uint256 quantity) private pure returns (StockIssuance memory) {
@@ -24,7 +24,7 @@ contract StockIssuanceTest is CapTableTest {
             board_approval_date: "2023-01-01",
             stockholder_approval_date: "2023-01-02",
             consideration_text: "For services rendered",
-            security_law_exemptions: new string[](0)
+            security_law_exemptions: new SecurityLawExemption[](0)
         });
         return
             StockIssuance({
@@ -90,7 +90,7 @@ contract StockIssuanceTest is CapTableTest {
             board_approval_date: "2023-01-01",
             stockholder_approval_date: "2023-01-02",
             consideration_text: "For services rendered",
-            security_law_exemptions: new string[](0)
+            security_law_exemptions: new SecurityLawExemption[](0)
         });
 
         vm.expectRevert("Issuer: Insufficient shares authorized");
@@ -117,7 +117,7 @@ contract StockIssuanceTest is CapTableTest {
             board_approval_date: "2023-01-01",
             stockholder_approval_date: "2023-01-02",
             consideration_text: "For services rendered",
-            security_law_exemptions: new string[](0)
+            security_law_exemptions: new SecurityLawExemption[](0)
         });
 
         vm.expectRevert("StockClass: Insufficient shares authorized");
