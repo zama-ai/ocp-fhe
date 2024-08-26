@@ -37,6 +37,11 @@ struct ShareNumbersIssued {
     uint256 ending_share_number;
 }
 
+struct SecurityLawExemption {
+    string description;
+    string jurisdiction;
+}
+
 struct IssuerInitialShares {
     uint256 shares_authorized;
     uint256 shares_issued;
@@ -173,7 +178,7 @@ struct StockIssuanceParams {
     string board_approval_date; // Optional
     string stockholder_approval_date; // Optional
     string consideration_text; // Optional
-    string[] security_law_exemptions; // Unclear
+    SecurityLawExemption[] security_law_exemptions; // Optional
 }
 
 // date fields are going to use block timestamp

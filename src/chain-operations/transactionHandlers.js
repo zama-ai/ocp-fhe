@@ -59,8 +59,9 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         security_law_exemptions,
     } = params;
 
-    const series_id = convertBytes16ToUUID(get(comments, "0", null));
+    let series_id = comments && comments.length > 0 ? convertBytes16ToUUID(comments[0]) : null;
     const fairmintData = await readFairmintDataBySeriesId(series_id);
+    console.log({ security_law_exemptions });
 
     const sharePriceOCF = {
         amount: toDecimal(share_price).toString(),
