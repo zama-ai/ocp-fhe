@@ -48,7 +48,7 @@ async function validateEntity(inputEntities, schema) {
     }
 }
 
-async function processTransactionEntity(txs) {
+export async function processTransactionEntity(txs) {
     for (let tx of txs.items) {
         let schema;
         switch (tx.object_type) {
@@ -87,6 +87,13 @@ async function processTransactionEntity(txs) {
                 break;
             default:
                 throw new Error(`${tx.object_type} is not mapped - please add the transaction validation to the schema`);
+        }
+
+        if (tx?.series_id) {
+            delete tx.series_id;
+        }
+        if (tx?.series_name) {
+            delete tx.series_name;
         }
 
         await validateInputAgainstOCF(tx, schema);
