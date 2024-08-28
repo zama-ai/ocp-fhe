@@ -14,7 +14,7 @@ import stockPlanRoutes from "./routes/stockPlan.js";
 import transactionRoutes from "./routes/transactions.js";
 import valuationRoutes from "./routes/valuation.js";
 import vestingTermsRoutes from "./routes/vestingTerms.js";
-import dashboardRoutes from "./routes/dashboard.js";
+import statsRoutes from "./routes/stats/index.js";
 import exportRoutes from "./routes/export.js";
 import ocfRoutes from "./routes/ocf.js";
 
@@ -75,7 +75,7 @@ app.use("/stock-plan", stockPlanRoutes);
 app.use("/valuation", valuationRoutes);
 app.use("/vesting-terms", vestingTermsRoutes);
 app.use("/historical-transactions", historicalTransactions);
-app.use("/dashboard", dashboardRoutes);
+app.use("/stats", statsRoutes);
 app.use("/export", exportRoutes);
 app.use("/ocf", ocfRoutes);
 
