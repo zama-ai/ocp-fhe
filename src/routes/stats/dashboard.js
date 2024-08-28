@@ -62,7 +62,6 @@ const calculateDashboardStats = async (issuerId) => {
     // total shares calculation
     const latestAuthorizedSharesAdjustment = await IssuerAuthorizedSharesAdjustment.findOne({ issuer_id: issuerId }).sort({ date: -1 });
     const issuer = await Issuer.findById(issuerId);
-    console.log({ issuer });
     const totalShares = latestAuthorizedSharesAdjustment
         ? Number(get(latestAuthorizedSharesAdjustment, "new_shares_authorized"))
         : Number(get(issuer, "initial_shares_authorized"));
@@ -83,7 +82,6 @@ const calculateDashboardStats = async (issuerId) => {
             .filter((iss) => !filteredStakeholderIds.has(iss.stakeholder_id)) // skip founders for total stock amount calculation
             .reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
         const outstandingShares = totalStockIssuanceShares + stockPlanAmount;
-        console.log({ outstandingShares, totalStockIssuanceShares, stockPlanAmount, sharePrice });
         if (!outstandingShares || !sharePrice) return null;
         // Outstanding shares: shares reserved
         return {
