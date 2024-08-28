@@ -1,7 +1,7 @@
 import { find } from "../../db/operations/atomic.js";
-import StockIssuance from "../../db/objects/transactions/issuance/StockIssuance.js";
 import get from "lodash/get";
 import Stockclass from "../../db/objects/StockClass.js";
+import { getStockIssuances } from "./helpers.js";
 
 const StockClassTypes = {
     COMMON: "COMMON",
@@ -10,10 +10,6 @@ const StockClassTypes = {
 
 const getAllStockClasses = async (issuerId) => {
     return (await find(Stockclass, { issuer: issuerId })) || [];
-};
-
-const getStockIssuances = async (issuerId) => {
-    return await find(StockIssuance, { issuer: issuerId });
 };
 
 const calculateTotalSharesAuthorized = (stockClasses) => {
