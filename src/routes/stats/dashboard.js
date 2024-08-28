@@ -1,25 +1,18 @@
-import { Router } from "express";
-import { find } from "../db/operations/atomic";
-import Stakeholder from "../db/objects/Stakeholder.js";
-import StockPlan from "../db/objects/StockPlan.js";
-import StockIssuance from "../db/objects/transactions/issuance/StockIssuance.js";
-import ConvertibleIssuance from "../db/objects/transactions/issuance/ConvertibleIssuance.js";
-import IssuerAuthorizedSharesAdjustment from "../db/objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
-import Issuer from "../db/objects/Issuer.js";
-
+import { find } from "../../db/operations/atomic.js";
+import Stakeholder from "../../db/objects/Stakeholder.js";
+import StockPlan from "../../db/objects/StockPlan.js";
+import StockIssuance from "../../db/objects/transactions/issuance/StockIssuance.js";
+import ConvertibleIssuance from "../../db/objects/transactions/issuance/ConvertibleIssuance.js";
+import IssuerAuthorizedSharesAdjustment from "../../db/objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
+import Issuer from "../../db/objects/Issuer.js";
 import get from "lodash/get";
-import { readIssuerById } from "../db/operations/read.js";
 
-const dashboard = Router();
-
-dashboard.get("/", async (req, res) => {
-    const { issuerId } = req.query;
-    if (!issuerId) {
-        console.log("❌ | No issuer ID");
-        return res.status(400).send("issuerId is required");
-    }
-
-    await readIssuerById(issuerId);
+const calculateDashboardStats = async (issuerId) => {
+    /*
+        1. calculating ownership requires calculation total issuances which in case of cancelation the calculation will be wrong, therefore we need better way to get the latest ownership.
+        One way we can get through active positions from smart contract
+        2. Stock Plan Reissue is not considered in the ownership calculation: need to keep that in mind
+    */
     const stockIssuances = await find(StockIssuance, { issuer: issuerId });
     const totalStockIssuanceShares = stockIssuances.reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
 
@@ -79,9 +72,10 @@ dashboard.get("/", async (req, res) => {
     const sharePrice = get(latestStockIssuance, "share_price.amount", null);
 
     // fully diluted shares calculation
-    const totalEquityCompensationIssuances = stockIssuances
+    const totalEquityCompensationIssuances = stockIssuances // BUG: it should be equity compensation issuances
         .filter((issuance) => !issuance.stock_class_id)
         .reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
+
     const fullyDilutedShares = totalStockIssuanceShares + totalEquityCompensationIssuances;
 
     const getStockIssuanceValuation = () => {
@@ -126,37 +120,27 @@ dashboard.get("/", async (req, res) => {
     };
 
     /* 
-        Valuation Calculation:
-        latest issuance either Convertible with valuation cap or stock issuance
-        for stock issuance calculation:
-            outstanding shares * share price
-        for convertible issuance calculation:
-            conversion valuation cap
-    */
+      Valuation Calculation:
+      latest issuance either Convertible with valuation cap or stock issuance
+      for stock issuance calculation:
+          outstanding shares * share price
+      for convertible issuance calculation:
+          conversion valuation cap
+  */
     const stockIssuanceValuation = getStockIssuanceValuation();
     const convertibleIssuanceValuation = getConvertibleIssuanceValuation();
     const valuations = [stockIssuanceValuation, convertibleIssuanceValuation].filter((val) => val && Object.keys(val).length > 0);
     valuations.sort((a, b) => b.createdAt - a.createdAt);
     const valuation = valuations.length > 0 ? valuations[0] : null;
-
-    /*
-        1. calculating ownership requires calcalationg total issuances which in case of cancelation the calculation will be wrong, therefore we need better way to get the latest ownership.
-        One way we can get through active postions from smart contract
-        2. Stock Plan Reissue is not considered in the ownership calculation: need to keep that in mind
-    */
-
-    const totalStakeholders = stakeholders.length;
-
-    res.status(200).send({
+    return {
         ownership,
         fullyDilutedShares,
-        numOfStakeholders: totalStakeholders,
+        numOfStakeholders: stakeholders.length,
         totalRaised,
         stockPlanAmount,
         totalShares,
         sharePrice,
         valuation,
-    });
-});
-
-export default dashboard;
+    };
+};
+export default calculateDashboardStats;
