@@ -152,6 +152,7 @@ const calculateDashboardStats = async (issuerId) => {
         const issuer = await getIssuer(issuerId);
         const latestStockIssuance = await getLatestStockIssuance(issuerId);
 
+        // pass stock
         const totalSharesOutstanding = calculateTotalShares(stockIssuances, stockPlans);
         const stakeholderShares = calculateStakeholderShares(stakeholders, stockIssuances);
         const ownership = calculateOwnership(stakeholderShares, totalSharesOutstanding);
@@ -197,12 +198,13 @@ const calculateDashboardStats = async (issuerId) => {
         valuations.sort((a, b) => b.createdAt - a.createdAt);
         const valuation = valuations.length > 0 ? valuations[0] : null;
 
+        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
         return {
             ownership,
             fullyDilutedShares,
             numOfStakeholders: stakeholders.length,
             totalRaised,
-            stockPlanAmount: totalSharesOutstanding - totalShares,
+            stockPlanAmount,
             totalShares,
             sharePrice,
             valuation,
