@@ -8,6 +8,7 @@ export const reflectStakeholder = async ({ issuerId, stakeholder }) => {
 
     let webHookUrl = `${API_URL}/ocp/reflectStakeholder?portalId=${issuerId}`;
     try {
+        const address = get(stakeholder, "addresses.0");
         const body = {
             // use primary contact if the main name info not available
             legal_name: get(stakeholder, "name.legal_name", null) || get(stakeholder, "primary_contact.name.legal_name"),
@@ -16,6 +17,12 @@ export const reflectStakeholder = async ({ issuerId, stakeholder }) => {
             stakeholder_id: get(stakeholder, "_id"),
             stakeholder_type: get(stakeholder, "stakeholder_type"),
             email: get(stakeholder, "contact_info.emails.0.email_address"),
+            address: get(address, "street_suite"),
+            city: get(address, "city"),
+            state_code: get(address, "country_subdivision"),
+            zipcode: get(address, "postal_code"),
+            country_code: get(address, "country"),
+            tax_id: get(stakeholder, "tax_ids.0.tax_id"),
         };
         console.log({ body });
 
