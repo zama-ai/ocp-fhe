@@ -101,11 +101,12 @@ const calculateFullyDilutedShares = (totalStockIssuanceShares, equityCompensatio
     return totalStockIssuanceShares + totalEquityCompensationIssuances;
 };
 
-const getStockIssuanceValuation = (stockIssuances, stockPlanAmount, sharePrice, filteredStakeholderIds, latestStockIssuance) => {
+const getStockIssuanceValuation = (stockIssuances, sharePrice, filteredStakeholderIds, latestStockIssuance) => {
+    // excluding founders and board members
     const totalStockIssuanceShares = stockIssuances
         .filter((iss) => !filteredStakeholderIds.has(iss.stakeholder_id))
         .reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
-    const outstandingShares = totalStockIssuanceShares + stockPlanAmount;
+    const outstandingShares = totalStockIssuanceShares;
     if (!outstandingShares || !sharePrice) return null;
     return {
         type: "STOCK",
@@ -151,6 +152,7 @@ const calculateDashboardStats = async (issuerId) => {
         const latestAuthorizedSharesAdjustment = await getLatestAuthorizedSharesAdjustment(issuerId);
         const issuer = await getIssuer(issuerId);
         const latestStockIssuance = await getLatestStockIssuance(issuerId);
+        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
 
         // pass stock
         const totalSharesOutstanding = calculateTotalShares(stockIssuances, stockPlans);
@@ -177,13 +179,7 @@ const calculateDashboardStats = async (issuerId) => {
 
         const fullyDilutedShares = calculateFullyDilutedShares(totalSharesOutstanding, equityCompensationIssuances);
 
-        const stockIssuanceValuation = getStockIssuanceValuation(
-            stockIssuances,
-            totalSharesOutstanding,
-            sharePrice,
-            filteredStakeholderIds,
-            latestStockIssuance
-        );
+        const stockIssuanceValuation = getStockIssuanceValuation(stockIssuances, sharePrice, filteredStakeholderIds, latestStockIssuance);
         const convertibleIssuanceValuation = getConvertibleIssuanceValuation(convertibleIssuances);
 
         /* 
@@ -198,7 +194,6 @@ const calculateDashboardStats = async (issuerId) => {
         valuations.sort((a, b) => b.createdAt - a.createdAt);
         const valuation = valuations.length > 0 ? valuations[0] : null;
 
-        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
         return {
             ownership,
             fullyDilutedShares,
