@@ -59,8 +59,21 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         security_law_exemptions,
     } = params;
 
-    let series_id = comments && comments.length > 0 ? convertBytes16ToUUID(comments[0]) : null;
-    let historicalDate = comments && comments.length > 1 ? comments[1] : null;
+    let series_id = null;
+    let historicalDate = null;
+
+    if (comments && comments.length > 0) {
+        comments.forEach((comment) => {
+            if (comment.includes("fairmintData")) {
+                const [key, value] = comment.split("=");
+                if (key === "fairmintData") {
+                    const fairmintData = JSON.parse(value);
+                    series_id = fairmintData.series_id;
+                    historicalDate = fairmintData.date;
+                }
+            }
+        });
+    }
 
     const fairmintData = await readFairmintDataBySeriesId(series_id);
     console.log({ security_law_exemptions });

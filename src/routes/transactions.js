@@ -110,7 +110,10 @@ transactions.post("/issuance/stock-fairmint-reflection", async (req, res) => {
 
         const stakeholder = await readStakeholderById(incomingStockIssuance.stakeholder_id);
         const stockClass = await readStockClassById(incomingStockIssuance.stock_class_id);
-        incomingStockIssuance.comments = [payload.series_id, payload.data.date, ...(incomingStockIssuance.comments || [])];
+        incomingStockIssuance.comments = [
+            `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
+            ...(incomingStockIssuance.comments || []),
+        ];
 
         // check if the stakeholder exists on OCP
         if (!stakeholder || !stakeholder._id) {
