@@ -101,12 +101,12 @@ const calculateFullyDilutedShares = (totalStockIssuanceShares, equityCompensatio
     return totalStockIssuanceShares + totalEquityCompensationIssuances;
 };
 
-const getStockIssuanceValuation = (stockIssuances, stockPlanAmount, sharePrice, filteredStakeholderIds, latestStockIssuance) => {
+const getStockIssuanceValuation = (stockIssuances, sharePrice, filteredStakeholderIds, latestStockIssuance) => {
     // excluding founders and board members
     const totalStockIssuanceShares = stockIssuances
         .filter((iss) => !filteredStakeholderIds.has(iss.stakeholder_id))
         .reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
-    const outstandingShares = totalStockIssuanceShares + stockPlanAmount;
+    const outstandingShares = totalStockIssuanceShares;
     if (!outstandingShares || !sharePrice) return null;
     return {
         type: "STOCK",
@@ -179,13 +179,7 @@ const calculateDashboardStats = async (issuerId) => {
 
         const fullyDilutedShares = calculateFullyDilutedShares(totalSharesOutstanding, equityCompensationIssuances);
 
-        const stockIssuanceValuation = getStockIssuanceValuation(
-            stockIssuances,
-            stockPlanAmount,
-            sharePrice,
-            filteredStakeholderIds,
-            latestStockIssuance
-        );
+        const stockIssuanceValuation = getStockIssuanceValuation(stockIssuances, sharePrice, filteredStakeholderIds, latestStockIssuance);
         const convertibleIssuanceValuation = getConvertibleIssuanceValuation(convertibleIssuances);
 
         /* 
