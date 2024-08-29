@@ -102,6 +102,7 @@ const calculateFullyDilutedShares = (totalStockIssuanceShares, equityCompensatio
 };
 
 const getStockIssuanceValuation = (stockIssuances, stockPlanAmount, sharePrice, filteredStakeholderIds, latestStockIssuance) => {
+    // excluding founders and board members
     const totalStockIssuanceShares = stockIssuances
         .filter((iss) => !filteredStakeholderIds.has(iss.stakeholder_id))
         .reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
@@ -151,6 +152,7 @@ const calculateDashboardStats = async (issuerId) => {
         const latestAuthorizedSharesAdjustment = await getLatestAuthorizedSharesAdjustment(issuerId);
         const issuer = await getIssuer(issuerId);
         const latestStockIssuance = await getLatestStockIssuance(issuerId);
+        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
 
         // pass stock
         const totalSharesOutstanding = calculateTotalShares(stockIssuances, stockPlans);
@@ -179,7 +181,7 @@ const calculateDashboardStats = async (issuerId) => {
 
         const stockIssuanceValuation = getStockIssuanceValuation(
             stockIssuances,
-            totalSharesOutstanding,
+            stockPlanAmount,
             sharePrice,
             filteredStakeholderIds,
             latestStockIssuance
@@ -198,7 +200,6 @@ const calculateDashboardStats = async (issuerId) => {
         valuations.sort((a, b) => b.createdAt - a.createdAt);
         const valuation = valuations.length > 0 ? valuations[0] : null;
 
-        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
         return {
             ownership,
             fullyDilutedShares,
