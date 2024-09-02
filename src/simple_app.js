@@ -92,6 +92,7 @@ const startServer = async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
         // Fetch all issuers
         const issuers = (await readAllIssuers()) || [];
+        console.log(`Number of issuers: ${issuers.length}`);
         for (const issuer of issuers) {
             if (!issuer.deployed_to) continue; // skip non deployed issuers
             // Create a new contract instance for each issuer
