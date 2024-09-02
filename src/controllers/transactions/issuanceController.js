@@ -1,7 +1,6 @@
 import { convertUUIDToBytes16 } from "../../utils/convertUUID.js";
 import { toScaledBigNumber } from "../../utils/convertToFixedPointDecimals.js";
-import { isCallException, Interface } from "ethers";
-import CAP_TABLE_ABI from "../../../chain/out/CapTable.sol/CapTable.json" assert { type: "json" };
+import { withChainErrorHandler } from "../helper.js";
 
 const checkIssuanceValues = (issuance) => {
     return {
@@ -24,10 +23,7 @@ const checkIssuanceValues = (issuance) => {
     };
 };
 
-// Create an Interface instance
-const iface = new Interface(CAP_TABLE_ABI.abi);
-
-export const convertAndCreateIssuanceStockOnchain = async (contract, issuance) => {
+export const convertAndCreateIssuanceStockOnchain = withChainErrorHandler(async (contract, issuance) => {
     const checkedValues = checkIssuanceValues(issuance);
     const {
         stakeholder_id,
@@ -54,38 +50,27 @@ export const convertAndCreateIssuanceStockOnchain = async (contract, issuance) =
         stockLegendIdsBytes16.push(legendIdBytes16);
     }
 
-    try {
-        // Second: create issuance onchain
-        const tx = await contract.issueStock({
-            stock_class_id: convertUUIDToBytes16(stock_class_id),
-            stock_plan_id: convertUUIDToBytes16(stock_plan_id),
-            share_numbers_issued, // not converted
-            share_price: toScaledBigNumber(share_price.amount),
-            quantity: toScaledBigNumber(quantity),
-            vesting_terms_id: convertUUIDToBytes16(vesting_terms_id),
-            cost_basis, // not converted
-            stock_legend_ids: stockLegendIdsBytes16,
-            issuance_type,
-            comments,
-            custom_id,
-            stakeholder_id: convertUUIDToBytes16(stakeholder_id),
-            board_approval_date,
-            stockholder_approval_date,
-            consideration_text,
-            security_law_exemptions,
-        });
-        await tx.wait();
-        console.log("Transaction hash:", tx.hash);
+    // Second: create issuance onchain
+    const tx = await contract.issueStock({
+        stock_class_id: convertUUIDToBytes16(stock_class_id),
+        stock_plan_id: convertUUIDToBytes16(stock_plan_id),
+        share_numbers_issued, // not converted
+        share_price: toScaledBigNumber(share_price.amount),
+        quantity: toScaledBigNumber(quantity),
+        vesting_terms_id: convertUUIDToBytes16(vesting_terms_id),
+        cost_basis, // not converted
+        stock_legend_ids: stockLegendIdsBytes16,
+        issuance_type,
+        comments,
+        custom_id,
+        stakeholder_id: convertUUIDToBytes16(stakeholder_id),
+        board_approval_date,
+        stockholder_approval_date,
+        consideration_text,
+        security_law_exemptions,
+    });
+    await tx.wait();
+    console.log("Transaction hash:", tx.hash);
 
-        console.log("✅ | Issued stock onchain, unconfirmed: ", issuance);
-    } catch (error) {
-        if (isCallException(error)) {
-            const errorData = error.data;
-            const decodedError = iface.parseError(errorData);
-            console.log("here", decodedError);
-            throw new Error(`Error issuing stock: ${JSON.stringify(decodedError, null, 2)}`);
-        } else {
-            throw new Error(`Error issuing stock: ${error.message}`);
-        }
-    }
-};
+    console.log("✅ | Issued stock onchain, unconfirmed: ", issuance);
+});
