@@ -19,7 +19,7 @@ const checkIssuanceValues = (issuance) => {
         board_approval_date: issuance.board_approval_date || "",
         stockholder_approval_date: issuance.stockholder_approval_date || "",
         consideration_text: issuance.consideration_text || "",
-        security_law_exemptions: [], //  issuance.security_law_exemptions
+        security_law_exemptions: issuance.security_law_exemptions || [],
     };
 };
 
