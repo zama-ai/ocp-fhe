@@ -63,7 +63,7 @@ stockClass.post("/create", async (req, res) => {
         console.log("stockClassId", data.id);
         const exists = await readStockClassById(incomingStockClassToValidate.id);
         if (exists && exists._id) {
-            return res.status(200).send({ stockClass: exists });
+            return res.status(200).send({ message: "StockClass already exists", stockClass: exists });
         }
 
         await convertAndReflectStockClassOnchain(contract, incomingStockClassForDB);
