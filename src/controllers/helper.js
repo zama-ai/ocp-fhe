@@ -1,7 +1,8 @@
-import { isCallException, Interface } from "ethers";
-import CAP_TABLE_ABI from "../../chain/out/CapTable.sol/CapTable.json" assert { type: "json" };
+import { isCallException, isError, Interface } from "ethers";
+import CAP_TABLE from "../../chain/out/CapTable.sol/CapTable.json" assert { type: "json" };
+
 // Create an Interface instance
-const iface = new Interface(CAP_TABLE_ABI.abi);
+const icap = new Interface(CAP_TABLE.abi);
 
 export const withChainErrorHandler =
     (fn) =>
@@ -10,11 +11,18 @@ export const withChainErrorHandler =
             return await fn(...args);
         } catch (error) {
             if (isCallException(error)) {
-                const decodedError = iface.parseError(error.data);
-                console.error(`Decoded error: ${decodedError.name}`, decodedError.args);
-                throw new Error(`Decoded error - ${decodedError.name}: ${JSON.stringify(decodedError.args, null, 2)}`);
-            } else {
-                throw new Error("Unhandled error:", error?.message);
+                console.log("incoming error", error);
+                try {
+                    const decodedError = icap.parseError(error.data);
+                    console.error(`Onchain error: ${decodedError.name}`, decodedError.args);
+                    throw new Error(`Onchain - ${decodedError.name}: ${decodedError.args}`);
+                } catch (parseError) {
+                    console.log("captable interface decoding failed - trying stock lib interface");
+                    const decodedError = icap.parseTransaction(error.transaction);
+                    console.log({ decodedError });
+                    console.error(`Onchain error: ${decodedError.name}`, decodedError.args);
+                    throw new Error(`Onchain - ${decodedError.name}: ${decodedError.args}`);
+                }
             }
             throw error; // Re-throw the error after logging
         }
