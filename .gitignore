@@ -47,6 +47,4 @@ tsconfig.tsbuildinfo
 # Private keys
 *.pem
 .env.*
-!chain/out/CapTable.sol/Captable.json
-!chain/out/TxHelper.sol/TxHelper.json
-chain/out/*
+!chain/out
