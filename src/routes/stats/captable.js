@@ -35,19 +35,7 @@ const calculateTotalVotingPower = (stockClasses, totalStockIssuanceSharesByStock
     }, 0);
 };
 
-/* calculates the summary of stock classes
-1. totalSharesAuthorized
-2. children
-    a. name
-    b. initialSharesAuthorized
-    c. outstandingShares
-    d. fullyDilutedShares
-    e. fullyDilutedPercentage
-    f. liquidationPreference
-    g. votingPower
-    h. votingPowerPercentage
-*/
-// STILL needs work in progress
+
 const calculateWarrantsAndNonPlanAwardsSummary = (
     warrants,
     equityCompensationIssuances,
@@ -94,6 +82,18 @@ const calculateWarrantsAndNonPlanAwardsSummary = (
     });
 };
 
+/* calculates the summary of stock classes
+1. totalSharesAuthorized
+2. children
+    a. name
+    b. initialSharesAuthorized
+    c. outstandingShares
+    d. fullyDilutedShares
+    e. fullyDilutedPercentage
+    f. liquidationPreference
+    g. votingPower
+    h. votingPowerPercentage
+*/
 const calculateStockClassSummary = (stockClasses, totalStockIssuanceSharesByStockClass, totalSharesAuthorized, totalVotingPower) => {
     return {
         totalSharesAuthorized: totalSharesAuthorized ? String(totalSharesAuthorized) : null,
@@ -118,20 +118,30 @@ const StockIssuanceTypes = {
 };
 
 const calculateFounderPreferredSummary = (
-    founderPreferredStockClasses,
+    founderPreferredStockClasses, // preferred and founder class type
     totalStockIssuanceSharesByStockClass,
     totalSharesAuthorized,
     totalVotingPower
 ) => {
     const initialSharesAuthorized = calculateTotalSharesAuthorized(founderPreferredStockClasses);
+    console.log("initialSharesAuthorized", initialSharesAuthorized);
+
+    // According to thibauld, outstanding and fully diluted shares are the same for founder preferred stock class
     const outstandingShares = founderPreferredStockClasses.reduce((acc, stockClass) => {
         return acc + (totalStockIssuanceSharesByStockClass[stockClass._id] || 0);
     }, 0);
     const fullyDilutedShares = outstandingShares;
+
+    console.log("fullyDilutedShares", fullyDilutedShares);
+
     const fullyDilutedPercentage = totalSharesAuthorized ? (fullyDilutedShares / totalSharesAuthorized).toFixed(2) : null;
+
+    // TODO: we do not add liqudidation preference, I think we take the first one
     const liquidationPreference = founderPreferredStockClasses.reduce((acc, stockClass) => {
         return acc + (Number(stockClass.liquidation_preference_multiple) || 0);
     }, 0);
+
+    // TODO: same here, verify
     const votingPower = founderPreferredStockClasses.reduce((acc, stockClass) => {
         const shares = totalStockIssuanceSharesByStockClass[stockClass._id] || 0;
         return acc + Number(stockClass.votes_per_share) * shares;
@@ -150,6 +160,7 @@ const calculateFounderPreferredSummary = (
 };
 
 const calculateCaptableStats = async (issuerId) => {
+    // First Section: Stock Classes
     const allStockClasses = await getAllStockClasses(issuerId);
     const stockIssuances = await getStockIssuances(issuerId);
     const warrants = await getAllWarrants(issuerId); // Assuming a function to get warrants
@@ -164,6 +175,8 @@ const calculateCaptableStats = async (issuerId) => {
         return acc;
     }, {});
 
+    console.log("totalStockIssuanceSharesByStockClass", totalStockIssuanceSharesByStockClass);
+
     const commonStockClasses = allStockClasses.filter((stockClass) => stockClass.class_type === StockClassTypes.COMMON);
     const preferredStockClasses = allStockClasses.filter((stockClass) => stockClass.class_type === StockClassTypes.PREFERRED);
     const founderPreferredStockClasses = allStockClasses.filter(
@@ -174,6 +187,8 @@ const calculateCaptableStats = async (issuerId) => {
             )
     );
 
+    console.log("commonStockClasses", commonStockClasses);
+
     const commonTotalSharesAuthorized = calculateTotalSharesAuthorized(commonStockClasses);
     const preferredTotalSharesAuthorized = calculateTotalSharesAuthorized(preferredStockClasses);
     const founderPreferredTotalSharesAuthorized = calculateTotalSharesAuthorized(founderPreferredStockClasses);
@@ -183,6 +198,8 @@ const calculateCaptableStats = async (issuerId) => {
     // const founderPreferredTotalVotingPower = calculateTotalVotingPower(founderPreferredStockClasses, totalStockIssuanceSharesByStockClass);
 
     const totalVotingPower = commonTotalVotingPower + preferredTotalVotingPower;
+
+    // Second Section: Warrants and Non-Plan Awards
     const warrantsAndNonPlanAwardsSummary = calculateWarrantsAndNonPlanAwardsSummary(
         warrants,
         equityCompensationIssuances.filter((issuance) => !issuance.stock_plan_id),
@@ -190,6 +207,9 @@ const calculateCaptableStats = async (issuerId) => {
         commonTotalSharesAuthorized + preferredTotalSharesAuthorized + founderPreferredTotalSharesAuthorized,
         totalVotingPower
     );
+
+    // Third Section (second tab): Convertibles
+
 
     return {
         summary: {
@@ -206,7 +226,6 @@ const calculateCaptableStats = async (issuerId) => {
                     preferredTotalSharesAuthorized,
                     totalVotingPower
                 ),
-                // need to review: do we need to display children stock classes of this summary?
                 founderPreferred: calculateFounderPreferredSummary(
                     founderPreferredStockClasses,
                     totalStockIssuanceSharesByStockClass,
