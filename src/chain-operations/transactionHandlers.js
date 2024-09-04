@@ -59,7 +59,22 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         security_law_exemptions,
     } = params;
 
-    let series_id = comments && comments.length > 0 ? convertBytes16ToUUID(comments[0]) : null;
+    let series_id = null;
+    let historicalDate = null;
+
+    if (comments && comments.length > 0) {
+        comments.forEach((comment) => {
+            if (comment.includes("fairmintData")) {
+                const [key, value] = comment.split("=");
+                if (key === "fairmintData") {
+                    const fairmintData = JSON.parse(value);
+                    series_id = fairmintData.series_id;
+                    historicalDate = fairmintData.date;
+                }
+            }
+        });
+    }
+
     const fairmintData = await readFairmintDataBySeriesId(series_id);
     console.log({ security_law_exemptions });
 
@@ -69,7 +84,8 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
     };
 
     // Type represention of an ISO-8601 date, e.g. 2022-01-28.
-    const dateOCF = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+
     const costBasisOCF = { amount: toDecimal(cost_basis).toString(), currency: "USD" };
     const share_numbers_issuedOCF = [
         {
@@ -100,7 +116,7 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         issuance_type: issuance_type,
         comments,
         security_id: _security_id,
-        date: dateOCF,
+        date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
         custom_id,
         stakeholder_id: stakeholder._id,
         board_approval_date,
@@ -130,7 +146,7 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
             series_name: get(fairmintData, "attributes.series_name"),
             series_type: SERIES_TYPE.SHARES,
             price_per_share: get(sharePriceOCF, "amount", null),
-            date: dateOCF,
+            date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
         });
 
         console.log("series created response ", seriesCreatedResp);
@@ -142,7 +158,7 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
             series_id,
             amount: dollarAmount,
             number_of_shares: toDecimal(quantity).toString(),
-            date: dateOCF,
+            date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
         });
 
         console.log("stock investment response:", reflectedInvestmentResp);

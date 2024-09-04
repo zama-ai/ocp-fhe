@@ -50,7 +50,6 @@ transactions.post("/issuance/stock", async (req, res) => {
 
     try {
         const issuer = await readIssuerById(issuerId);
-
         const incomingStockIssuance = {
             id: uuid(), // for OCF Validation
             security_id: uuid(), // for OCF Validation
@@ -76,7 +75,7 @@ transactions.post("/issuance/stock", async (req, res) => {
 
 transactions.post("/issuance/stock-fairmint-reflection", async (req, res) => {
     const { contract } = req;
-    const { issuerId, data } = req.body;
+    const { issuerId } = req.body;
 
     /*
     We need new information to pass to Fairmint, like series name
@@ -104,14 +103,17 @@ transactions.post("/issuance/stock-fairmint-reflection", async (req, res) => {
             security_id: uuid(), // for OCF Validation
             date: new Date().toISOString().slice(0, 10), // for OCF Validation
             object_type: "TX_STOCK_ISSUANCE",
-            ...data,
+            ...payload.data,
         };
 
         await validateInputAgainstOCF(incomingStockIssuance, stockIssuanceSchema);
 
         const stakeholder = await readStakeholderById(incomingStockIssuance.stakeholder_id);
         const stockClass = await readStockClassById(incomingStockIssuance.stock_class_id);
-        incomingStockIssuance.comments = [payload.series_id, ...(incomingStockIssuance.comments || [])];
+        incomingStockIssuance.comments = [
+            `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
+            ...(incomingStockIssuance.comments || []),
+        ];
 
         // check if the stakeholder exists on OCP
         if (!stakeholder || !stakeholder._id) {
