@@ -35,7 +35,6 @@ const calculateTotalVotingPower = (stockClasses, totalStockIssuanceSharesByStock
     }, 0);
 };
 
-
 const calculateWarrantsAndNonPlanAwardsSummary = (
     warrants,
     equityCompensationIssuances,
@@ -94,7 +93,13 @@ const calculateWarrantsAndNonPlanAwardsSummary = (
     g. votingPower
     h. votingPowerPercentage
 */
-const calculateStockClassSummary = (stockClasses, totalStockIssuanceSharesByStockClass, totalSharesAuthorized, totalVotingPower) => {
+const calculateStockClassSummary = (
+    stockClasses,
+    totalStockIssuanceSharesByStockClass,
+    totalSharesAuthorized,
+    totalVotingPower,
+    totalOutstandingShares
+) => {
     return {
         totalSharesAuthorized: totalSharesAuthorized ? String(totalSharesAuthorized) : null,
         children: stockClasses.map((stockClass) => {
@@ -105,7 +110,7 @@ const calculateStockClassSummary = (stockClasses, totalStockIssuanceSharesByStoc
                 initialSharesAuthorized: stockClass.initial_shares_authorized,
                 outstandingShares,
                 fullyDilutedShares: outstandingShares,
-                fullyDilutedPercentage: outstandingShares ? (outstandingShares / totalSharesAuthorized).toFixed(2) : null,
+                fullyDilutedPercentage: outstandingShares ? (outstandingShares / totalOutstandingShares).toFixed(2) : null,
                 liquidationPreference: get(stockClass, "liquidation_preference_multiple"),
                 votingPower,
                 votingPowerPercentage: votingPower && totalVotingPower ? (votingPower / totalVotingPower).toFixed(2) : null,
@@ -121,7 +126,8 @@ const calculateFounderPreferredSummary = (
     founderPreferredStockClasses, // preferred and founder class type
     totalStockIssuanceSharesByStockClass,
     totalSharesAuthorized,
-    totalVotingPower
+    totalVotingPower,
+    totalOutstandingShares
 ) => {
     const initialSharesAuthorized = calculateTotalSharesAuthorized(founderPreferredStockClasses);
     console.log("initialSharesAuthorized", initialSharesAuthorized);
@@ -134,7 +140,7 @@ const calculateFounderPreferredSummary = (
 
     console.log("fullyDilutedShares", fullyDilutedShares);
 
-    const fullyDilutedPercentage = totalSharesAuthorized ? (fullyDilutedShares / totalSharesAuthorized).toFixed(2) : null;
+    const fullyDilutedPercentage = totalSharesAuthorized ? (fullyDilutedShares / totalOutstandingShares).toFixed(2) : null;
 
     // TODO: we do not add liqudidation preference, I think we take the first one
     const liquidationPreference = founderPreferredStockClasses.reduce((acc, stockClass) => {
@@ -175,6 +181,8 @@ const calculateCaptableStats = async (issuerId) => {
         return acc;
     }, {});
 
+    const totalOutstandingShares = Object.values(totalStockIssuanceSharesByStockClass).reduce((acc, shares) => acc + shares, 0);
+
     console.log("totalStockIssuanceSharesByStockClass", totalStockIssuanceSharesByStockClass);
 
     const commonStockClasses = allStockClasses.filter((stockClass) => stockClass.class_type === StockClassTypes.COMMON);
@@ -210,7 +218,6 @@ const calculateCaptableStats = async (issuerId) => {
 
     // Third Section (second tab): Convertibles
 
-
     return {
         summary: {
             stockclasses: {
@@ -218,19 +225,22 @@ const calculateCaptableStats = async (issuerId) => {
                     commonStockClasses,
                     totalStockIssuanceSharesByStockClass,
                     commonTotalSharesAuthorized,
-                    totalVotingPower
+                    totalVotingPower,
+                    totalOutstandingShares
                 ),
                 preferred: calculateStockClassSummary(
                     preferredStockClasses,
                     totalStockIssuanceSharesByStockClass,
                     preferredTotalSharesAuthorized,
-                    totalVotingPower
+                    totalVotingPower,
+                    totalOutstandingShares
                 ),
                 founderPreferred: calculateFounderPreferredSummary(
                     founderPreferredStockClasses,
                     totalStockIssuanceSharesByStockClass,
                     founderPreferredTotalSharesAuthorized,
-                    totalVotingPower
+                    totalVotingPower,
+                    totalOutstandingShares
                 ),
                 // WIP - need to review
                 warrantsAndNonPlanAwards: {
