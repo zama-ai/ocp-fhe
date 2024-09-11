@@ -109,7 +109,7 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
         fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
-        liquidationPreference: Math.max(...founderPreferredClasses.map(sc => sc.liquidation_preference_multiple)),
+        liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
         votingPower,
         votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
     };
@@ -123,7 +123,7 @@ const createWarrantAndNonPlanAwardsRow = (issuancesByStockClass, stockClasses, t
         const fullyDilutedShares = issuances.reduce((sum, issuance) => {
             let quantity;
             if (isWarrant) {
-                quantity = Number(issuance.exercise_triggers?.[0]?.conversion_right?.conversion_mechanism?.converts_to_quantity || 0);
+                quantity = Number(get(issuance, 'exercise_triggers[0].conversion_right.conversion_mechanism.converts_to_quantity', 0));
             } else {
                 quantity = Number(issuance.quantity);
             }
@@ -224,11 +224,10 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     const equityCompensationWithPlan = equityCompensationIssuances.filter(issuance => issuance.stock_plan_id);
 
     // Group issuances by stock plan
-    const equityCompensationByStockPlan = groupIssuancesByStockPlanAndType(equityCompensationWithPlan);
+    const equityCompensationByStockPlanAndType = groupIssuancesByStockPlanAndType(equityCompensationWithPlan);
 
-    console.log('equityCompensationByStockPlan', equityCompensationByStockPlan);
 
-    const rows = createEquityCompensationWithPlanAndTypeSummaryRows(equityCompensationByStockPlan, stockPlans, totalOutstandingShares);
+    const rows = createEquityCompensationWithPlanAndTypeSummaryRows(equityCompensationByStockPlanAndType, stockPlans, totalOutstandingShares);
 
     // Calculate total shares authorized and available for grants
     const totalSharesAuthorized = stockPlans.reduce((sum, plan) => sum + Number(plan.initial_shares_reserved), 0);
