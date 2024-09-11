@@ -98,7 +98,7 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
         fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
-        liquidationPreference: Math.max(...founderPreferredClasses.map(sc => sc.liquidation_preference_multiple)),
+        liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
         votingPower,
         votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
     };
