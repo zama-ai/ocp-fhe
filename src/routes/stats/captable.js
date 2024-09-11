@@ -135,22 +135,23 @@ const createWarrantAndNonPlanAwardsRow = (issuancesByStockClass, stockClasses, t
     });
 }
 
-const createEquityCompensationWithPlanSummaryRows = (equityCompensationByStockPlan, stockPlans, totalOutstandingShares) => {
-    return Object.entries(equityCompensationByStockPlan).map(([stockPlanId, issuances]) => {
-        const fullyDilutedShares = issuances.reduce((sum, issuance) => {
-            const quantity = Number(issuance.quantity);
-            return sum + (isNaN(quantity) ? 0 : quantity);
-        }, 0);
-
+const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationByStockPlanAndType, stockPlans, totalOutstandingShares) => {
+    return Object.entries(equityCompensationByStockPlanAndType).flatMap(([stockPlanId, typeIssuances]) => {
         const stockPlan = stockPlans.find(sp => sp._id === stockPlanId);
-        console.log('stockPlan', stockPlan);
-        const name = stockPlan ? `${stockPlan.plan_name}` : 'Unknown Stock Plan';
+        const stockPlanName = stockPlan ? stockPlan.plan_name : 'Unknown Stock Plan';
 
-        return {
-            name,
-            fullyDilutedShares,
-            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
-        };
+        return Object.entries(typeIssuances).map(([compensationType, issuances]) => {
+            const fullyDilutedShares = issuances.reduce((sum, issuance) => {
+                const quantity = Number(issuance.quantity);
+                return sum + (isNaN(quantity) ? 0 : quantity);
+            }, 0);
+
+            return {
+                name: `${stockPlanName} ${compensationType.charAt(0).toUpperCase() + compensationType.slice(1).toLowerCase()}s`,
+                fullyDilutedShares,
+                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
+            };
+        });
     });
 }
 
@@ -164,18 +165,20 @@ const groupIssuancesByStockClass = (issuances, stockClassIdPath) => {
         return acc;
     }, {});
 }
-
-const groupIssuancesByStockPlan = (issuances) => {
+const groupIssuancesByStockPlanAndType = (issuances) => {
     return issuances.reduce((acc, issuance) => {
         const stockPlanId = issuance.stock_plan_id;
+        const compensationType = issuance.compensation_type || 'Unknown';
         if (!acc[stockPlanId]) {
-            acc[stockPlanId] = [];
+            acc[stockPlanId] = {};
         }
-        acc[stockPlanId].push(issuance);
+        if (!acc[stockPlanId][compensationType]) {
+            acc[stockPlanId][compensationType] = [];
+        }
+        acc[stockPlanId][compensationType].push(issuance);
         return acc;
     }, {});
 }
-
 // Note: warrants only have fully diluted shares and fds %
 const calculateWarrantAndNonPlanAwardSummary = (stockClasses, warrantIssuances, equityCompensationIssuancesWithoutStockPlan, totalOutstandingShares) => {
     console.log('warrantIssuances', warrantIssuances);
@@ -210,15 +213,30 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     const equityCompensationWithPlan = equityCompensationIssuances.filter(issuance => issuance.stock_plan_id);
 
     // Group issuances by stock plan
-    const equityCompensationByStockPlan = groupIssuancesByStockPlan(equityCompensationWithPlan);
+    const equityCompensationByStockPlan = groupIssuancesByStockPlanAndType(equityCompensationWithPlan);
 
     console.log('equityCompensationByStockPlan', equityCompensationByStockPlan);
 
-    const rows = createEquityCompensationWithPlanSummaryRows(equityCompensationByStockPlan, stockPlans, totalOutstandingShares);
+    const rows = createEquityCompensationWithPlanAndTypeSummaryRows(equityCompensationByStockPlan, stockPlans, totalOutstandingShares);
+
+    // Calculate total shares authorized and available for grants
+    const totalSharesAuthorized = stockPlans.reduce((sum, plan) => sum + Number(plan.initial_shares_reserved), 0);
+    const totalIssuedShares = equityCompensationWithPlan.reduce((sum, issuance) => sum + Number(issuance.quantity), 0);
+    const availableForGrants = totalSharesAuthorized - totalIssuedShares;
+
+    // Add the 'Available for Grants' row
+    const finalRows = [
+        ...rows,
+        {
+            name: 'Available for Grants',
+            fullyDilutedShares: availableForGrants,
+            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares * 100).toFixed(2)
+        }
+    ];
 
     return {
-        totalSharesAuthorized: stockPlans.reduce((sum, plan) => sum + Number(plan.initial_shares_reserved), 0),
-        rows
+        totalSharesAuthorized,
+        rows: finalRows
     };
 }
 
