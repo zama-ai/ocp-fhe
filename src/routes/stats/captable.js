@@ -443,6 +443,10 @@ const calculateCaptableStats = async (issuerId) => {
     // Calculate convertibles summary separately
     const convertiblesSummary = calculateConvertibleSummary(convertibles, stakeholders, warrantIssuancesWithoutStockClass);
 
+    const totalOutstandingAmountConvertibles = Object.values(convertiblesSummary).reduce((sum, typeSummary) =>
+        sum + typeSummary.outstandingAmount, 0
+    );
+
 
     console.log("total outstanding shares ", totalOutstandingShares)
     return {
@@ -462,10 +466,15 @@ const calculateCaptableStats = async (issuerId) => {
 
             }
         },
-        convertibles: convertiblesSummary,
+        convertibles: {
+            convertiblesSummary,
+            totals: {
+                outstandingAmount: totalOutstandingAmountConvertibles
+            }
+
+        }
+
     }
-
-
 };
 
 export default calculateCaptableStats;
