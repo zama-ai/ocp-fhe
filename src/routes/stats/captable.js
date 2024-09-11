@@ -73,10 +73,10 @@ const calculateStockClassSummary = (stockClasses, stockIssuances, totalOutstandi
             sharesAuthorized: stockClass.initial_shares_authorized,
             outstandingShares,
             fullyDilutedShares: outstandingShares,
-            fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
+            fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
             liquidationPreference: stockClass.liquidation_preference_multiple,
             votingPower,
-            votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
+            votingPercentage: (votingPower / totalVotingPower).toFixed(2)
         };
     }).filter(row => row !== null);
 
@@ -108,10 +108,10 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances,
         outstandingShares,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
-        fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
+        fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
         liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
         votingPower,
-        votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
+        votingPercentage: (votingPower / totalVotingPower).toFixed(2)
     };
 };
 
@@ -141,7 +141,7 @@ const createWarrantAndNonPlanAwardsRow = (issuancesByStockClass, stockClasses, t
         return {
             name,
             fullyDilutedShares,
-            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
+            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
         };
     });
 }
@@ -160,7 +160,7 @@ const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationBy
             return {
                 name: `${stockPlanName} ${compensationType.charAt(0).toUpperCase() + compensationType.slice(1).toLowerCase()}s`,
                 fullyDilutedShares,
-                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
+                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
             };
         });
     });
@@ -240,7 +240,7 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
         {
             name: 'Available for Grants',
             fullyDilutedShares: availableForGrants,
-            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares * 100).toFixed(2)
+            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares).toFixed(2)
         }
     ];
 
@@ -302,21 +302,21 @@ return {
 
 const calculateAverageDiscount = (convertibles) => {
     const discounts = convertibles.map(c =>
-        get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0)
+        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0))
     );
     return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
 }
 
 const calculateAverageValuationCap = (convertibles) => {
     const caps = convertibles.map(c =>
-        get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0)
-    );
+        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0))
+    ).filter(cap => cap > 0);  // Filter out zero values
     return caps.length > 0 ? caps.reduce((a, b) => a + b) / caps.length : 0;
 }
 
 const calculateAverageWarrantDiscount = (warrants) => {
     const discounts = warrants.map(w =>
-        get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0)
+        Number(get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0))
     );
     return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
 }
@@ -336,7 +336,7 @@ const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreated
     const groupedConvertibles = convertibles.reduce((acc, convertible) => {
         let type;
         if (convertible.convertible_type === 'SAFE') {
-            const conversionTiming = get(convertible, 'conversion_triggers[0].conversion_right.conversion_timing', '');
+            const conversionTiming = get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_timing', '');
             if (conversionTiming === 'PRE_MONEY') {
                 type = 'Pre-Money SAFE';
             } else if (conversionTiming === 'POST_MONEY') {
@@ -382,16 +382,18 @@ const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreated
             numberOfSecurities: warrantsTreatedAsConvertibles.length,
             outstandingAmount: warrantsTreatedAsConvertibles.reduce((sum, w) => sum + Number(get(w, 'purchase_price.amount', 0)), 0),
             discount: calculateAverageWarrantDiscount(warrantsTreatedAsConvertibles),
-            valuationCap: 'N/A',
+            valuationCap: 0, // hardcoding for now
             rows: warrantsTreatedAsConvertibles.map(w => ({
                 name: `Warrants for future series of Preferred Stock - ${stakeholderMap[w.stakeholder_id] || 'Unknown Stakeholder'}`,
                 numberOfSecurities: 1,
                 outstandingAmount: Number(get(w, 'purchase_price.amount', 0)),
                 discount: get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0),
-                valuationCap: 'N/A'
+                valuationCap: 0
             }))
         };
     }
+
+    console.log('convertibleSummary', convertibleSummary);
 
     return convertibleSummary;
 }
