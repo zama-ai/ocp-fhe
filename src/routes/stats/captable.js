@@ -2,6 +2,8 @@ import { find } from "../../db/operations/atomic.js";
 import get from "lodash/get";
 import Stockclass from "../../db/objects/StockClass.js";
 import StockPlan from "../../db/objects/StockPlan.js";
+import Stakeholder from "../../db/objects/Stakeholder.js";
+import Convertible from "../../db/objects/transactions/issuance/ConvertibleIssuance.js";
 import { getStockIssuances } from "./helpers.js";
 import WarrantIssuance from "../../db/objects/transactions/issuance/WarrantIssuance.js";
 import EquityCompensationIssuance from "../../db/objects/transactions/issuance/EquityCompensationIssuance.js";
@@ -31,6 +33,15 @@ const getAllStockClasses = async (issuerId) => {
 const getAllStockPlans = async (issuerId) => {
     return (await find(StockPlan, { issuer: issuerId })) || [];
 };
+
+const getAllConvertibles = async (issuerId) => {
+    return (await find(Convertible, { issuer: issuerId })) || [];
+};
+
+const getAllStakeholders = async (issuerId) => {
+    return (await find(Stakeholder, { issuer: issuerId })) || [];
+};
+
 
 
 const calculateTotalVotingPower = (stockClasses, outstandingSharesByStockClass) => {
@@ -62,10 +73,10 @@ const calculateStockClassSummary = (stockClasses, stockIssuances, totalOutstandi
             sharesAuthorized: stockClass.initial_shares_authorized,
             outstandingShares,
             fullyDilutedShares: outstandingShares,
-            fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
+            fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
             liquidationPreference: stockClass.liquidation_preference_multiple,
             votingPower,
-            votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
+            votingPercentage: (votingPower / totalVotingPower).toFixed(2)
         };
     }).filter(row => row !== null);
 
@@ -97,10 +108,10 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances,
         outstandingShares,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
-        fullyDilutedPercentage: (outstandingShares / totalOutstandingShares * 100).toFixed(2),
-        liquidationPreference: Math.max(...founderPreferredClasses.map(sc => sc.liquidation_preference_multiple)),
+        fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
+        liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
         votingPower,
-        votingPercentage: (votingPower / totalVotingPower * 100).toFixed(2)
+        votingPercentage: (votingPower / totalVotingPower).toFixed(2)
     };
 };
 
@@ -130,7 +141,7 @@ const createWarrantAndNonPlanAwardsRow = (issuancesByStockClass, stockClasses, t
         return {
             name,
             fullyDilutedShares,
-            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
+            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
         };
     });
 }
@@ -149,7 +160,7 @@ const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationBy
             return {
                 name: `${stockPlanName} ${compensationType.charAt(0).toUpperCase() + compensationType.slice(1).toLowerCase()}s`,
                 fullyDilutedShares,
-                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares * 100).toFixed(2)
+                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
             };
         });
     });
@@ -229,7 +240,7 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
         {
             name: 'Available for Grants',
             fullyDilutedShares: availableForGrants,
-            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares * 100).toFixed(2)
+            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares).toFixed(2)
         }
     ];
 
@@ -239,16 +250,124 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     };
 }
 
+
+const calculateAverageDiscount = (convertibles) => {
+    const discounts = convertibles.map(c =>
+        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0))
+    );
+    return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
+}
+
+const calculateAverageValuationCap = (convertibles) => {
+    const caps = convertibles.map(c =>
+        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0))
+    ).filter(cap => cap > 0);  // Filter out zero values
+    return caps.length > 0 ? caps.reduce((a, b) => a + b) / caps.length : 0;
+}
+
+const calculateAverageWarrantDiscount = (warrants) => {
+    const discounts = warrants.map(w =>
+        Number(get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0))
+    );
+    return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
+}
+
+const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreatedAsConvertibles) => {
+
+    console.log('convertibles', convertibles);
+    console.log('warrantsTreatedAsConvertibles', warrantsTreatedAsConvertibles);
+
+    // Create a map of stakeholder ids to legal names for quick lookup
+    const stakeholderMap = stakeholders.reduce((acc, stakeholder) => {
+        acc[stakeholder.id] = get(stakeholder, 'name.legal_name', 'Unknown Stakeholder');
+        return acc;
+    }, {});
+
+    // Group convertibles by type (Pre-Money SAFE, Post-Money SAFE, Convertible Notes)
+    const groupedConvertibles = convertibles.reduce((acc, convertible) => {
+        let type;
+        if (convertible.convertible_type === 'SAFE') {
+            const conversionTiming = get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_timing', '');
+            if (conversionTiming === 'PRE_MONEY') {
+                type = 'Pre-Money SAFE';
+            } else if (conversionTiming === 'POST_MONEY') {
+                type = 'Post-Money SAFE';
+            } else {
+                type = 'Other SAFE';
+            }
+        } else if (convertible.convertible_type === 'NOTE') {
+            type = 'Convertible Notes';
+        } else {
+            type = 'Other';
+        }
+
+        if (!acc[type]) {
+            acc[type] = [];
+        }
+        acc[type].push(convertible);
+        return acc;
+    }, {});
+
+    // Process each type of convertible
+    const convertibleSummary = Object.entries(groupedConvertibles).reduce((acc, [type, convertibles]) => {
+        const summary = {
+            numberOfSecurities: convertibles.length,
+            outstandingAmount: convertibles.reduce((sum, c) => sum + Number(get(c, 'investment_amount.amount', 0)), 0),
+            discount: calculateAverageDiscount(convertibles),
+            valuationCap: calculateAverageValuationCap(convertibles),
+            rows: convertibles.map(c => ({
+                name: `${type} - ${stakeholderMap[c.stakeholder_id] || 'Unknown Stakeholder'}`,
+                numberOfSecurities: 1,
+                outstandingAmount: Number(get(c, 'investment_amount.amount', 0)),
+                discount: get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0),
+                valuationCap: get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0)
+            }))
+        };
+        acc[type] = summary;
+        return acc;
+    }, {});
+
+    // Process warrants treated as convertibles
+    if (warrantsTreatedAsConvertibles.length > 0) {
+        convertibleSummary['Warrants for future series of Preferred Stock'] = {
+            numberOfSecurities: warrantsTreatedAsConvertibles.length,
+            outstandingAmount: warrantsTreatedAsConvertibles.reduce((sum, w) => sum + Number(get(w, 'purchase_price.amount', 0)), 0),
+            discount: calculateAverageWarrantDiscount(warrantsTreatedAsConvertibles),
+            valuationCap: 0, // hardcoding for now
+            rows: warrantsTreatedAsConvertibles.map(w => ({
+                name: `Warrants for future series of Preferred Stock - ${stakeholderMap[w.stakeholder_id] || 'Unknown Stakeholder'}`,
+                numberOfSecurities: 1,
+                outstandingAmount: Number(get(w, 'purchase_price.amount', 0)),
+                discount: get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0),
+                valuationCap: 0
+            }))
+        };
+    }
+
+    console.log('convertibleSummary', convertibleSummary);
+
+    return convertibleSummary;
+}
+
 const calculateCaptableStats = async (issuerId) => {
     // First Section: Stock Classes
     const stockClasses = await getAllStockClasses(issuerId);
     const stockIssuances = await getStockIssuances(issuerId);
     const warrantIssuances = await getAllWarrants(issuerId);
+    const stakeholders = await getAllStakeholders(issuerId);
+
     const stockPlans = await getAllStockPlans(issuerId);
     const equityCompensationIssuances = await getAllEquityCompensationIssuances(issuerId);
     console.log('equityCompensationIssuances', equityCompensationIssuances);
     const equityCompensationIssuancesStockPlan = equityCompensationIssuances.filter(issuance => issuance.stock_plan_id && issuance.stock_plan_id !== '');
     const equityCompensationIssuancesWithoutStockPlan = equityCompensationIssuances.filter(issuance => !get(issuance, 'stock_plan_id', null));
+
+    const warrantIssuancesStockClass = warrantIssuances.filter(issuance => get(issuance, 'exercise_triggers.0.conversion_right.converts_to_stock_class_id', null));
+    // Warrants without a stock class are treated as convertibles.
+    const warrantIssuancesWithoutStockClass = warrantIssuances.filter(issuance => !get(issuance, 'exercise_triggers.0.conversion_right.converts_to_stock_class_id', null));
+
+    console.log('warrantsWithStockClass', warrantIssuancesStockClass);
+    console.log('warrantsWithoutStockClass', warrantIssuancesWithoutStockClass);
 
     // Creates a map of stockClassId to the total number of shares issued
     const outstandingSharesByStockClass = stockIssuances.reduce((acc, issuance) => {
@@ -270,15 +389,22 @@ const calculateCaptableStats = async (issuerId) => {
     const preferredTotalVotingPower = calculateTotalVotingPower(preferredStockClasses, outstandingSharesByStockClass);
     const totalVotingPower = commonTotalVotingPower + preferredTotalVotingPower;
 
+    // Second Section: Convertibles
+    const convertibles = await getAllConvertibles(issuerId);
+    // Warrants without a stock class are treated as convertibles.
+
+    console.log('convertibles', convertibles);
+
 
     return {
         summary: {
             common: calculateStockClassSummary(commonStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower),
             preferred: calculateStockClassSummary(preferredStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower, StockIssuanceTypes.FOUNDERS_STOCK),
             founderPreferred: calculateFounderPreferredSummary(preferredStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower),
-            warrantsAndNonPlanAwards: calculateWarrantAndNonPlanAwardSummary(stockClasses, warrantIssuances, equityCompensationIssuancesWithoutStockPlan, totalOutstandingShares),
+            warrantsAndNonPlanAwards: calculateWarrantAndNonPlanAwardSummary(stockClasses, warrantIssuancesStockClass, equityCompensationIssuancesWithoutStockPlan, totalOutstandingShares),
             stockPlans: calculateStockPlanSummary(stockPlans, equityCompensationIssuancesStockPlan, totalOutstandingShares)
-        }
+        },
+        convertibles: calculateConvertibleSummary(convertibles, stakeholders, warrantIssuancesWithoutStockClass)
     }
 
 
