@@ -54,7 +54,7 @@ const calculateTotalVotingPower = (stockClasses, outstandingSharesByStockClass) 
 /*
     Note: we exclude the founder preferred stock issuances from the preferred stock classes summary.
 */
-const calculateStockClassSummary = (stockClasses, stockIssuances, totalOutstandingShares, totalVotingPower, excludeIssuanceType = null) => {
+const calculateStockClassSummary = (stockClasses, stockIssuances, excludeIssuanceType = null) => {
     const totalSharesAuthorized = stockClasses.reduce((sum, sc) => sum + Number(sc.initial_shares_authorized), 0);
 
     const rows = stockClasses.map(stockClass => {
@@ -73,10 +73,8 @@ const calculateStockClassSummary = (stockClasses, stockIssuances, totalOutstandi
             sharesAuthorized: stockClass.initial_shares_authorized,
             outstandingShares,
             fullyDilutedShares: outstandingShares,
-            fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
             liquidationPreference: stockClass.liquidation_preference_multiple,
-            votingPower,
-            votingPercentage: (votingPower / totalVotingPower).toFixed(2)
+            votingPower
         };
     }).filter(row => row !== null);
 
@@ -86,7 +84,7 @@ const calculateStockClassSummary = (stockClasses, stockIssuances, totalOutstandi
     };
 };
 
-const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower) => {
+const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances) => {
     const founderIssuances = stockIssuances.filter(issuance => issuance.issuance_type === StockIssuanceTypes.FOUNDERS_STOCK);
 
     console.log('founderIssuances', founderIssuances);
@@ -108,10 +106,8 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances,
         outstandingShares,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
-        fullyDilutedPercentage: (outstandingShares / totalOutstandingShares).toFixed(2),
         liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
-        votingPower,
-        votingPercentage: (votingPower / totalVotingPower).toFixed(2)
+        votingPower
     };
 };
 
@@ -141,12 +137,11 @@ const createWarrantAndNonPlanAwardsRow = (issuancesByStockClass, stockClasses, t
         return {
             name,
             fullyDilutedShares,
-            fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
         };
     });
 }
 
-const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationByStockPlanAndType, stockPlans, totalOutstandingShares) => {
+const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationByStockPlanAndType, stockPlans) => {
     return Object.entries(equityCompensationByStockPlanAndType).flatMap(([stockPlanId, typeIssuances]) => {
         const stockPlan = stockPlans.find(sp => sp._id === stockPlanId);
         const stockPlanName = stockPlan ? stockPlan.plan_name : 'Unknown Stock Plan';
@@ -160,7 +155,6 @@ const createEquityCompensationWithPlanAndTypeSummaryRows = (equityCompensationBy
             return {
                 name: `${stockPlanName} ${compensationType.charAt(0).toUpperCase() + compensationType.slice(1).toLowerCase()}s`,
                 fullyDilutedShares,
-                fullyDilutedPercentage: (fullyDilutedShares / totalOutstandingShares).toFixed(2)
             };
         });
     });
@@ -239,8 +233,7 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
         ...rows,
         {
             name: 'Available for Grants',
-            fullyDilutedShares: availableForGrants,
-            fullyDilutedPercentage: (availableForGrants / totalOutstandingShares).toFixed(2)
+            fullyDilutedShares: availableForGrants
         }
     ];
 
@@ -395,16 +388,81 @@ const calculateCaptableStats = async (issuerId) => {
 
     console.log('convertibles', convertibles);
 
+    const commonSummary = calculateStockClassSummary(commonStockClasses, stockIssuances);
+    const preferredSummary = calculateStockClassSummary(preferredStockClasses, stockIssuances, StockIssuanceTypes.FOUNDERS_STOCK);
+    const founderPreferredSummary = calculateFounderPreferredSummary(preferredStockClasses, stockIssuances);
+    const warrantsAndNonPlanAwardsSummary = calculateWarrantAndNonPlanAwardSummary(stockClasses, warrantIssuancesStockClass, equityCompensationIssuancesWithoutStockPlan, totalOutstandingShares);
+    const stockPlansSummary = calculateStockPlanSummary(stockPlans, equityCompensationIssuancesStockPlan, totalOutstandingShares);
 
+    const totalAuthorizedShares =
+        commonSummary.totalSharesAuthorized +
+        preferredSummary.totalSharesAuthorized +
+        (founderPreferredSummary ? founderPreferredSummary.sharesAuthorized : 0) +
+        (warrantsAndNonPlanAwardsSummary.totalSharesAuthorized || 0) +
+        stockPlansSummary.totalSharesAuthorized;
+
+    const totalFullyDilutedShares =
+        commonSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+        preferredSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+        (founderPreferredSummary ? founderPreferredSummary.fullyDilutedShares : 0) +
+        warrantsAndNonPlanAwardsSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+        stockPlansSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0);
+
+    console.log('totalFullyDilutedShares', totalFullyDilutedShares);
+
+
+    // Function to recalculate percentages
+    const recalculatePercentages = (summary) => {
+        summary.rows.forEach(row => {
+            row.fullyDilutedPercentage = ((row.fullyDilutedShares / totalFullyDilutedShares)).toFixed(4);
+            if (row.votingPower !== undefined) {
+                row.votingPercentage = ((row.votingPower / totalVotingPower)).toFixed(4);
+            }
+        });
+        return summary;
+    };
+
+
+    // Recalculate percentages for all summaries
+    const updatedCommonSummary = recalculatePercentages(commonSummary);
+    const updatedPreferredSummary = recalculatePercentages(preferredSummary);
+    const updatedWarrantsAndNonPlanAwardsSummary = recalculatePercentages(warrantsAndNonPlanAwardsSummary);
+    const updatedStockPlansSummary = recalculatePercentages(stockPlansSummary);
+
+    // Update founder preferred summary if it exists
+    let updatedFounderPreferredSummary = null;
+    if (founderPreferredSummary) {
+        updatedFounderPreferredSummary = {
+            ...founderPreferredSummary,
+            fullyDilutedPercentage: ((founderPreferredSummary.fullyDilutedShares / totalFullyDilutedShares)).toFixed(4)
+        };
+    }
+
+    console.log("new final summary ", updatedCommonSummary, updatedPreferredSummary, updatedWarrantsAndNonPlanAwardsSummary, updatedStockPlansSummary)
+
+    // Calculate convertibles summary separately
+    const convertiblesSummary = calculateConvertibleSummary(convertibles, stakeholders, warrantIssuancesWithoutStockClass);
+
+
+    console.log("total outstanding shares ", totalOutstandingShares)
     return {
         summary: {
-            common: calculateStockClassSummary(commonStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower),
-            preferred: calculateStockClassSummary(preferredStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower, StockIssuanceTypes.FOUNDERS_STOCK),
-            founderPreferred: calculateFounderPreferredSummary(preferredStockClasses, stockIssuances, totalOutstandingShares, totalVotingPower),
-            warrantsAndNonPlanAwards: calculateWarrantAndNonPlanAwardSummary(stockClasses, warrantIssuancesStockClass, equityCompensationIssuancesWithoutStockPlan, totalOutstandingShares),
-            stockPlans: calculateStockPlanSummary(stockPlans, equityCompensationIssuancesStockPlan, totalOutstandingShares)
+            common: updatedCommonSummary,
+            preferred: updatedPreferredSummary,
+            founderPreferred: updatedFounderPreferredSummary,
+            warrantsAndNonPlanAwards: updatedWarrantsAndNonPlanAwardsSummary,
+            stockPlans: updatedStockPlansSummary,
+            totals: {
+                totalAuthorizedShares,
+                totalOutstandingShares,
+                totalFullyDilutedShares,
+                totalFullyPercentage: 1,
+                totalVotingPower,
+                totalVotingPowerPercentage: 1
+
+            }
         },
-        convertibles: calculateConvertibleSummary(convertibles, stakeholders, warrantIssuancesWithoutStockClass)
+        convertibles: convertiblesSummary,
     }
 
 
