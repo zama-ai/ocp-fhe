@@ -250,55 +250,6 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     };
 }
 
-// const preMoneySafes
-// const postMoneySafes
-// const notes
-/*
-these 3 come from convertibles, they're separated via the following:
-- if convertible_type is SAFE then :
-    - conversion_triggers[0].conversion_right.conversion_timing === 'PRE_MONEY' means name is 'Pre-Money SAFE'
-    - conversion_triggers[0].conversion_right.conversion_timing === 'POST_MONEY' means name is 'Post-Money SAFE'
-- if convertible_type is NOTE then name is Convertible Notes
-    
-*/
-
-// Slightly different than others
-// const warrantsTreatedAsConvertibles
-/*
-warrants treated as convertibles have the name Warrants for future series of Preferred Stock
- name: 'Warrants for future series of Preferred Stock'
- outstandingAmount: warrant.purchase_price.amount
- discount: warrant.conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent
- valuationCap: N/A
- */
-
-/*
-Return structure I want is;
-return {
-    'convertibles': {
-        "Pre-$ SAFEs": {
-            "numberOfSecurities": 1, // total number of rows for this convertible
-            "outstandingAmount": 200000, // sum of all outstandingAmount rows
-            "discount": 0.2 // discount calculated via conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount
-            "valuationCap": 7000000 // valuation cap calculated via conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount
-        
-        rows: [
-        {
-            name: 'Pre-$ SAFEs + name of stakeholder',
-            numberOfSecurities: 1,
-            outstandingAmount: 100000, // total outstanding amount for this convertible calculated via issuance.investment_amount.amount
-            discount: 0.2,
-            valuationCap: 10000000
-        },
-
-        },
-        "Post-$ SAFEs": { // etc
-        ]
-    }
-}
- 
-*/
-
 
 const calculateAverageDiscount = (convertibles) => {
     const discounts = convertibles.map(c =>
