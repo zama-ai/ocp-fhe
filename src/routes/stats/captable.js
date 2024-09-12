@@ -457,13 +457,28 @@ const calculateCaptableStats = async (issuerId) => {
         updatedPreferredSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
         (updatedFounderPreferredSummary ? updatedFounderPreferredSummary.liquidation : 0);
 
+    // Check if the cap table is empty
     const isCapTableEmpty =
         commonSummary.rows.length === 0 &&
         preferredSummary.rows.length === 0 &&
         !founderPreferredSummary &&
         warrantsAndNonPlanAwardsSummary.rows.length === 0 &&
-        stockPlansSummary.rows.length === 0 &&
+        stockPlansSummary.rows.length === 1 && // Allow for "Available for Grants" row
+        stockPlansSummary.rows[0].name === 'Available for Grants' &&
+        stockPlansSummary.rows[0].fullyDilutedShares === 0 &&
         Object.keys(convertiblesSummary).length === 0;
+
+    // Adjust totals based on whether the cap table is empty
+    const adjustedTotals = {
+        totalAuthorizedShares: isCapTableEmpty ? 0 : totalAuthorizedShares,
+        totalOutstandingShares: isCapTableEmpty ? 0 : totalOutstandingShares,
+        totalFullyDilutedShares: isCapTableEmpty ? 0 : totalFullyDilutedShares,
+        totalFullyPercentage: isCapTableEmpty ? 0 : 1,
+        totalVotingPower: isCapTableEmpty ? 0 : totalVotingPower,
+        totalVotingPowerPercentage: isCapTableEmpty ? 0 : 1,
+        totalLiquidation: isCapTableEmpty ? 0 : totalLiquidation
+    };
+
 
     return {
         isCapTableEmpty,
@@ -473,20 +488,12 @@ const calculateCaptableStats = async (issuerId) => {
             founderPreferred: updatedFounderPreferredSummary,
             warrantsAndNonPlanAwards: updatedWarrantsAndNonPlanAwardsSummary,
             stockPlans: updatedStockPlansSummary,
-            totals: {
-                totalAuthorizedShares,
-                totalOutstandingShares,
-                totalFullyDilutedShares,
-                totalFullyPercentage: 1,
-                totalVotingPower,
-                totalVotingPowerPercentage: 1,
-                totalLiquidation
-            }
+            totals: adjustedTotals
         },
         convertibles: {
             convertiblesSummary,
             totals: {
-                outstandingAmount: totalOutstandingAmountConvertibles
+                outstandingAmount: isCapTableEmpty ? 0 : totalOutstandingAmountConvertibles
             }
         }
     }
