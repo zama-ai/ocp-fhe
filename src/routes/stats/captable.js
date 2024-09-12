@@ -67,13 +67,14 @@ const calculateStockClassSummary = (stockClasses, stockIssuances, excludeIssuanc
 
         const outstandingShares = classIssuances.reduce((sum, issuance) => sum + Number(issuance.quantity), 0);
         const votingPower = stockClass.votes_per_share * outstandingShares;
+        const liquidation = outstandingShares * Number(stockClass.price_per_share.amount) * Number(stockClass.liquidation_preference_multiple);
 
         return {
             name: stockClass.name,
             sharesAuthorized: stockClass.initial_shares_authorized,
             outstandingShares,
             fullyDilutedShares: outstandingShares,
-            liquidationPreference: stockClass.liquidation_preference_multiple,
+            liquidation,
             votingPower
         };
     }).filter(row => row !== null);
@@ -102,11 +103,16 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances)
         return sum + (stockClass ? stockClass.votes_per_share * Number(issuance.quantity) : 0);
     }, 0);
 
+    const liquidation = founderIssuances.reduce((sum, issuance) => {
+        const stockClass = founderPreferredClasses.find(sc => sc._id === issuance.stock_class_id);
+        return sum + (stockClass ? Number(issuance.quantity) * Number(stockClass.price_per_share.amount) * Number(stockClass.liquidation_preference_multiple) : 0);
+    }, 0);
+
     return {
         outstandingShares,
         sharesAuthorized: outstandingShares,
         fullyDilutedShares: outstandingShares,
-        liquidationPreference: String(Math.max(...founderPreferredClasses.map(sc => Number(sc.liquidation_preference_multiple)))),
+        liquidation,
         votingPower
     };
 };
@@ -422,7 +428,6 @@ const calculateCaptableStats = async (issuerId) => {
         return summary;
     };
 
-
     // Recalculate percentages for all summaries
     const updatedCommonSummary = recalculatePercentages(commonSummary);
     const updatedPreferredSummary = recalculatePercentages(preferredSummary);
@@ -439,8 +444,6 @@ const calculateCaptableStats = async (issuerId) => {
         };
     }
 
-    console.log("new final summary ", updatedCommonSummary, updatedPreferredSummary, updatedWarrantsAndNonPlanAwardsSummary, updatedStockPlansSummary)
-
     // Calculate convertibles summary separately
     const convertiblesSummary = calculateConvertibleSummary(convertibles, stakeholders, warrantIssuancesWithoutStockClass);
 
@@ -448,8 +451,12 @@ const calculateCaptableStats = async (issuerId) => {
         sum + typeSummary.outstandingAmount, 0
     );
 
+    // Calculate total liquidation
+    const totalLiquidation =
+        updatedCommonSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+        updatedPreferredSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+        (updatedFounderPreferredSummary ? updatedFounderPreferredSummary.liquidation : 0);
 
-    console.log("total outstanding shares ", totalOutstandingShares)
     return {
         summary: {
             common: updatedCommonSummary,
@@ -463,8 +470,8 @@ const calculateCaptableStats = async (issuerId) => {
                 totalFullyDilutedShares,
                 totalFullyPercentage: 1,
                 totalVotingPower,
-                totalVotingPowerPercentage: 1
-
+                totalVotingPowerPercentage: 1,
+                totalLiquidation
             }
         },
         convertibles: {
@@ -472,9 +479,7 @@ const calculateCaptableStats = async (issuerId) => {
             totals: {
                 outstandingAmount: totalOutstandingAmountConvertibles
             }
-
         }
-
     }
 };
 
