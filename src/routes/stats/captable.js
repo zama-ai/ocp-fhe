@@ -457,7 +457,16 @@ const calculateCaptableStats = async (issuerId) => {
         updatedPreferredSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
         (updatedFounderPreferredSummary ? updatedFounderPreferredSummary.liquidation : 0);
 
+    const isCapTableEmpty =
+        commonSummary.rows.length === 0 &&
+        preferredSummary.rows.length === 0 &&
+        !founderPreferredSummary &&
+        warrantsAndNonPlanAwardsSummary.rows.length === 0 &&
+        stockPlansSummary.rows.length === 0 &&
+        Object.keys(convertiblesSummary).length === 0;
+
     return {
+        isCapTableEmpty,
         summary: {
             common: updatedCommonSummary,
             preferred: updatedPreferredSummary,
