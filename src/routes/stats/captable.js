@@ -434,7 +434,8 @@ const calculateCaptableStats = async (issuerId) => {
     if (founderPreferredSummary) {
         updatedFounderPreferredSummary = {
             ...founderPreferredSummary,
-            fullyDilutedPercentage: ((founderPreferredSummary.fullyDilutedShares / totalFullyDilutedShares)).toFixed(4)
+            fullyDilutedPercentage: ((founderPreferredSummary.fullyDilutedShares / totalFullyDilutedShares)).toFixed(4),
+            votingPercentage: ((founderPreferredSummary.votingPower / totalVotingPower)).toFixed(4)
         };
     }
 
