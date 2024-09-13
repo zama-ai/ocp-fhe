@@ -237,11 +237,13 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     // Add the 'Available for Grants' row
     const finalRows = [
         ...rows,
-        {
+    ];
+    if(availableForGrants > 0) {
+        finalRows.push({
             name: 'Available for Grants',
             fullyDilutedShares: availableForGrants
-        }
-    ];
+        })
+    }
 
     return {
         totalSharesAuthorized,
