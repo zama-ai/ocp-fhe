@@ -238,7 +238,7 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     const finalRows = [
         ...rows,
     ];
-    if(availableForGrants > 0) {
+    if (availableForGrants > 0) {
         finalRows.push({
             name: 'Available for Grants',
             fullyDilutedShares: availableForGrants
@@ -459,20 +459,19 @@ const calculateCaptableStats = async (issuerId) => {
         updatedPreferredSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
         (updatedFounderPreferredSummary ? updatedFounderPreferredSummary.liquidation : 0);
 
-    // Check if the cap table is empty
-    const isSummaryEmpty = 
+    // Check if the summary is empty
+    const isSummaryEmpty =
         commonSummary.rows.length === 0 &&
         preferredSummary.rows.length === 0 &&
         !founderPreferredSummary &&
         warrantsAndNonPlanAwardsSummary.rows.length === 0 &&
-        stockPlansSummary.rows.length === 1 && // Allow for "Available for Grants" row
-        stockPlansSummary.rows[0].name === 'Available for Grants' &&
-        stockPlansSummary.rows[0].fullyDilutedShares === 0
+        stockPlansSummary.rows.length === 0;
 
-    const isConvertiblesEmpty =Object.keys(convertiblesSummary).length === 0;
+    // Check if convertibles are empty
+    const isConvertiblesEmpty = Object.keys(convertiblesSummary).length === 0;
 
-
-    const isCapTableEmpty = isSummaryEmpty && isConvertiblesEmpty
+    // Check if the entire cap table is empty
+    const isCapTableEmpty = isSummaryEmpty && isConvertiblesEmpty;
 
     // Adjust totals based on whether the cap table is empty
     const adjustedTotals = {
@@ -484,7 +483,6 @@ const calculateCaptableStats = async (issuerId) => {
         totalVotingPowerPercentage: isCapTableEmpty ? 0 : 1,
         totalLiquidation: isCapTableEmpty ? 0 : totalLiquidation
     };
-
 
     return {
         isCapTableEmpty,
