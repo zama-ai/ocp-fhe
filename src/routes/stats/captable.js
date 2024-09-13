@@ -460,15 +460,19 @@ const calculateCaptableStats = async (issuerId) => {
         (updatedFounderPreferredSummary ? updatedFounderPreferredSummary.liquidation : 0);
 
     // Check if the cap table is empty
-    const isCapTableEmpty =
+    const isSummaryEmpty = 
         commonSummary.rows.length === 0 &&
         preferredSummary.rows.length === 0 &&
         !founderPreferredSummary &&
         warrantsAndNonPlanAwardsSummary.rows.length === 0 &&
         stockPlansSummary.rows.length === 1 && // Allow for "Available for Grants" row
         stockPlansSummary.rows[0].name === 'Available for Grants' &&
-        stockPlansSummary.rows[0].fullyDilutedShares === 0 &&
-        Object.keys(convertiblesSummary).length === 0;
+        stockPlansSummary.rows[0].fullyDilutedShares === 0
+
+    const isConvertiblesEmpty =Object.keys(convertiblesSummary).length === 0;
+
+
+    const isCapTableEmpty = isSummaryEmpty && isConvertiblesEmpty
 
     // Adjust totals based on whether the cap table is empty
     const adjustedTotals = {
@@ -485,6 +489,7 @@ const calculateCaptableStats = async (issuerId) => {
     return {
         isCapTableEmpty,
         summary: {
+            isEmpty: isSummaryEmpty,
             common: updatedCommonSummary,
             preferred: updatedPreferredSummary,
             founderPreferred: updatedFounderPreferredSummary,
@@ -493,6 +498,7 @@ const calculateCaptableStats = async (issuerId) => {
             totals: adjustedTotals
         },
         convertibles: {
+            isEmpty: isConvertiblesEmpty,
             convertiblesSummary,
             totals: {
                 outstandingAmount: isCapTableEmpty ? 0 : totalOutstandingAmountConvertibles
