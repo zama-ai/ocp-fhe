@@ -251,104 +251,75 @@ const calculateStockPlanSummary = (stockPlans, equityCompensationIssuances, tota
     };
 }
 
+const groupConvertibles = (convertibles, stakeholderMap) => {
+    return convertibles.reduce((acc, convertible) => {
+        const type = convertible.convertible_type || 'Other';
+        let subType = 'Other';
+        if (type === 'SAFE') {
+            const conversionTiming = get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_timing', '');
+            subType = conversionTiming === 'PRE_MONEY' ? 'Pre-Money SAFE' :
+                conversionTiming === 'POST_MONEY' ? 'Post-Money SAFE' : 'Other SAFE';
+        } else if (type === 'NOTE') {
+            subType = 'Convertible Notes';
+        }
 
-const calculateAverageDiscount = (convertibles) => {
-    const discounts = convertibles.map(c =>
-        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0))
-    );
-    return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
-}
+        const discount = Number(get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0));
+        const valuationCap = Number(get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0));
 
-const calculateAverageValuationCap = (convertibles) => {
-    const caps = convertibles.map(c =>
-        Number(get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0))
-    ).filter(cap => cap > 0);  // Filter out zero values
-    return caps.length > 0 ? caps.reduce((a, b) => a + b) / caps.length : 0;
-}
+        let key;
+        if (discount > 0) {
+            key = `${subType} - ${discount}% discount`;
+        } else if (valuationCap > 0) {
+            key = `${subType} - ${valuationCap.toLocaleString()} valuation cap`;
+        } else {
+            key = `${subType} - No discount or valuation cap`;
+        }
 
-const calculateAverageWarrantDiscount = (warrants) => {
-    const discounts = warrants.map(w =>
-        Number(get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0))
-    );
-    return discounts.length > 0 ? discounts.reduce((a, b) => a + b) / discounts.length : 0;
-}
+        if (!acc[key]) {
+            acc[key] = {
+                numberOfSecurities: 0,
+                outstandingAmount: 0,
+                discount,
+                valuationCap,
+                rows: []
+            };
+        }
+
+        acc[key].numberOfSecurities++;
+        acc[key].outstandingAmount += Number(convertible.investment_amount.amount);
+        acc[key].rows.push({
+            name: `${subType} - ${stakeholderMap[convertible.stakeholder_id] || 'Unknown Stakeholder'}`,
+            numberOfSecurities: 1,
+            outstandingAmount: Number(convertible.investment_amount.amount),
+            discount,
+            valuationCap
+        });
+
+        return acc;
+    }, {});
+};
 
 const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreatedAsConvertibles) => {
-
-    console.log('convertibles', convertibles);
-    console.log('warrantsTreatedAsConvertibles', warrantsTreatedAsConvertibles);
-
-    // Create a map of stakeholder ids to legal names for quick lookup
     const stakeholderMap = stakeholders.reduce((acc, stakeholder) => {
         acc[stakeholder.id] = get(stakeholder, 'name.legal_name', 'Unknown Stakeholder');
         return acc;
     }, {});
 
-    // Group convertibles by type (Pre-Money SAFE, Post-Money SAFE, Convertible Notes)
-    const groupedConvertibles = convertibles.reduce((acc, convertible) => {
-        let type;
-        if (convertible.convertible_type === 'SAFE') {
-            const conversionTiming = get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_timing', '');
-            if (conversionTiming === 'PRE_MONEY') {
-                type = 'Pre-Money SAFE';
-            } else if (conversionTiming === 'POST_MONEY') {
-                type = 'Post-Money SAFE';
-            } else {
-                type = 'Other SAFE';
-            }
-        } else if (convertible.convertible_type === 'NOTE') {
-            type = 'Convertible Notes';
-        } else {
-            type = 'Other';
-        }
+    const convertiblesSummary = groupConvertibles(convertibles, stakeholderMap);
 
-        if (!acc[type]) {
-            acc[type] = [];
-        }
-        acc[type].push(convertible);
-        return acc;
-    }, {});
-
-    // Process each type of convertible
-    const convertibleSummary = Object.entries(groupedConvertibles).reduce((acc, [type, convertibles]) => {
-        const summary = {
-            numberOfSecurities: convertibles.length,
-            outstandingAmount: convertibles.reduce((sum, c) => sum + Number(get(c, 'investment_amount.amount', 0)), 0),
-            discount: calculateAverageDiscount(convertibles),
-            valuationCap: calculateAverageValuationCap(convertibles),
-            rows: convertibles.map(c => ({
-                name: `${type} - ${stakeholderMap[c.stakeholder_id] || 'Unknown Stakeholder'}`,
-                numberOfSecurities: 1,
-                outstandingAmount: Number(get(c, 'investment_amount.amount', 0)),
-                discount: get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0),
-                valuationCap: get(c, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0)
-            }))
-        };
-        acc[type] = summary;
-        return acc;
-    }, {});
-
-    // Process warrants treated as convertibles
     if (warrantsTreatedAsConvertibles.length > 0) {
-        convertibleSummary['Warrants for future series of Preferred Stock'] = {
-            numberOfSecurities: warrantsTreatedAsConvertibles.length,
-            outstandingAmount: warrantsTreatedAsConvertibles.reduce((sum, w) => sum + Number(get(w, 'purchase_price.amount', 0)), 0),
-            discount: calculateAverageWarrantDiscount(warrantsTreatedAsConvertibles),
-            valuationCap: 0, // hardcoding for now
-            rows: warrantsTreatedAsConvertibles.map(w => ({
-                name: `Warrants for future series of Preferred Stock - ${stakeholderMap[w.stakeholder_id] || 'Unknown Stakeholder'}`,
-                numberOfSecurities: 1,
-                outstandingAmount: Number(get(w, 'purchase_price.amount', 0)),
-                discount: get(w, 'conversion_triggers[0].conversion_right.conversion_mechanism.converts_to_percent', 0),
-                valuationCap: 0
-            }))
-        };
+        const warrantsSummary = groupConvertibles(warrantsTreatedAsConvertibles, stakeholderMap);
+        Object.keys(warrantsSummary).forEach(key => {
+            convertiblesSummary[`Warrants - ${key}`] = warrantsSummary[key];
+        });
     }
 
-    console.log('convertibleSummary', convertibleSummary);
+    // const totalOutstandingAmount = Object.values(convertiblesSummary).reduce(
+    //     (sum, group) => sum + group.outstandingAmount, 0
+    // );
 
-    return convertibleSummary;
-}
+    return convertiblesSummary
+};
 
 const calculateCaptableStats = async (issuerId) => {
     // First Section: Stock Classes
@@ -356,7 +327,6 @@ const calculateCaptableStats = async (issuerId) => {
     const stockIssuances = await getStockIssuances(issuerId);
     const warrantIssuances = await getAllWarrants(issuerId);
     const stakeholders = await getAllStakeholders(issuerId);
-
     const stockPlans = await getAllStockPlans(issuerId);
     const equityCompensationIssuances = await getAllEquityCompensationIssuances(issuerId);
     console.log('equityCompensationIssuances', equityCompensationIssuances);
