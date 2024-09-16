@@ -299,6 +299,44 @@ const groupConvertibles = (convertibles, stakeholderMap) => {
     }, {});
 };
 
+const groupWarrants = (warrants, stakeholderMap) => {
+    return warrants.reduce((acc, warrant) => {
+        const discount = Number(get(warrant, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0));
+        const valuationCap = Number(get(warrant, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0));
+
+        let key = 'Warrants for future series of Preferred Stock';
+        if (discount > 0) {
+            key += ` - ${discount}% discount`;
+        } else if (valuationCap > 0) {
+            key += ` - ${valuationCap.toLocaleString()} valuation cap`;
+        } else {
+            key += ' - No discount or valuation cap';
+        }
+
+        if (!acc[key]) {
+            acc[key] = {
+                numberOfSecurities: 0,
+                outstandingAmount: 0,
+                discount,
+                valuationCap,
+                rows: []
+            };
+        }
+
+        acc[key].numberOfSecurities++;
+        acc[key].outstandingAmount += Number(warrant.purchase_price.amount);
+        acc[key].rows.push({
+            name: `Warrant - ${stakeholderMap[warrant.stakeholder_id] || 'Unknown Stakeholder'}`,
+            numberOfSecurities: 1,
+            outstandingAmount: Number(warrant.purchase_price.amount),
+            discount,
+            valuationCap
+        });
+
+        return acc;
+    }, {});
+};
+
 const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreatedAsConvertibles) => {
     const stakeholderMap = stakeholders.reduce((acc, stakeholder) => {
         acc[stakeholder.id] = get(stakeholder, 'name.legal_name', 'Unknown Stakeholder');
@@ -308,17 +346,15 @@ const calculateConvertibleSummary = (convertibles, stakeholders, warrantsTreated
     const convertiblesSummary = groupConvertibles(convertibles, stakeholderMap);
 
     if (warrantsTreatedAsConvertibles.length > 0) {
-        const warrantsSummary = groupConvertibles(warrantsTreatedAsConvertibles, stakeholderMap);
-        Object.keys(warrantsSummary).forEach(key => {
-            convertiblesSummary[`Warrants - ${key}`] = warrantsSummary[key];
-        });
+        const warrantsSummary = groupWarrants(warrantsTreatedAsConvertibles, stakeholderMap);
+        Object.assign(convertiblesSummary, warrantsSummary);
     }
 
-    // const totalOutstandingAmount = Object.values(convertiblesSummary).reduce(
-    //     (sum, group) => sum + group.outstandingAmount, 0
-    // );
 
-    return convertiblesSummary
+
+    return convertiblesSummary;
+
+
 };
 
 const calculateCaptableStats = async (issuerId) => {
