@@ -1,5 +1,6 @@
 import { convertUUIDToBytes16 } from "../../utils/convertUUID.js";
 import { toScaledBigNumber } from "../../utils/convertToFixedPointDecimals.js";
+import { withChainErrorHandler } from "../helper.js";
 
 const checkIssuanceValues = (issuance) => {
     return {
@@ -18,11 +19,11 @@ const checkIssuanceValues = (issuance) => {
         board_approval_date: issuance.board_approval_date || "",
         stockholder_approval_date: issuance.stockholder_approval_date || "",
         consideration_text: issuance.consideration_text || "",
-        security_law_exemptions: [], //  issuance.security_law_exemptions || [] Temporary skip until it's implemented on chain!
+        security_law_exemptions: issuance.security_law_exemptions || [],
     };
 };
 
-export const convertAndCreateIssuanceStockOnchain = async (contract, issuance) => {
+export const convertAndCreateIssuanceStockOnchain = withChainErrorHandler(async (contract, issuance) => {
     const checkedValues = checkIssuanceValues(issuance);
     const {
         stakeholder_id,
@@ -69,5 +70,7 @@ export const convertAndCreateIssuanceStockOnchain = async (contract, issuance) =
         security_law_exemptions,
     });
     await tx.wait();
+    console.log("Transaction hash:", tx.hash);
+
     console.log("✅ | Issued stock onchain, unconfirmed: ", issuance);
-};
+});
