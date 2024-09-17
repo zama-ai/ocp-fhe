@@ -21,7 +21,7 @@ import mongoose from "mongoose";
 import { readIssuerById } from "./db/operations/read.js";
 import { getIssuerContract } from "./utils/caches.ts";
 import { setupEnv } from "./utils/env.js";
-import stats from "./routes/stats.js/index.js";
+import stats from "./routes/stats/index.js";
 import exportRoutes from "./routes/export.js";
 
 setupEnv();
