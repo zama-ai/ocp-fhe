@@ -266,13 +266,17 @@ const groupConvertibles = (convertibles, stakeholderMap) => {
         const discount = Number(get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_discount', 0));
         const valuationCap = Number(get(convertible, 'conversion_triggers[0].conversion_right.conversion_mechanism.conversion_valuation_cap.amount', 0));
 
-        let key;
-        if (discount > 0) {
-            key = `${subType} - ${discount}% discount`;
+        const valuationCapInMillions = valuationCap > 0 ? `${Math.floor(valuationCap / 1000000)}M` : '';
+
+        let key = subType;
+        if (discount > 0 && valuationCap > 0) {
+            key += ` - ${discount}% discount, ${valuationCapInMillions} valuation cap`;
+        } else if (discount > 0) {
+            key += ` - ${discount}% discount`;
         } else if (valuationCap > 0) {
-            key = `${subType} - ${valuationCap.toLocaleString()} valuation cap`;
+            key += ` - ${valuationCapInMillions} valuation cap`;
         } else {
-            key = `${subType} - No discount or valuation cap`;
+            key += ' - No discount or valuation cap';
         }
 
         if (!acc[key]) {
