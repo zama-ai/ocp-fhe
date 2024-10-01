@@ -93,10 +93,12 @@ const calculateFounderPreferredSummary = (preferredStockClasses, stockIssuances)
     if (founderIssuances.length === 0) return null;
 
     const outstandingShares = founderIssuances.reduce((sum, issuance) => sum + Number(issuance.quantity), 0);
-
+    
     const founderPreferredClasses = preferredStockClasses.filter(stockClass =>
         founderIssuances.some(issuance => issuance.stock_class_id === stockClass._id)
     );
+
+    if (founderPreferredClasses.length === 0) return null;
 
     const votingPower = founderIssuances.reduce((sum, issuance) => {
         const stockClass = founderPreferredClasses.find(sc => sc._id === issuance.stock_class_id);
