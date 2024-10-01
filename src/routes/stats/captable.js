@@ -418,8 +418,7 @@ const calculateCaptableStats = async (issuerId) => {
         commonSummary.totalSharesAuthorized +
         preferredSummary.totalSharesAuthorized +
         (founderPreferredSummary ? founderPreferredSummary.sharesAuthorized : 0) +
-        (warrantsAndNonPlanAwardsSummary.totalSharesAuthorized || 0) +
-        stockPlansSummary.totalSharesAuthorized;
+        (warrantsAndNonPlanAwardsSummary.totalSharesAuthorized || 0);
 
     const totalFullyDilutedShares =
         commonSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
