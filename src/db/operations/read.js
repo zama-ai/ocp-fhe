@@ -11,6 +11,7 @@ import VestingTerms from "../objects/VestingTerms.js";
 import ConvertibleIssuance from "../objects/transactions/issuance/ConvertibleIssuance.js";
 import StockIssuance from "../objects/transactions/issuance/StockIssuance.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
+import EquityCompensationIssuance from "../objects/transactions/issuance/EquityCompensationIssuance.js";
 import { countDocuments, find, findById, findOne } from "./atomic.ts";
 
 // READ By ID
@@ -125,3 +126,34 @@ export const readFairmintDataById = async (id) => {
 export const readFairmintDataBySeriesId = async (series_id) => {
     return await Fairmint.findOne({ series_id });
 };
+
+
+export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
+    try {
+        const result = await EquityCompensationIssuance.aggregate([
+            {
+                $match: {
+                    issuer: issuerId,
+                    stock_plan_id: stockPlanId,
+                    quantity: { $exists: true, $ne: null, $type: "string" }
+                }
+            },
+            {
+                $addFields: {
+                    numericQuantity: { $toDouble: "$quantity" }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalShares: { $sum: "$numericQuantity" }
+                }
+            }
+        ]);
+
+        return result.length > 0 ? result[0].totalShares : 0;
+    } catch (error) {
+        console.error('Error in sumEquityCompensationIssuances:', error);
+        return 0;
+    }
+}
