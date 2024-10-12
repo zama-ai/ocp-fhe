@@ -28,6 +28,7 @@ import { readFairmintDataById } from "../db/operations/read.js";
 import { API_URL } from "../fairmint/config.js";
 import axios from "axios";
 import get from "lodash/get.js";
+import { upsertFairmintData } from "../db/operations/update.js";
 
 const abiCoder = new AbiCoder();
 
@@ -96,26 +97,35 @@ async function startOnchainListeners(contract, provider, issuerId, libraries) {
     });
 
     // Issuer Initialization: This is the first time we're processing the issuer.
-    const issuerCreatedFilter = contract.filters.IssuerCreated;
-    const issuerEvents = await contract.queryFilter(issuerCreatedFilter);
 
-    if (issuerEvents.length > 0 && !issuerEventReceived) {
-        const id = issuerEvents[0].args[0];
-        console.log("IssuerCreated Event Emitted!", id);
-        console.log("New issuer was deployed", { issuerId: id });
+    console.log("Checking if issuer has been reflected in Fairmint...");
+    const fairmintData = await readFairmintDataById(issuerId);
+    const isReflected = get(fairmintData, "attributes.reflected", false);
+    if (fairmintData && !isReflected) {
+        console.log("Issuer not yet reflected. Querying for IssuerCreated event...");
+        const issuerCreatedFilter = contract.filters.IssuerCreated;
+        const issuerEvents = await contract.queryFilter(issuerCreatedFilter);
 
-        const fairmintData = await readFairmintDataById(issuerId);
-        if (fairmintData !== null && fairmintData._id) {
-            console.log("Fairmint data", fairmintData._id);
+        if (issuerEvents.length > 0) {
+            const id = issuerEvents[0].args[0];
+            console.log("IssuerCreated Event Emitted!", id);
+            console.log("New issuer was deployed", { issuerId: id });
+
             console.log("Reflecting Issuer into fairmint...");
             const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
             const resp = await axios.post(webHookUrl, {});
             console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
             console.log("Fairmint response:", resp.data);
+            const updatedFairmintData = await upsertFairmintData(issuerId, { attributes: { reflected: true } });
+            console.log("Updated Fairmint data:", updatedFairmintData);
+            await verifyIssuerAndSeed(contract, id);
+        } else {
+            console.log("No IssuerCreated event found for issuer", issuerId);
         }
-
-        await verifyIssuerAndSeed(contract, id);
-        issuerEventReceived = true;
+    } else if (fairmintData && fairmintData.attributes?.reflected) {
+        console.log(`Issuer ${issuerId} already reflected in Fairmint. Skipping reflection process.`);
+    } else {
+        console.log("No Fairmint data found for issuer", issuerId);
     }
 }
 

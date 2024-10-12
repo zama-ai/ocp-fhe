@@ -10,7 +10,8 @@ const StockPlanSchema = new mongoose.Schema({
     stockholder_approval_date: String,
     initial_shares_reserved: String,
     default_cancellation_behavior: String,
-    stock_class_id: String,
+    stock_class_id: String, // Deprecated by OCF,
+    stock_class_ids: [String],
     comments: [String],
     issuer: {
         type: String,
