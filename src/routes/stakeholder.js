@@ -85,6 +85,7 @@ stakeholder.get("/total-number", async (req, res) => {
 });
 
 /// @dev: stakeholder is always created onchain, then to the DB
+// TODO: separate reflect stakeholder from handleStakeholder event 
 stakeholder.post("/create", async (req, res) => {
     const { contract } = req;
     const { data, issuerId } = req.body;
