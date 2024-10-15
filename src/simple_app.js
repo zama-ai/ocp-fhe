@@ -17,6 +17,7 @@ import vestingTermsRoutes from "./routes/vestingTerms.js";
 import statsRoutes from "./routes/stats/index.js";
 import exportRoutes from "./routes/export.js";
 import ocfRoutes from "./routes/ocf.js";
+import webhookRoutes from "./routes/webhook.js";
 
 import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
@@ -52,7 +53,7 @@ const contractMiddleware = async (req, res, next) => {
         contractCache[req.body.issuerId] = { contract, provider, libraries };
 
         // Initialize listener for this contract
-        startOnchainListeners(contract, provider, req.body.issuerId, libraries);
+        // startOnchainListeners(contract, provider, req.body.issuerId, libraries);
     }
 
     req.contract = contractCache[req.body.issuerId].contract;
@@ -78,6 +79,7 @@ app.use("/historical-transactions", historicalTransactions);
 app.use("/stats", statsRoutes);
 app.use("/export", exportRoutes);
 app.use("/ocf", ocfRoutes);
+app.use("/webhook", webhookRoutes);
 
 // transactions
 app.use("/transactions/", contractMiddleware, transactionRoutes);
@@ -91,21 +93,21 @@ const startServer = async () => {
     app.listen(PORT, async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
         // Fetch all issuers
-        const issuers = (await readAllIssuers()) || [];
-        console.log(`Number of issuers: ${issuers.length}`);
-        for (const issuer of issuers) {
-            if (!issuer.deployed_to) continue; // skip non deployed issuers
-            // Create a new contract instance for each issuer
-            console.log("issuer.deployed_to", issuer.deployed_to);
-            const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
+        // const issuers = (await readAllIssuers()) || [];
+        // console.log(`Number of issuers: ${issuers.length}`);
+        // for (const issuer of issuers) {
+        //     if (!issuer.deployed_to) continue; // skip non deployed issuers
+        //     // Create a new contract instance for each issuer
+        //     console.log("issuer.deployed_to", issuer.deployed_to);
+        //     const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
 
-            // Initialize listener for this contract
-            try {
-                startOnchainListeners(contract, provider, issuer._id, libraries);
-            } catch (error) {
-                console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
-            }
-        }
+        //     // Initialize listener for this contract
+        //     try {
+        //         startOnchainListeners(contract, provider, issuer._id, libraries);
+        //     } catch (error) {
+        //         console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
+        //     }
+        // }
     });
     app.on("error", (err) => {
         console.error(err);
