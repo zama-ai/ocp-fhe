@@ -15,7 +15,9 @@ import {
     upsertIssuerAuthorizedSharesAdjustment,
 } from "../db/operations/update.js";
 import get from "lodash/get";
-
+import axios from "axios";
+import { API_URL } from "../fairmint/config.js";
+import { readFairmintDataById } from "../db/operations/read.js";
 import { reflectSeries } from "../fairmint/reflectSeries.js";
 import { toDecimal } from "../utils/convertToFixedPointDecimals.js";
 import { SERIES_TYPE } from "../fairmint/enums.js";
@@ -34,6 +36,24 @@ const options = {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+};
+
+export const handleIssuer = async (id) => {
+    console.log("IssuerCreated Event Emitted!", id);
+    console.log("New issuer was deployed", { issuerId: id });
+    const issuerId = convertBytes16ToUUID(id);
+    console.log("Issuer ID", issuerId);
+
+    // Check if need to convert to UUID
+    const fairmintData = await readFairmintDataById(id);
+    if (fairmintData !== null && fairmintData._id) {
+        console.log("Fairmint data", fairmintData._id);
+        console.log("Reflecting Issuer into fairmint...");
+        const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
+        const resp = await axios.post(webHookUrl, {});
+        console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
+        console.log("Fairmint response:", resp.data);
+    }
 };
 
 export const handleStockIssuance = async (stock, issuerId, timestamp) => {
