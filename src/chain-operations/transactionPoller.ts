@@ -5,32 +5,7 @@ import { updateIssuerById, upsertFairmintData } from "../db/operations/update.js
 import { getIssuerContract } from "../utils/caches.ts";
 import sleep from "../utils/sleep.js";
 import { verifyIssuerAndSeed } from "./seed.js";
-import {
-    IssuerAuthorizedSharesAdjustment,
-    StockAcceptance,
-    StockCancellation,
-    StockClassAuthorizedSharesAdjustment,
-    StockIssuance,
-    StockReissuance,
-    StockRepurchase,
-    StockRetraction,
-    StockTransfer,
-} from "./structs.js";
-import {
-    handleIssuerAuthorizedSharesAdjusted,
-    handleStakeholder,
-    handleStockAcceptance,
-    handleStockCancellation,
-    handleStockClass,
-    handleStockClassAuthorizedSharesAdjusted,
-    handleStockIssuance,
-    handleStockReissuance,
-    handleStockRepurchase,
-    handleStockRetraction,
-    handleStockTransfer,
-} from "./transactionHandlers.js";
-import axios from "axios";
-import { API_URL } from "../fairmint/config.js";
+import { contractFuncs, txFuncs, txMapper, txTypes } from "./transactionHandlers.js";
 
 const abiCoder = new AbiCoder();
 
@@ -40,30 +15,6 @@ interface QueuedEvent {
     data: any;
     o: EventLog;
 }
-
-const contractFuncs = new Map([
-    ["StakeholderCreated", handleStakeholder],
-    ["StockClassCreated", handleStockClass],
-]);
-
-const txMapper = {
-    1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
-    2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],
-    3: [StockAcceptance, handleStockAcceptance],
-    4: [StockCancellation, handleStockCancellation],
-    5: [StockIssuance, handleStockIssuance],
-    6: [StockReissuance, handleStockReissuance],
-    7: [StockRepurchase, handleStockRepurchase],
-    8: [StockRetraction, handleStockRetraction],
-    9: [StockTransfer, handleStockTransfer],
-};
-// (idx => type name) derived from txMapper
-export const txTypes = Object.fromEntries(
-    // @ts-ignore
-    Object.entries(txMapper).map(([i, [_, f]]) => [i, f.name.replace("handle", "")])
-);
-// (name => handler) derived from txMapper
-export const txFuncs = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [txTypes[i], f]));
 
 let _keepProcessing = true;
 let _finishedProcessing = false;
@@ -166,15 +117,6 @@ const processEvents = async (dbConn, contract, provider, issuer, txHelper, final
 
 const issuerDeployed = async (issuerId, lastProcessedBlock, contract, dbConn) => {
     console.log("New issuer was deployed", { issuerId });
-    // const fairmintData: any = await readFairmintDataById(issuerId);
-    // if (fairmintData !== null && fairmintData._id) {
-    //     console.log("Fairmint data", fairmintData._id);
-    //     console.log("Reflecting Issuer into fairmint...");
-    //     const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
-    //     const resp = await axios.post(webHookUrl, {});
-    //     console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
-    //     console.log("Fairmint response:", resp.data);
-    // }
 
     const events = await contract.queryFilter(contract.filters.IssuerCreated);
     if (events.length === 0) {
@@ -195,10 +137,8 @@ const persistEvents = async (issuerId, events: QueuedEvent[]) => {
     for (const event of events) {
         const { type, data, timestamp } = event;
         const txHandleFunc = txFuncs[type];
-        // console.log("persistEvent: ", {type, data, timestamp});
         if (txHandleFunc) {
             // @ts-ignore
-            // TODO: check if transaction exists in historical txs
             await txHandleFunc(data, issuerId, timestamp);
             continue;
         }
