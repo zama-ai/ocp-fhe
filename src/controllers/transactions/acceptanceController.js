@@ -1,5 +1,4 @@
 import { convertUUIDToBytes16 } from "../../utils/convertUUID.js";
-import { toScaledBigNumber } from "../../utils/convertToFixedPointDecimals.js";
 
 export const convertAndCreateAcceptanceStockOnchain = async (
     contract,
