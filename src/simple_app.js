@@ -1,7 +1,7 @@
 import express, { json, urlencoded } from "express";
 import { setupEnv } from "./utils/env";
 import { connectDB } from "./db/config/mongoose.ts";
-import { startListener} from "./websocket.mts";
+import { startListener} from "./utils/websocket.ts";
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
 import mainRoutes from "./routes/index.js";
@@ -16,7 +16,6 @@ import vestingTermsRoutes from "./routes/vestingTerms.js";
 import statsRoutes from "./routes/stats/index.js";
 import exportRoutes from "./routes/export.js";
 import ocfRoutes from "./routes/ocf.js";
-// import webhookRoutes from "./routes/webhook.js";
 
 import { readAllIssuers, readIssuerById } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
@@ -78,7 +77,6 @@ app.use("/historical-transactions", historicalTransactions);
 app.use("/stats", statsRoutes);
 app.use("/export", exportRoutes);
 app.use("/ocf", ocfRoutes);
-// app.use("/webhook", webhookRoutes);
 
 // transactions
 app.use("/transactions/", contractMiddleware, transactionRoutes);
