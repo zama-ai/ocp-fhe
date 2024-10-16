@@ -5,8 +5,8 @@ import { txMapper, txTypes } from "../chain-operations/transactionHandlers";
 import { handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
 import Issuer from "../db/objects/Issuer";
 
-// TODO: automatically generate these topics from the events in the contract
 const TOPICS = {
+    // TODO: automatically generate these topics from the events in the contract
     TxCreated: "0x9f88fb156974def70024c0bee5f2fefd94c4f8141b6468bd9e49eb0425639845",
     StakeholderCreated: "0x53df47344d1cdf2ddb4901af5df61e37e14606bb7c8cc004d65c7c83ab3d0693",
     StockClassCreated: "0xc7496d70298fcc793e1d058617af680232585e302f0185b14bba498b247a9c1d",
