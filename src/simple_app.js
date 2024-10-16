@@ -1,8 +1,7 @@
 import express, { json, urlencoded } from "express";
 import { setupEnv } from "./utils/env";
 import { connectDB } from "./db/config/mongoose.ts";
-import startOnchainListeners from "./chain-operations/transactionListener.js";
-
+import { startListener} from "./websocket.mts";
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
 import mainRoutes from "./routes/index.js";
@@ -17,9 +16,9 @@ import vestingTermsRoutes from "./routes/vestingTerms.js";
 import statsRoutes from "./routes/stats/index.js";
 import exportRoutes from "./routes/export.js";
 import ocfRoutes from "./routes/ocf.js";
-import webhookRoutes from "./routes/webhook.js";
+// import webhookRoutes from "./routes/webhook.js";
 
-import { readIssuerById, readAllIssuers } from "./db/operations/read.js";
+import { readAllIssuers, readIssuerById } from "./db/operations/read.js";
 import { contractCache } from "./utils/simple_caches.js";
 import { getContractInstance } from "./chain-operations/getContractInstances.js";
 
@@ -79,7 +78,7 @@ app.use("/historical-transactions", historicalTransactions);
 app.use("/stats", statsRoutes);
 app.use("/export", exportRoutes);
 app.use("/ocf", ocfRoutes);
-app.use("/webhook", webhookRoutes);
+// app.use("/webhook", webhookRoutes);
 
 // transactions
 app.use("/transactions/", contractMiddleware, transactionRoutes);
@@ -92,22 +91,20 @@ const startServer = async () => {
 
     app.listen(PORT, async () => {
         console.log(`🚀  Server successfully launched at:${PORT}`);
-        // Fetch all issuers
-        // const issuers = (await readAllIssuers()) || [];
-        // console.log(`Number of issuers: ${issuers.length}`);
-        // for (const issuer of issuers) {
-        //     if (!issuer.deployed_to) continue; // skip non deployed issuers
-        //     // Create a new contract instance for each issuer
-        //     console.log("issuer.deployed_to", issuer.deployed_to);
-        //     const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
 
-        //     // Initialize listener for this contract
-        //     try {
-        //         startOnchainListeners(contract, provider, issuer._id, libraries);
-        //     } catch (error) {
-        //         console.error(`Error inside transaction listener for Issuer ${issuer._id}:`, error);
-        //     }
-        // }
+        const issuers = await readAllIssuers() || null
+        if (issuers) {
+            const contractAddresses = issuers.filter(issuer => issuer?.deployed_to).reduce((acc, issuer) => {
+                acc[issuer.id] = issuer.deployed_to;
+                return acc;
+            }, {});
+
+            console.log("Issuer -> Contract Address", contractAddresses);
+            console.log("Watching ", Object.values(contractAddresses).length, " Contracts");
+            const contractsToWatch = Object.values(contractAddresses)
+            startListener(contractsToWatch);
+        }
+
     });
     app.on("error", (err) => {
         console.error(err);
@@ -118,6 +115,7 @@ const startServer = async () => {
         }
     });
 };
+
 
 startServer().catch((error) => {
     console.error("Error starting server:", error);

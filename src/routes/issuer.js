@@ -8,7 +8,7 @@ import { countIssuers, readIssuerById } from "../db/operations/read.js";
 import { convertUUIDToBytes16 } from "../utils/convertUUID.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
 import { checkPortal } from "../fairmint/checkPortal.js";
-
+import { addAddressesToWatch } from "../websocket.mjs";
 const issuer = Router();
 
 issuer.get("/", async (req, res) => {
@@ -66,6 +66,7 @@ issuer.post("/create", async (req, res) => {
         };
 
         const issuer = await createIssuer(incomingIssuerForDB);
+        addAddressesToWatch(address);
 
         console.log("✅ | Issuer created offchain:", issuer);
 
