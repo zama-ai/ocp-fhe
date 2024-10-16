@@ -15,12 +15,22 @@ import {
     upsertIssuerAuthorizedSharesAdjustment,
 } from "../db/operations/update.js";
 import get from "lodash/get";
-
 import { reflectSeries } from "../fairmint/reflectSeries.js";
 import { toDecimal } from "../utils/convertToFixedPointDecimals.js";
 import { SERIES_TYPE } from "../fairmint/enums.js";
 import { reflectStakeholder } from "../fairmint/reflectStakeholder.js";
 import { reflectInvestment } from "../fairmint/reflectInvestment.js";
+import {
+    IssuerAuthorizedSharesAdjustment,
+    StockAcceptance,
+    StockCancellation,
+    StockClassAuthorizedSharesAdjustment,
+    StockIssuance,
+    StockReissuance,
+    StockRepurchase,
+    StockRetraction,
+    StockTransfer,
+} from "./structs.js";
 
 const isUUID = (value) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -213,6 +223,7 @@ export const handleStakeholder = async (id) => {
             throw Error("handleStakeholder: Stakeholder does not exist throw Error ");
         }
 
+        // TODO: condtionally reflect stakeholder to fairmint
         await reflectStakeholder({ stakeholder, issuerId: stakeholder.issuer });
     } catch (error) {
         throw Error("Error handing Stakeholder On Chain", error);
@@ -441,3 +452,27 @@ export const handleIssuerAuthorizedSharesAdjusted = async (issuer, issuerId, tim
         upsert
     );
 };
+
+export const contractFuncs = new Map([
+    ["StakeholderCreated", handleStakeholder],
+    ["StockClassCreated", handleStockClass],
+]);
+
+export const txMapper = {
+    1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
+    2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],
+    3: [StockAcceptance, handleStockAcceptance],
+    4: [StockCancellation, handleStockCancellation],
+    5: [StockIssuance, handleStockIssuance],
+    6: [StockReissuance, handleStockReissuance],
+    7: [StockRepurchase, handleStockRepurchase],
+    8: [StockRetraction, handleStockRetraction],
+    9: [StockTransfer, handleStockTransfer],
+};
+// (idx => type name) derived from txMapper
+export const txTypes = Object.fromEntries(
+    // @ts-ignore
+    Object.entries(txMapper).map(([i, [_, f]]) => [i, f.name.replace("handle", "")])
+);
+// (name => handler) derived from txMapper
+export const txFuncs = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [txTypes[i], f]));

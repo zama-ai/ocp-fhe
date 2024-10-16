@@ -4,6 +4,7 @@ import CAP_TABLE from "../../chain/out/CapTable.sol/CapTable.json" assert { type
 // Create an Interface instance
 const icap = new Interface(CAP_TABLE.abi);
 
+// TODO(adam): refactor to have a single error handler for all routes - this is too messy
 export const withChainErrorHandler =
     (fn) =>
     async (...args) => {
