@@ -2,14 +2,16 @@ import { Log, AbiCoder, Provider, Block } from "ethers";
 import getProvider from "../chain-operations/getProvider";
 import get from "lodash/get.js";
 import { txMapper, txTypes } from "../chain-operations/transactionHandlers";
-import { handleIssuer, handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
+import { handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
 import Issuer from "../db/objects/Issuer";
+import { reflectPortal } from "../fairmint/reflectPortal";
+import { convertBytes16ToUUID } from "./convertUUID";
 
 const TOPICS = {
     TxCreated: "0x9f88fb156974def70024c0bee5f2fefd94c4f8141b6468bd9e49eb0425639845",
     StakeholderCreated: "0x53df47344d1cdf2ddb4901af5df61e37e14606bb7c8cc004d65c7c83ab3d0693",
     StockClassCreated: "0xc7496d70298fcc793e1d058617af680232585e302f0185b14bba498b247a9c1d",
-    IssuerCreated: "0xb8cbde9f597f493a1b4d1c4db5fded9cd26293080750a0df6b7e7097f4b680dd",
+    // IssuerCreated: "0xb8cbde9f597f493a1b4d1c4db5fded9cd26293080750a0df6b7e7097f4b680dd", // We don't receive this event because by time we add the listener we already missed it.
 };
 
 const abiCoder = new AbiCoder();
@@ -86,7 +88,9 @@ export const startListener = async (contracts: string[]) => {
 };
 
 const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
-    switch (log.topics[0]) {
+    const topic = get(log, "topics.0", null);
+    console.log("🔗 | Handling event type", topic);
+    switch (topic) {
         case TOPICS.StockClassCreated:
             const stockClassIdBytes = get(log, "topics.1", null);
             if (!stockClassIdBytes) {
@@ -107,15 +111,19 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
             await handleStakeholder(stakeholderIdBytes16);
             break;
 
-        case TOPICS.IssuerCreated:
-            const issuerIdBytes = get(log, "topics.1", null);
-            if (!issuerIdBytes) {
-                console.error("No issuer id found");
-                return;
-            }
-            const [issuerIdBytes16] = abiCoder.decode(["bytes16"], issuerIdBytes);
-            await handleIssuer(issuerIdBytes16);
-            break;
+        // We don't receive this event because by time we add the listener we already missed it.
+        // case TOPICS.IssuerCreated:
+        //     const issuerIdBytes = get(log, "topics.1", null);
+        //     if (!issuerIdBytes) {
+        //         console.error("No issuer id found");
+        //         return;
+        //     }
+        //     const [issuerIdBytes16] = abiCoder.decode(["bytes16"], issuerIdBytes);
+        //     const _issuerId = convertBytes16ToUUID(issuerIdBytes16);
+        //     console.log("🔗 | Issuer created", _issuerId);
+        //     // Sets portal.captable_minted to true
+        //     await reflectPortal({ portalId: _issuerId });
+        //     break;
 
         case TOPICS.TxCreated:
             const issuer = await Issuer.findOne({ deployed_to });
@@ -146,6 +154,6 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
             break;
 
         default:
-            console.warn(`Unhandled event type for address: ${deployed_to}`);
+            console.warn(`Unhandled topic ${topic} for address: ${deployed_to}`);
     }
 };
