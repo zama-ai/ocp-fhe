@@ -27,9 +27,10 @@ async function deployCapTable(issuerId, initial_shares_authorized) {
 
     const capTableFactory = new ethers.Contract(factoryAddress, CAP_TABLE_FACTORY.abi, wallet);
 
+    console.log("Creating a new cap table...");
     const tx = await capTableFactory.createCapTable(issuerId, toScaledBigNumber(initial_shares_authorized));
     await tx.wait();
-
+    console.log("Cap table created");
     const capTableCount = await capTableFactory.getCapTableCount();
 
     console.log("📄 | Cap table count: ", capTableCount);
