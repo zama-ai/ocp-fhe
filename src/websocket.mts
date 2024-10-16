@@ -35,6 +35,7 @@ export const removeAddressesToWatch = (addresses: string | string[]) => {
 
 // let provider: Provider;
 const provider = getProvider() as Provider;
+let isSetup = false;
 
 // Function to update the provider filter
 const updateProviderFilter = () => {
@@ -43,12 +44,17 @@ const updateProviderFilter = () => {
         return;
     }
     console.log("🔗 | Updating provider filter");
+    isSetup = false;
     provider.removeAllListeners();
     setupProviderListener();
 };
 
 // Function to set up the provider listener
 const setupProviderListener = () => {
+    if (isSetup) {
+        console.log("🔗 | listener already set up");
+        return;
+    }
     console.log("🔗 | Setting up provider listener");
     provider.on("block", async (block: Block) => {
         console.log("🔗 | Block received:", block.number);
@@ -83,9 +89,14 @@ const setupProviderListener = () => {
     provider.on("error", (err) => {
         console.error(err);
     });
+    isSetup = true;
 };
 
 export const startListener = async (contracts: string[]) => {
+    if (isSetup) {
+        console.log("🔗 | Listener already setup");
+        return;
+    }
     console.log("🔗 | Starting listener");
     addAddressesToWatch(contracts);
     setupProviderListener();
