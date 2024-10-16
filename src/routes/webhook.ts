@@ -4,6 +4,7 @@ import axios from "axios";
 import { API_URL } from "../fairmint/config.js";
 import { convertBytes16ToUUID } from "../utils/convertUUID.js";
 import {
+    handleIssuer,
     handleIssuerAuthorizedSharesAdjusted,
     handleStakeholder,
     handleStockAcceptance,
@@ -40,7 +41,7 @@ const TOPICS = {
 };
 */
 
-const txMapper = {
+export const txMapper = {
     1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
     2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],
     3: [StockAcceptance, handleStockAcceptance],
@@ -51,6 +52,7 @@ const txMapper = {
     8: [StockRetraction, handleStockRetraction],
     9: [StockTransfer, handleStockTransfer],
 };
+
 // (idx => type name) derived from txMapper
 export const txTypes = Object.fromEntries(
     // @ts-ignore
@@ -58,24 +60,6 @@ export const txTypes = Object.fromEntries(
 );
 // (name => handler) derived from txMapper
 export const txFuncs = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [txTypes[i], f]));
-
-const handleIssuerCreated = async (id) => {
-    console.log("IssuerCreated Event Emitted!", id);
-    console.log("New issuer was deployed", { issuerId: id });
-    const issuerId = convertBytes16ToUUID(id);
-    console.log("Issuer ID", issuerId);
-
-    // Check if need to convert to UUID
-    const fairmintData = await readFairmintDataById(id);
-    if (fairmintData !== null && fairmintData._id) {
-        console.log("Fairmint data", fairmintData._id);
-        console.log("Reflecting Issuer into fairmint...");
-        const webHookUrl = `${API_URL}/ocp/reflectCaptable?portalId=${issuerId}`;
-        const resp = await axios.post(webHookUrl, {});
-        console.log(`Successfully reflected Issuer ${issuerId} into Fairmint webhook`);
-        console.log("Fairmint response:", resp.data);
-    }
-};
 
 const abiCoder = new AbiCoder();
 webhooks.get("/", async (req, res) => {
@@ -96,6 +80,7 @@ webhooks.post("/tx-created", async (req, res) => {
             // Get issuer id from log
             const issuerIdBytes = get(log, "account.address", null);
             if (!issuerIdBytes) {
+                // TODO: check if issuer exists in db
                 console.error("No issuer id found");
                 continue;
             }
@@ -141,14 +126,19 @@ webhooks.post("/stock-class-created", async (req, res) => {
             const { data } = log;
             console.log("data", data);
 
+            const issuerIdBytes = get(log, "account.address", null);
+            if (!issuerIdBytes) {
+                console.error("No issuer id found");
+                continue;
+            }
+            // TODO: check if issuer exists in db
             const stockClassIdEncoded = get(log, "topics.1", null);
-            console.log("before converting", stockClassIdEncoded);
             const stockClassId = abiCoder.decode(["bytes16"], stockClassIdEncoded)[0];
-            console.log("after converting", stockClassId);
             if (!stockClassId) {
                 console.error("No stock class id found");
                 continue;
             }
+            // TODO: check if stock class exists in db
             await handleStockClass(stockClassId);
         }
         res.status(200).json("ok");
@@ -160,6 +150,7 @@ webhooks.post("/stock-class-created", async (req, res) => {
 
 webhooks.post("/issuer-created", async (req, res) => {
     try {
+        console.log("issuer-created route");
         const { event } = req.body;
         console.log("Event received:", event);
         const logs = get(event, "data.block.logs", []);
@@ -169,9 +160,16 @@ webhooks.post("/issuer-created", async (req, res) => {
             const { data } = log;
             console.log("data", data);
 
-            // TODO: make it a struct
-            const [id] = abiCoder.decode(["bytes16"], data);
-            await handleIssuerCreated(id);
+            const issuerIdBytes = get(log, "topics.1", null);
+            if (!issuerIdBytes) {
+                console.error("No issuer id found");
+                return;
+            }
+            // TODO: check if issuer exists in db
+
+            const [issuerIdBytes16] = abiCoder.decode(["bytes16"], issuerIdBytes);
+            console.log("issuerIdBytes16", issuerIdBytes16);
+            await handleIssuer(issuerIdBytes16);
         }
         res.status(200).json("ok");
     } catch (error) {
