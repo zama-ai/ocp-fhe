@@ -2,6 +2,7 @@ import express, { json, urlencoded } from "express";
 import { setupEnv } from "./utils/env";
 import { connectDB } from "./db/config/mongoose.ts";
 import { startListener} from "./utils/websocket.ts";
+
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
 import mainRoutes from "./routes/index.js";
@@ -49,9 +50,6 @@ const contractMiddleware = async (req, res, next) => {
     if (!contractCache[req.body.issuerId]) {
         const { contract, provider, libraries } = await getContractInstance(issuer.deployed_to);
         contractCache[req.body.issuerId] = { contract, provider, libraries };
-
-        // Initialize listener for this contract
-        // startOnchainListeners(contract, provider, req.body.issuerId, libraries);
     }
 
     req.contract = contractCache[req.body.issuerId].contract;
@@ -97,9 +95,10 @@ const startServer = async () => {
                 return acc;
             }, {});
 
-            console.log("Issuer -> Contract Address", contractAddresses);
-            console.log("Watching ", Object.values(contractAddresses).length, " Contracts");
+            console.log(contractAddresses)
+            console.log("Issuer -> Contract Address");
             const contractsToWatch = Object.values(contractAddresses)
+            console.log("Watching ", contractsToWatch.length, " Contracts");
             startListener(contractsToWatch);
         }
 
