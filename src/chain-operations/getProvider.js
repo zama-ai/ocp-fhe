@@ -29,7 +29,8 @@ const getProvider = () => {
         console.log("🔗 | Connected to local network: ", RPC_URL);
     } else {
         console.log("🔗 | Connecting to network: ", RPC_URL);
-        provider = new ethers.WebSocketProvider(RPC_URL);
+        // provider = new ethers.WebSocketProvider(RPC_URL);
+        provider = new ethers.JsonRpcProvider(RPC_URL.replace("ws", "http"));
         console.log("🔗 | Connected to network: ", RPC_URL);
     }
     return provider;
