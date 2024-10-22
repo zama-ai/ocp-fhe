@@ -474,8 +474,8 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             issuerId,
             stakeholder_id: stakeholder._id,
             series_id: payload.series_id,
-            token_amount: get(incomingEquityCompensationIssuance, "quantity", 0),
-            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price.amount", 0),
+            token_amount: get(incomingEquityCompensationIssuance, "quantity", "0"),
+            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price.amount", "0"),
             compensation_type: get(incomingEquityCompensationIssuance, "compensation_type", ""),
             date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
         });
