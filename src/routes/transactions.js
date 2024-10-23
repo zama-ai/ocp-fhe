@@ -13,6 +13,7 @@ import stockIssuanceSchema from "../../ocf/schema/objects/transactions/issuance/
 import stockReissuanceSchema from "../../ocf/schema/objects/transactions/reissuance/StockReissuance.schema.json" assert { type: "json" };
 import stockRepurchaseSchema from "../../ocf/schema/objects/transactions/repurchase/StockRepurchase.schema.json" assert { type: "json" };
 import stockRetractionSchema from "../../ocf/schema/objects/transactions/retraction/StockRetraction.schema.json" assert { type: "json" };
+import equityCompensationExerciseSchema from "../../ocf/schema/objects/transactions/exercise/EquityCompensationExercise.schema.json" assert { type: "json" };
 
 import { convertAndAdjustIssuerAuthorizedSharesOnChain } from "../controllers/issuerController.js";
 import { convertAndAdjustStockClassAuthorizedSharesOnchain } from "../controllers/stockClassController.js";
@@ -23,7 +24,8 @@ import { convertAndCreateReissuanceStockOnchain } from "../controllers/transacti
 import { convertAndCreateRepurchaseStockOnchain } from "../controllers/transactions/repurchaseController.js";
 import { convertAndCreateRetractionStockOnchain } from "../controllers/transactions/retractionController.js";
 import { convertAndCreateTransferStockOnchain } from "../controllers/transactions/transferController.js";
-import { createConvertibleIssuance, createEquityCompensationIssuance, createWarrantIssuance } from "../db/operations/create.js";
+import { createConvertibleIssuance, createEquityCompensationIssuance, createWarrantIssuance, createEquityCompensationExercise } from "../db/operations/create.js";
+import { reflectGrantExercise } from "../fairmint/reflectGrantExercise.js";
 
 import {
     readConvertibleIssuanceById,
@@ -434,7 +436,7 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
         const incomingEquityCompensationIssuance = {
             id: uuid(), // for OCF Validation
             security_id: uuid(), // for OCF Validation,
-            date: new Date().toISOString().slice(0, 10), // for OCF Validation
+            date: new Date().toISOString().slice(0, 10), // for OCF Validation, it gets overriden if date exists in data
             object_type: "TX_EQUITY_COMPENSATION_ISSUANCE",
             ...data,
         };
@@ -463,6 +465,8 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             issuerId,
             series_id: payload.series_id,
             series_name: payload.series_name,
+            stock_class_id: get(incomingEquityCompensationIssuance, "stock_class_id"),
+            stock_plan_id: get(incomingEquityCompensationIssuance, "stock_plan_id"),
             series_type: SERIES_TYPE.GRANT,
             date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
         });
@@ -474,9 +478,14 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             issuerId,
             stakeholder_id: stakeholder._id,
             series_id: payload.series_id,
-            token_amount: get(incomingEquityCompensationIssuance, "quantity", "0"),
-            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price.amount", "0"),
+            grant_quantity: get(incomingEquityCompensationIssuance, "quantity", "0"),
+            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price", {}),
             compensation_type: get(incomingEquityCompensationIssuance, "compensation_type", ""),
+            option_grant_type: get(incomingEquityCompensationIssuance, "option_grant_type", ""),
+            security_law_exemptions: get(incomingEquityCompensationIssuance, "security_law_exemptions", []),
+            expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
+            termination_exercise_windows: get(incomingEquityCompensationIssuance, "termination_exercise_windows", []),
+            vestings: get(incomingEquityCompensationIssuance, "vestings", []),
             date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
         });
 
@@ -488,6 +497,49 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
         res.status(500).send(`${error}`);
     }
 });
+
+transactions.post("/exercise/equity-compensation-fairmint-reflection", async (req, res) => {
+    const { data } = req.body; // issuer id is checked in the middleware
+
+    try {
+
+        console.log("hello world!")
+
+        const incomingEquityCompensationExercise = {
+            id: uuid(), // for OCF Validation, it gets overriden if id exists in data
+            security_id: uuid(), // for OCF Validation, it gets overriden if security_id exists in data
+            date: new Date().toISOString().slice(0, 10), // for OCF Validation, it gets overriden if date exists in data
+            object_type: "TX_EQUITY_COMPENSATION_EXERCISE",
+            ...data,
+        };
+
+        await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
+
+        const createdExercise = await createEquityCompensationExercise({
+            ...incomingEquityCompensationExercise,
+            issuer: issuerId,
+        });
+
+        // reflect exercise on fairmint
+
+        const reflectedExercise = await reflectGrantExercise({
+            security_id: incomingEquityCompensationExercise.security_id,
+            resulting_security_ids: incomingEquityCompensationExercise.resulting_security_ids,
+            issuerId,
+            quantity: incomingEquityCompensationExercise.quantity,
+            date: incomingEquityCompensationExercise.date,
+        })
+
+        console.log("Reflected Exercise Response:", reflectedExercise);
+
+
+        res.status(200).send({ equityCompensationExercise: createdExercise });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(`${error}`);
+    }
+})
 
 transactions.post("/issuance/convertible", async (req, res) => {
     const { issuerId, data } = req.body;
