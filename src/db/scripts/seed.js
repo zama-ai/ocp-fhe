@@ -27,6 +27,7 @@ import txStockClassAuthorizedSharesAdjustmentSchema from "../../../ocf/schema/ob
 import txConvertibleIssuanceSchema from "../../../ocf/schema/objects/transactions/issuance/ConvertibleIssuance.schema.json" assert { type: "json" };
 import txEquityCompensationIssuanceSchema from "../../../ocf/schema/objects/transactions/issuance/EquityCompensationIssuance.schema.json" assert { type: "json" };
 import txWarrantIssuanceSchema from "../../../ocf/schema/objects/transactions/issuance/WarrantIssuance.schema.json" assert { type: "json" };
+import txIssuerAuthorizedSharesAdjustmentSchema from "../../../ocf/schema/objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.schema.json" assert { type: "json" };
 
 import validateInputAgainstOCF from "../../utils/validateInputAgainstSchema.js";
 import preProcessManifestTxs from "../../state-machines/process.js";
@@ -84,6 +85,9 @@ export async function processTransactionEntity(txs) {
                 break;
             case "TX_WARRANT_ISSUANCE":
                 schema = txWarrantIssuanceSchema;
+                break;
+            case "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT":
+                schema = txIssuerAuthorizedSharesAdjustmentSchema;
                 break;
             default:
                 throw new Error(`${tx.object_type} is not mapped - please add the transaction validation to the schema`);
