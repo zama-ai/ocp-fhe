@@ -122,6 +122,7 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
         const stakeholder = await readStakeholderById(incomingStockIssuance.stakeholder_id);
         const stockClass = await readStockClassById(incomingStockIssuance.stock_class_id);
         incomingStockIssuance.comments = [
+            `old-security-id=${incomingStockIssuance.security_id}`,
             `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
             ...(incomingStockIssuance.comments || []),
         ];
@@ -525,14 +526,15 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             issuerId,
             stakeholder_id: stakeholder._id,
             series_id: payload.series_id,
-            grant_quantity: get(incomingEquityCompensationIssuance, "quantity", "0"),
-            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price", {}),
+            quantity: get(incomingEquityCompensationIssuance, "quantity", "0"),
+            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price.amount", "0"),
             compensation_type: get(incomingEquityCompensationIssuance, "compensation_type", ""),
             option_grant_type: get(incomingEquityCompensationIssuance, "option_grant_type", ""),
             security_law_exemptions: get(incomingEquityCompensationIssuance, "security_law_exemptions", []),
             expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
             termination_exercise_windows: get(incomingEquityCompensationIssuance, "termination_exercise_windows", []),
             vestings: get(incomingEquityCompensationIssuance, "vestings", []),
+            expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
             date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
         });
 
@@ -546,12 +548,9 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
 });
 
 transactions.post("/exercise/equity-compensation-fairmint-reflection", async (req, res) => {
-    const { data } = req.body; // issuer id is checked in the middleware
+    const { data, issuerId } = req.body; // issuer id is checked in the middleware
 
     try {
-
-        console.log("hello world!")
-
         const incomingEquityCompensationExercise = {
             id: uuid(), // for OCF Validation, it gets overriden if id exists in data
             security_id: uuid(), // for OCF Validation, it gets overriden if security_id exists in data
@@ -561,32 +560,44 @@ transactions.post("/exercise/equity-compensation-fairmint-reflection", async (re
         };
 
         await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
+        // Query DB for existing exercise with old security_id on StockIssuance
+        const oldSecurityIds = get(incomingEquityCompensationExercise, "resulting_security_ids", []);
+        const newSecurityIds = [];
+
+        for (const oldSecurityId of oldSecurityIds) {
+            console.log(`Checking DB for old-security-id=${oldSecurityId}`);
+            const stockIssuance = await StockIssuance.findOne({ comments: `old-security-id=${oldSecurityId}` });
+            if (!stockIssuance) {
+                return res.status(404).send({ error: `Stock Issuance not found on OCP for old-security-id=${oldSecurityId}` });
+            }
+            newSecurityIds.push(stockIssuance.security_id);
+        }
+
+        // replace old security_ids with new security_ids
+        incomingEquityCompensationExercise.resulting_security_ids = newSecurityIds;
 
         const createdExercise = await createEquityCompensationExercise({
             ...incomingEquityCompensationExercise,
             issuer: issuerId,
         });
 
-        // reflect exercise on fairmint
-
+        // Reflect exercise on fairmint
         const reflectedExercise = await reflectGrantExercise({
             security_id: incomingEquityCompensationExercise.security_id,
             resulting_security_ids: incomingEquityCompensationExercise.resulting_security_ids,
             issuerId,
             quantity: incomingEquityCompensationExercise.quantity,
             date: incomingEquityCompensationExercise.date,
-        })
+        });
 
         console.log("Reflected Exercise Response:", reflectedExercise);
 
-
         res.status(200).send({ equityCompensationExercise: createdExercise });
-
     } catch (error) {
         console.error(error);
         res.status(500).send(`${error}`);
     }
-})
+});
 
 transactions.post("/issuance/convertible", async (req, res) => {
     const { issuerId, data } = req.body;
