@@ -16,6 +16,7 @@ import { save } from "./atomic.ts";
 import WarrantIssuance from "../objects/transactions/issuance/WarrantIssuance.js";
 import VestingStart from "../objects/transactions/vesting/VestingStart.js";
 import EquityCompensationExercise from "../objects/transactions/exercise/EquityCompensationExercise.js";
+import StockPlanPoolAdjustment from "../objects/transactions/adjustment/StockPlanPoolAdjustment.js";
 
 export const createIssuer = (issuerData) => {
     return save(new Issuer(issuerData));
@@ -83,4 +84,8 @@ export const createFairmintData = (fairmintData) => {
 
 export const createEquityCompensationExercise = (exerciseData) => {
     return save(new EquityCompensationExercise(exerciseData));
+};
+
+export const createStockPlanPoolAdjustment = (stockPlanPoolAdjustmentData) => {
+    return save(new StockPlanPoolAdjustment(stockPlanPoolAdjustmentData));
 };
