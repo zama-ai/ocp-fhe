@@ -22,6 +22,7 @@ export const reflectGrantExercise = async ({ security_id, issuerId, quantity, da
                 status: error.response.status,
                 endpoint: webHookUrl,
                 data: get(error, "response.data"),
+                message: get(error, "response.data.message") || get(error, "message") || "Unknown error",
             };
             throw Error(`Error reflecting Investment into Fairmint: ${JSON.stringify(formattedError, null, 2)}`);
         } else {
