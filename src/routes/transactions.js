@@ -14,6 +14,7 @@ import stockReissuanceSchema from "../../ocf/schema/objects/transactions/reissua
 import stockRepurchaseSchema from "../../ocf/schema/objects/transactions/repurchase/StockRepurchase.schema.json" assert { type: "json" };
 import stockRetractionSchema from "../../ocf/schema/objects/transactions/retraction/StockRetraction.schema.json" assert { type: "json" };
 import equityCompensationExerciseSchema from "../../ocf/schema/objects/transactions/exercise/EquityCompensationExercise.schema.json" assert { type: "json" };
+import stockPlanPoolAdjustmentSchema from "../../ocf/schema/objects/transactions/adjustment/StockPlanPoolAdjustment.schema.json" assert { type: "json" };
 
 import { convertAndAdjustIssuerAuthorizedSharesOnChain } from "../controllers/issuerController.js";
 import { convertAndAdjustStockClassAuthorizedSharesOnchain } from "../controllers/stockClassController.js";
@@ -24,16 +25,24 @@ import { convertAndCreateReissuanceStockOnchain } from "../controllers/transacti
 import { convertAndCreateRepurchaseStockOnchain } from "../controllers/transactions/repurchaseController.js";
 import { convertAndCreateRetractionStockOnchain } from "../controllers/transactions/retractionController.js";
 import { convertAndCreateTransferStockOnchain } from "../controllers/transactions/transferController.js";
-import { createConvertibleIssuance, createEquityCompensationIssuance, createWarrantIssuance, createEquityCompensationExercise } from "../db/operations/create.js";
+import {
+    createConvertibleIssuance,
+    createEquityCompensationIssuance,
+    createWarrantIssuance,
+    createEquityCompensationExercise,
+} from "../db/operations/create.js";
+import StockIssuance from "../db/objects/transactions/issuance/StockIssuance.js";
 import { reflectGrantExercise } from "../fairmint/reflectGrantExercise.js";
 
 import {
+    readStockPlanById,
     readConvertibleIssuanceById,
     readIssuerById,
     readStakeholderById,
     readStockClassById,
     readStockIssuanceByCustomId,
 } from "../db/operations/read.js";
+import { createStockPlanPoolAdjustment } from "../db/operations/create.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
 import { getJoiErrorMessage } from "../chain-operations/utils.js";
 import { upsertFairmintDataBySeriesId } from "../db/operations/update.js";
@@ -75,7 +84,7 @@ transactions.post("/issuance/stock", async (req, res) => {
     }
 });
 
-transactions.post("/issuance/stock-fairmint-reflection", async (req, res) => {
+transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
     const { contract } = req;
     const { issuerId } = req.body;
 
@@ -380,6 +389,44 @@ transactions.post("/adjust/stock-class/authorized-shares", async (req, res) => {
         });
 
         res.status(200).send({ stockClassAdjustment: stockClassAuthorizedSharesAdjustment });
+    } catch (error) {
+        console.error(`error: ${error.stack}`);
+        res.status(500).send(`${error}`);
+    }
+});
+
+transactions.post("/adjust/stock-plan-pool", async (req, res) => {
+    // const { contract } = req;
+    const { data, issuerId } = req.body;
+
+    try {
+        await readIssuerById(issuerId);
+        const stockPlanPoolAdjustment = {
+            id: uuid(), // placeholder
+            date: new Date().toISOString().slice(0, 10),
+            object_type: "TX_STOCK_PLAN_POOL_ADJUSTMENT",
+            ...data,
+        };
+
+        console.log("stockPlanPoolAdjustment", stockPlanPoolAdjustment);
+
+        // NOTE: schema validation does not include stakeholder, stockClassId, however these properties are needed on to be passed on chain
+        await validateInputAgainstOCF(stockPlanPoolAdjustment, stockPlanPoolAdjustmentSchema);
+
+        const stockPlan = await readStockPlanById(stockPlanPoolAdjustment.stock_plan_id);
+
+        if (!stockPlan || !stockPlan._id) {
+            return res.status(404).send({ error: "Stock plan not found on OCP" });
+        }
+
+        // TODO: implement Chain OP
+
+        await createStockPlanPoolAdjustment({
+            ...stockPlanPoolAdjustment,
+            issuer: issuerId,
+        });
+
+        res.status(200).send({ stockPlanAdjustment: stockPlanPoolAdjustment });
     } catch (error) {
         console.error(`error: ${error.stack}`);
         res.status(500).send(`${error}`);
