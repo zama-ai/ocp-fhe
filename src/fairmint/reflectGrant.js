@@ -2,9 +2,12 @@ import axios from "axios";
 import get from "lodash/get";
 import { API_URL } from "./config";
 
-export const reflectGrant = async ({ security_id, issuerId,
+export const reflectGrant = async ({
+    security_id,
+    issuerId,
     stakeholder_id,
     series_id,
+    quantity,
     exercise_price,
     compensation_type,
     option_grant_type,
@@ -12,7 +15,8 @@ export const reflectGrant = async ({ security_id, issuerId,
     expiration_date,
     termination_exercise_windows,
     vestings,
-    date
+    date,
+    vesting_terms_id,
 }) => {
     const webHookUrl = `${API_URL}/ocp/reflectGrant?portalId=${issuerId}`;
     console.log({
@@ -27,6 +31,8 @@ export const reflectGrant = async ({ security_id, issuerId,
         termination_exercise_windows,
         vestings,
         date,
+        quantity,
+        vesting_terms_id,
     });
 
     try {
@@ -36,12 +42,14 @@ export const reflectGrant = async ({ security_id, issuerId,
             stakeholder_id,
             series_id,
             exercise_price,
+            quantity,
             compensation_type,
             option_grant_type,
             security_law_exemptions,
             expiration_date,
             termination_exercise_windows,
             vestings,
+            vesting_terms_id,
             date,
         });
 
