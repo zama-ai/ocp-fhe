@@ -31,7 +31,7 @@ const getConvertibleIssuances = async (issuerId) => {
     return await find(ConvertibleIssuance, { issuer: issuerId });
 };
 
-export const getLatestAuthorizedSharesAdjustment = async (issuerId) => {
+const getLatestAuthorizedSharesAdjustment = async (issuerId) => {
     return await IssuerAuthorizedSharesAdjustment.findOne({ issuer: issuerId }).sort({ createdAt: -1 });
 };
 
@@ -198,7 +198,10 @@ const calculateDashboardStats = async (issuerId) => {
         for convertible issuance calculation:
             conversion valuation cap
       */
-        const valuations = [stockIssuanceValuation, convertibleIssuanceValuation].filter((val) => val && Object.keys(val).length > 0 && val?.amount);
+        const valuations = [stockIssuanceValuation, convertibleIssuanceValuation].filter(
+            (val) => val && Object.keys(val).length > 0 && get(val, "amount")
+        );
+
         valuations.sort((a, b) => b.createdAt - a.createdAt);
         const valuation = valuations.length > 0 ? valuations[0] : null;
 
