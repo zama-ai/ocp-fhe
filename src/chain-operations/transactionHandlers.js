@@ -433,7 +433,7 @@ export const handleIssuerAuthorizedSharesAdjusted = async (issuer, issuerId, tim
         comments: issuer.comments,
         issuer_id: convertBytes16ToUUID(issuer.security_id),
         date: dateOCF,
-        new_shares_authorized: issuer.new_shares_authorized,
+        new_shares_authorized: toDecimal(issuer.new_shares_authorized).toString(),
         board_approval_date: issuer.board_approval_date,
         stockholder_approval_date: issuer.stockholder_approval_date,
 
