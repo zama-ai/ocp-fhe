@@ -4,6 +4,7 @@ import StockPlan from "../../db/objects/StockPlan.js";
 import StockIssuance from "../../db/objects/transactions/issuance/StockIssuance.js";
 import ConvertibleIssuance from "../../db/objects/transactions/issuance/ConvertibleIssuance.js";
 import IssuerAuthorizedSharesAdjustment from "../../db/objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
+import StockPlanPoolAdjustment from "../../db/objects/transactions/adjustment/StockPlanPoolAdjustment.js";
 import Issuer from "../../db/objects/Issuer.js";
 import get from "lodash/get";
 import EquityCompensationIssuance from "../../db/objects/transactions/issuance/EquityCompensationIssuance.js";
@@ -42,10 +43,9 @@ const getLatestStockIssuance = async (issuerId) => {
     return await StockIssuance.findOne({ issuer: issuerId }).sort({ createdAt: -1 });
 };
 
-const calculateTotalShares = (stockIssuances, stockPlans) => {
+const calculateTotalShares = (stockIssuances, totalStockPlanAmount) => {
     const totalStockIssuanceShares = stockIssuances.reduce((acc, issuance) => acc + Number(get(issuance, "quantity")), 0);
-    const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
-    return totalStockIssuanceShares + stockPlanAmount;
+    return totalStockIssuanceShares + totalStockPlanAmount;
 };
 
 const calculateStakeholderShares = (stakeholders, stockIssuances) => {
@@ -152,10 +152,18 @@ const calculateDashboardStats = async (issuerId) => {
         const latestAuthorizedSharesAdjustment = await getLatestAuthorizedSharesAdjustment(issuerId);
         const issuer = await getIssuer(issuerId);
         const latestStockIssuance = await getLatestStockIssuance(issuerId);
-        const stockPlanAmount = stockPlans.reduce((acc, plan) => acc + Number(get(plan, "initial_shares_reserved")), 0);
+        const stockPlanPoolAdjustments = await StockPlanPoolAdjustment.find({ stock_plan_id: { $in: stockPlans.map((plan) => plan._id) } });
+        const stockPlanAdjustmentMap = stockPlanPoolAdjustments.reduce((acc, adjustment) => {
+            acc[adjustment.stock_plan_id] = get(adjustment, "shares_reserved", 0);
+            return acc;
+        }, {});
+        // max(shares_reserved, initial_shares_reserved)
+        const totalStockPlanAmount = stockPlans.reduce((acc, plan) => {
+            return acc + Math.max(Number(get(stockPlanAdjustmentMap, plan._id, 0)), Number(get(plan, "initial_shares_reserved")));
+        }, 0);
 
         // pass stock
-        const totalSharesOutstanding = calculateTotalShares(stockIssuances, stockPlans);
+        const totalSharesOutstanding = calculateTotalShares(stockIssuances, totalStockPlanAmount);
         const stakeholderShares = calculateStakeholderShares(stakeholders, stockIssuances);
         const ownership = calculateOwnership(stakeholderShares, totalSharesOutstanding);
 
@@ -190,7 +198,7 @@ const calculateDashboardStats = async (issuerId) => {
         for convertible issuance calculation:
             conversion valuation cap
       */
-        const valuations = [stockIssuanceValuation, convertibleIssuanceValuation].filter((val) => val && Object.keys(val).length > 0);
+        const valuations = [stockIssuanceValuation, convertibleIssuanceValuation].filter((val) => val && Object.keys(val).length > 0 && val?.amount);
         valuations.sort((a, b) => b.createdAt - a.createdAt);
         const valuation = valuations.length > 0 ? valuations[0] : null;
 
@@ -199,7 +207,7 @@ const calculateDashboardStats = async (issuerId) => {
             fullyDilutedShares,
             numOfStakeholders: stakeholders.length,
             totalRaised,
-            stockPlanAmount,
+            stockPlanAmount: totalStockPlanAmount,
             totalShares,
             sharePrice,
             valuation,
