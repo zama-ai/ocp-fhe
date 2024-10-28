@@ -30,8 +30,8 @@ const getConvertibleIssuances = async (issuerId) => {
     return await find(ConvertibleIssuance, { issuer: issuerId });
 };
 
-const getLatestAuthorizedSharesAdjustment = async (issuerId) => {
-    return await IssuerAuthorizedSharesAdjustment.findOne({ issuer_id: issuerId }).sort({ date: -1 });
+export const getLatestAuthorizedSharesAdjustment = async (issuerId) => {
+    return await IssuerAuthorizedSharesAdjustment.findOne({ issuer: issuerId }).sort({ createdAt: -1 });
 };
 
 const getIssuer = async (issuerId) => {
