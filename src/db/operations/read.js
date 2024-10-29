@@ -12,6 +12,8 @@ import ConvertibleIssuance from "../objects/transactions/issuance/ConvertibleIss
 import StockIssuance from "../objects/transactions/issuance/StockIssuance.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
 import EquityCompensationIssuance from "../objects/transactions/issuance/EquityCompensationIssuance.js";
+import IssuerAuthorizedSharesAdjustment from "../objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
+import StockClassAuthorizedSharesAdjustment from "../objects/transactions/adjustment/StockClassAuthorizedSharesAdjustment.js";
 import { countDocuments, find, findById, findOne } from "./atomic.ts";
 
 // READ By ID
@@ -127,6 +129,37 @@ export const readFairmintDataBySeriesId = async (series_id) => {
     return await Fairmint.findOne({ series_id });
 };
 
+
+export const getAllStateMachineObjectsById = async (issuerId) => {
+    const issuer = await readIssuerById(issuerId);
+    const stockClasses = await find(StockClass, { issuer: issuerId });
+    const stockPlans = await find(StockPlan, { issuer: issuerId });
+
+    // Get all transaction types
+    const stockIssuances = await find(StockIssuance, { issuer: issuerId });
+    const convertibleIssuances = await find(ConvertibleIssuance, { issuer: issuerId });
+    const equityCompensationIssuances = await find(EquityCompensationIssuance, { issuer: issuerId });
+    const issuerAuthorizedSharesAdjustments = await find(IssuerAuthorizedSharesAdjustment, { issuer: issuerId });
+    const stockClassAuthorizedSharesAdjustments = await find(StockClassAuthorizedSharesAdjustment, { issuer: issuerId });
+
+    // Combine all transactions into one array
+    const allTransactions = [
+        ...stockIssuances,
+        ...convertibleIssuances,
+        ...equityCompensationIssuances,
+        ...issuerAuthorizedSharesAdjustments,
+        ...stockClassAuthorizedSharesAdjustments
+    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    console.log("allTransactions", allTransactions);
+
+    return {
+        issuer,
+        stockClasses,
+        stockPlans,
+        transactions: allTransactions
+    };
+};
 
 export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
     try {
