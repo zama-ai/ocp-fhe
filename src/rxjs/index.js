@@ -1,9 +1,9 @@
-import { from } from 'rxjs';
+import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 
 // Initial state structure
-const createInitialState = (issuer, stockClasses, stockPlans) => ({
+const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => ({
     issuer: {
         id: issuer._id,
         sharesAuthorized: parseInt(issuer.initial_shares_authorized),
@@ -38,9 +38,11 @@ const createInitialState = (issuer, stockClasses, stockPlans) => ({
     equityCompensation: {
         exercises: {},
     },
+    sharesIssuedByCurrentRelationship: {},
     transactions: [],
     errors: [],
-    positions: []
+    positions: [],
+    numOfStakeholders: stakeholders.length
 });
 
 // Process transactions
@@ -89,36 +91,6 @@ const processStockIssuance = (state, transaction) => {
         };
     }
 
-    // Find existing position or create new one
-    const existingPositionIndex = state.positions.findIndex(
-        p => p.stakeholderId === stakeholder_id && p.stockClassId === stock_class_id
-    );
-
-    let updatedPositions;
-    if (existingPositionIndex >= 0) {
-        // Update existing position
-        updatedPositions = state.positions.map((position, index) =>
-            index === existingPositionIndex
-                ? {
-                    ...position,
-                    quantity: position.quantity + numShares,
-                    sharePrice: share_price
-                }
-                : position
-        );
-    } else {
-        // Add new position
-        updatedPositions = [
-            ...state.positions,
-            {
-                stakeholderId: stakeholder_id,
-                stockClassId: stock_class_id,
-                quantity: numShares,
-                sharePrice: share_price
-            }
-        ];
-    }
-
     // Update state
     return {
         ...state,
@@ -133,7 +105,7 @@ const processStockIssuance = (state, transaction) => {
                 sharesIssued: stockClass.sharesIssued + numShares
             }
         },
-        positions: updatedPositions
+
     };
 };
 
@@ -247,46 +219,73 @@ const processEquityCompensationExercise = (state, transaction) => {
 };
 
 export const rxjs = async (issuerId) => {
-    const { issuer, stockClasses, stockPlans, transactions } = await getAllStateMachineObjectsById(issuerId);
+    const { issuer, stockClasses, stockPlans, stakeholders, transactions } = await getAllStateMachineObjectsById(issuerId);
 
     console.log("stockPlans", stockPlans);
-    // Create observable from transactions
-    const transactions$ = from(transactions).pipe(
-        scan(processTransaction, createInitialState(issuer, stockClasses, stockPlans)),
-        last(),
-        tap(state => {
-            console.log('\nProcessed transaction. New state:', {
-                issuerShares: state.issuer.sharesIssued,
-                issuerAuthorized: state.issuer.sharesAuthorized,
-                stockClasses: Object.entries(state.stockClasses).map(([id, data]) => ({
-                    id,
-                    authorized: data.sharesAuthorized,
-                    issued: data.sharesIssued
-                })),
-                stockPlans: Object.entries(state.stockPlans).map(([id, data]) => ({
-                    id: id,
-                    name: data.name,
-                    reserved: parseInt(data.sharesReserved),
-                    issued: data.sharesIssued
-                })),
-                exercises: Object.entries(state.equityCompensation.exercises).map(([id, data]) => ({
-                    grantSecurityId: id,
-                    exercised: data.exercised,
-                    stockSecurityId: data.stockSecurityId
-                })),
-                positions: state.positions.map(position => ({
-                    stakeholderId: position.stakeholderId,
-                    stockClassId: position.stockClassId,
-                    quantity: position.quantity,
-                    sharePrice: position.sharePrice
-                }))
-            });
-            if (state.errors.length > 0) {
-                console.log('Errors:', state.errors);
-            }
-        })
-    );
 
-    // Subscribe to process transactions
-    transactions$.subscribe();
+    const finalState = await lastValueFrom(from(transactions).pipe(
+        scan(processTransaction, createInitialState(issuer, stockClasses, stockPlans)),
+        // last(),
+        // tap(state => {
+        //     // Keep logging for debugging/insight
+        //     console.log('\nProcessed transaction. New state:', {
+        //         issuerShares: state.issuer.sharesIssued,
+        //         issuerAuthorized: state.issuer.sharesAuthorized,
+        //         stockClasses: Object.entries(state.stockClasses).map(([id, data]) => ({
+        //             id,
+        //             authorized: data.sharesAuthorized,
+        //             issued: data.sharesIssued
+        //         })),
+        //         stockPlans: Object.entries(state.stockPlans).map(([id, data]) => ({
+        //             id: id,
+        //             name: data.name,
+        //             reserved: parseInt(data.sharesReserved),
+        //             issued: data.sharesIssued
+        //         })),
+        //         exercises: Object.entries(state.equityCompensation.exercises).map(([id, data]) => ({
+        //             grantSecurityId: id,
+        //             exercised: data.exercised,
+        //             stockSecurityId: data.stockSecurityId
+        //         })),
+        //         positions: state.positions.map(position => ({
+        //             stakeholderId: position.stakeholderId,
+        //             stockClassId: position.stockClassId,
+        //             quantity: position.quantity,
+        //             sharePrice: position.sharePrice
+        //         }))
+        //     });
+        //     if (state.errors.length > 0) {
+        //         console.log('Errors:', state.errors);
+        //     }
+        // }),
+        // map(state => ({
+        //     // Transform state into final return value
+        //     issuer: {
+        //         sharesIssued: state.issuer.sharesIssued,
+        //         sharesAuthorized: state.issuer.sharesAuthorized
+        //     },
+        //     stockClasses: Object.entries(state.stockClasses).map(([id, data]) => ({
+        //         id,
+        //         authorized: data.sharesAuthorized,
+        //         issued: data.sharesIssued
+        //     })),
+        //     stockPlans: Object.entries(state.stockPlans).map(([id, data]) => ({
+        //         id,
+        //         name: data.name,
+        //         reserved: parseInt(data.sharesReserved),
+        //         issued: data.sharesIssued
+        //     })),
+        //     positions: state.positions,
+        //     exercises: Object.entries(state.equityCompensation.exercises).map(([id, data]) => ({
+        //         grantSecurityId: id,
+        //         exercised: data.exercised,
+        //         stockSecurityId: data.stockSecurityId
+        //     })),
+        //     errors: state.errors
+        // }))
+    ));
+
+    console.log("finalState", finalState);
+
+    return finalState;
 };
