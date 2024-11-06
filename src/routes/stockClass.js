@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { v4 as uuid } from "uuid";
-import stockClassSchema from "../../ocf/schema/objects/StockClass.schema.json" assert { type: "json" };
+import stockClassSchema from "../../ocf/schema/objects/StockClass.schema.json";
 import { convertAndReflectStockClassOnchain, getStockClassById, getTotalNumberOfStockClasses } from "../controllers/stockClassController.js";
 import { createStockClass } from "../db/operations/create.js";
 import { readIssuerById, readStockClassById } from "../db/operations/read.js";
