@@ -1,4 +1,4 @@
-import { isCallException, isError, Interface } from "ethers";
+import { isCallException, Interface } from "ethers";
 import CAP_TABLE from "../../chain/out/CapTable.sol/CapTable.json";
 
 // Create an Interface instance

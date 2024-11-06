@@ -60,7 +60,7 @@ transactions.post("/issuance/stock", async (req, res) => {
     const { issuerId, data } = req.body;
 
     try {
-        const issuer = await readIssuerById(issuerId);
+        await readIssuerById(issuerId);
         const incomingStockIssuance = {
             id: uuid(), // for OCF Validation
             security_id: uuid(), // for OCF Validation

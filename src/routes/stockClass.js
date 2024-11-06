@@ -5,9 +5,6 @@ import { convertAndReflectStockClassOnchain, getStockClassById, getTotalNumberOf
 import { createStockClass } from "../db/operations/create.js";
 import { readIssuerById, readStockClassById } from "../db/operations/read.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
-import { getJoiErrorMessage } from "../chain-operations/utils.js";
-import Joi from "joi";
-import { createFairmintData } from "../db/operations/create.js";
 
 const stockClass = Router();
 
