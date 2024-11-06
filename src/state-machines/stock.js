@@ -67,7 +67,7 @@ export const stockMachine = createMachine(
     {
         actions: {
             issue: (context, event) => updateContext(context, event.value),
-            sendBackToParent: sendParent((context, event) => {
+            sendBackToParent: sendParent((context) => {
                 return {
                     type: "UPDATE_CONTEXT",
                     value: {
