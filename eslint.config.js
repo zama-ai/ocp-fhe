@@ -5,7 +5,8 @@ import tsparser from "@typescript-eslint/parser";
 
 export default [
     {
-        files: ["**/*.{js,ts,json}"],
+        files: ["**/*.{js,ts}"],
+        ignores: ["**/*.json", "node_modules/**"],
         ...js.configs.recommended,
         languageOptions: {
             ecmaVersion: 2022,
@@ -21,6 +22,7 @@ export default [
     },
     {
         files: ["**/*.ts"],
+        ignores: ["node_modules/**"],
         languageOptions: {
             parser: tsparser,
             parserOptions: {
@@ -40,6 +42,7 @@ export default [
             "@typescript-eslint/no-explicit-any": "warn",
             "@typescript-eslint/explicit-function-return-type": "off",
             "@typescript-eslint/explicit-module-boundary-types": "off",
+            "@typescript-eslint/ban-ts-comment": "off",
         },
     },
 ];
