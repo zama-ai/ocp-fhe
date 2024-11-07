@@ -11,11 +11,11 @@ const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
     const dashboardState = dashboardInitialState(issuer, stockClasses, stockPlans, stakeholders);
 
     // Create captable state
-    // const captableState = captableInitialState(issuer, stockClasses, stockPlans, stakeholders);
+    const captableState = captableInitialState(issuer, stockClasses, stockPlans, stakeholders);
 
     return {
         ...dashboardState,
-        // ...captableState,  // Add captable specific state
+        ...captableState,  // Add captable specific state
         transactions: [],  // Reset transactions array
         errors: []  // Reset errors array
     };
@@ -57,21 +57,40 @@ const processConvertibleIssuance = (state, transaction, stakeholder) => {
     const dashboardState = processDashboardConvertibleIssuance(state, transaction, stakeholder);
 
     return {
+        ...state,
         ...dashboardState
     }
 };
 
 // Process stock issuance
 const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
-    // Process for dashboard stats
-    const dashboardState = processDashboardStockIssuance(state, transaction, stakeholder);
+    const { stock_class_id, quantity } = transaction;
+    const numShares = parseInt(quantity);
 
-    // Process for captable stats with original stock class data
-    // @todo I would like to avoid passing dashboard State here
-    // const captableState = processCaptableStockIssuance(dashboardState, transaction, stakeholder, stockClass);
+    // Core state updates
+    const coreUpdates = {
+        issuer: {
+            ...state.issuer,
+            sharesIssued: state.issuer.sharesIssued + numShares
+        },
+        stockClasses: {
+            ...state.stockClasses,
+            [stock_class_id]: {
+                ...stockClass,
+                sharesIssued: stockClass.sharesIssued + numShares
+            }
+        }
+    };
+
+    // Get feature-specific updates
+    const dashboardUpdates = processDashboardStockIssuance(state, transaction, stakeholder);
+    const captableUpdates = processCaptableStockIssuance(state, transaction, stakeholder, stockClass);
 
     return {
-        ...dashboardState
+        ...state,
+        ...coreUpdates,
+        ...dashboardUpdates,
+        ...captableUpdates,
     };
 };
 
@@ -193,8 +212,6 @@ export const dashboardStats = async (issuerId) => {
         stakeholdersCount: stakeholders.length,
         transactionsCount: transactions.length
     });
-
-    console.log("Last 5 transactions:", transactions.slice(-5));
 
     const finalState = await lastValueFrom(from(transactions).pipe(
         scan((state, transaction) => {

@@ -72,7 +72,6 @@ export const processDashboardConvertibleIssuance = (state, transaction, stakehol
     } : state.valuations.convertible;
 
     return {
-        ...state,
         totalRaised: state.totalRaised + amountToAdd,
         sharesIssuedByCurrentRelationship: {
             ...state.sharesIssuedByCurrentRelationship,
@@ -117,18 +116,6 @@ export const processDashboardStockIssuance = (state, transaction, stakeholder) =
     }
 
     return {
-        ...state,
-        issuer: {
-            ...state.issuer,
-            sharesIssued: state.issuer.sharesIssued + numShares
-        },
-        stockClasses: {
-            ...state.stockClasses,
-            [stock_class_id]: {
-                ...stockClass,
-                sharesIssued: stockClass.sharesIssued + numShares
-            }
-        },
         sharesIssuedByCurrentRelationship: {
             ...state.sharesIssuedByCurrentRelationship,
             [stakeholder.current_relationship]: (state.sharesIssuedByCurrentRelationship[stakeholder.current_relationship] || 0) + numShares
