@@ -221,6 +221,7 @@ export const StockClassAuthorizedSharesAdjustment = {
     baseType: "tuple",
     components: [
         { type: "bytes16", baseType: "bytes16", name: "id" },
+        { type: "bytes16", baseType: "bytes16", name: "stock_class_id" },
         { type: "string", baseType: "string", name: "object_type" },
         { type: "uint256", baseType: "uint256", name: "new_shares_authorized" },
         {
