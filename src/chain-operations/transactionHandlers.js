@@ -396,9 +396,10 @@ export const handleStockClassAuthorizedSharesAdjusted = async (stock, issuerId, 
 
     const upsert = await upsertStockClassAuthorizedSharesAdjustment(id, {
         _id: id,
+        stock_class_id: convertBytes16ToUUID(stock.stock_class_id),
         object_type: stock.object_type,
         comments: stock.comments,
-        issuer_id: convertBytes16ToUUID(stock.security_id),
+        security_id: convertBytes16ToUUID(stock.security_id),
         date: dateOCF,
         new_shares_authorized: toDecimal(stock.new_shares_authorized).toString(),
         board_approval_date: stock.board_approval_date,

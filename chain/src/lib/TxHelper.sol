@@ -189,6 +189,7 @@ library TxHelper {
         return
             StockClassAuthorizedSharesAdjustment(
                 id,
+                stockClassId,
                 "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
                 newSharesAuthorized,
                 comments,

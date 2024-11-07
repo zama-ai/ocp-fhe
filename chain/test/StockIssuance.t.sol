@@ -77,7 +77,6 @@ contract StockIssuanceTest is CapTableTest {
         StockIssuance memory expectedIssuance = createDummyStockIssuance(fakeStockClassId, fakeStakeholderId, 10000);
         console.log("Testing invalid stakeholder and stock class with fakeStakeholderId");
         vm.expectRevert(abi.encodeWithSignature("NoStakeholder(bytes16)", fakeStakeholderId));
-        vm.expectRevert(abi.encodeWithSignature("InvalidStakeholder(bytes16)", fakeStockClassId));
         capTable.issueStock(expectedIssuance.params);
     }
 
