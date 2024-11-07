@@ -115,6 +115,7 @@ struct IssuerAuthorizedSharesAdjustment {
 
 struct StockClassAuthorizedSharesAdjustment {
     bytes16 id;
+    bytes16 stock_class_id;
     string object_type;
     uint256 new_shares_authorized;
     string[] comments; // optional
