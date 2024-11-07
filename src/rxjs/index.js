@@ -67,6 +67,22 @@ const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
     const { stock_class_id, quantity } = transaction;
     const numShares = parseInt(quantity);
 
+    // Validate
+    if (stockClass.sharesIssued + numShares > stockClass.sharesAuthorized) {
+        return {
+            ...state,
+            errors: [...state.errors, `Cannot issue ${numShares} shares - exceeds stock class authorized amount`]
+        };
+    }
+
+    if (state.issuer.sharesIssued + numShares > state.issuer.sharesAuthorized) {
+        return {
+            ...state,
+            errors: [...state.errors, `Cannot issue ${numShares} shares - exceeds issuer authorized amount`]
+        };
+    }
+
+
     // Core state updates
     const coreUpdates = {
         issuer: {
@@ -104,14 +120,6 @@ const processIssuerAdjustment = (state, transaction) => {
             ...state.issuer,
             sharesAuthorized: newSharesAuthorized
         },
-        // @todo: this code should be in captable
-        // summary: {
-        //     ...state.summary,
-        //     totals: {
-        //         ...state.summary.totals,
-        //         totalAuthorizedShares: newSharesAuthorized
-        //     }
-        // }
     };
 };
 
