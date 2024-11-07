@@ -1,8 +1,9 @@
 import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
-import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardEquityCompensationExercise, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance, processCaptableEquityCompensationIssuance } from './captable.js';
+import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardEquityCompensationExercise, processDashboardEquityCompensationIssuance, processDashboardStockIssuance } from "./dashboard.js";
+import { captableInitialState, processCaptableStockIssuance } from './captable.js';
+import get from 'lodash/get';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
@@ -38,14 +39,14 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
             return processIssuerAdjustment(newState, transaction);
         case 'TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT':
             return processStockClassAdjustment(newState, transaction);
-        case 'TX_EQUITY_COMPENSATION_ISSUANCE':
-            return processEquityCompensationIssuance(newState, transaction);
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
-        case 'TX_EQUITY_COMPENSATION_EXERCISE':
-            return processEquityCompensationExercise(newState, transaction);
-        case 'TX_CONVERTIBLE_ISSUANCE':
-            return processConvertibleIssuance(newState, transaction, stakeholder);
+        case 'TX_EQUITY_COMPENSATION_ISSUANCE':
+            return processEquityCompensationIssuance(newState, transaction);
+        // case 'TX_EQUITY_COMPENSATION_EXERCISE':
+        //     return processEquityCompensationExercise(newState, transaction);
+        // case 'TX_CONVERTIBLE_ISSUANCE':
+        //     return processConvertibleIssuance(newState, transaction, stakeholder);
         default:
             return state;
     }
@@ -53,14 +54,11 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
 
 // Process convertible issuance
 const processConvertibleIssuance = (state, transaction, stakeholder) => {
-
-
     const dashboardState = processDashboardConvertibleIssuance(state, transaction, stakeholder);
 
     return {
         ...dashboardState
     }
-
 };
 
 // Process stock issuance
@@ -68,13 +66,12 @@ const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
     // Process for dashboard stats
     const dashboardState = processDashboardStockIssuance(state, transaction, stakeholder);
 
-
-
     // Process for captable stats with original stock class data
-    const captableState = processCaptableStockIssuance(dashboardState, transaction, stakeholder, stockClass);
+    // @todo I would like to avoid passing dashboard State here
+    // const captableState = processCaptableStockIssuance(dashboardState, transaction, stakeholder, stockClass);
 
     return {
-        ...captableState
+        ...dashboardState
     };
 };
 
@@ -116,16 +113,16 @@ const processStockClassAdjustment = (state, transaction) => {
 // Process equity compensation issuance
 const processEquityCompensationIssuance = (state, transaction) => {
     // Process for dashboard stats
-    const dashboardState = processEquityCompensationIssuance(state, transaction);
+    const dashboardState = processDashboardEquityCompensationIssuance(state, transaction);
 
     // Find original stock class data
-    const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
+    // const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
 
     // Process for captable stats
-    const captableState = processCaptableEquityCompensationIssuance(dashboardState, transaction, originalStockClass);
+    // const captableState = processCaptableEquityCompensationIssuance(dashboardState, transaction, originalStockClass);
 
     return {
-        ...captableState
+        ...dashboardState
     };
 };
 
@@ -156,15 +153,25 @@ const processEquityCompensationExercise = (state, transaction) => {
 export const dashboardStats = async (issuerId) => {
     const { issuer, stockClasses, stockPlans, stakeholders, transactions } = await getAllStateMachineObjectsById(issuerId);
 
-    console.log("stockPlans", stockPlans);
+    console.log("Starting pipeline with:", {
+        issuer,
+        stockClassesCount: stockClasses.length,
+        stockPlansCount: stockPlans.length,
+        stakeholdersCount: stakeholders.length,
+        transactionsCount: transactions.length
+    });
+
+    console.log("Last 5 transactions:", transactions.slice(-5));
 
     const finalState = await lastValueFrom(from(transactions).pipe(
-        scan((state, transaction) => processTransaction(state, transaction, stakeholders, stockClasses),
-            createInitialState(issuer, stockClasses, stockPlans, stakeholders)),
+        scan((state, transaction) => {
+            return processTransaction(state, transaction, stakeholders, stockClasses);
+        }, createInitialState(issuer, stockClasses, stockPlans, stakeholders)),
         last(),
         tap(state => {
             const stateWithoutTransactions = { ...state };
             delete stateWithoutTransactions.transactions;
+
             console.log('\nProcessed transaction. New state:', JSON.stringify(stateWithoutTransactions, null, 2));
             if (state.errors.length > 0) {
                 console.log('Errors:', state.errors);
@@ -190,6 +197,7 @@ export const dashboardStats = async (issuerId) => {
             return {
                 numOfStakeholders: state.numOfStakeholders,
                 totalRaised: state.totalRaised,
+                // Calculating the sum across all stock plans
                 totalStockPlanAuthorizedShares: Object.entries(state.stockPlans)
                     .filter(([id, _]) => id !== 'no-stock-plan')
                     .reduce((acc, [_, plan]) => acc + parseInt(plan.sharesReserved), 0),
