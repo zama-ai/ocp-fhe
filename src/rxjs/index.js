@@ -2,18 +2,52 @@ import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance } from './captable.js';
+import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment } from './captable.js';
 import get from 'lodash/get';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
     // First create the dashboard state
-    const dashboardState = dashboardInitialState(issuer, stockClasses, stockPlans, stakeholders);
+    const dashboardState = dashboardInitialState(stakeholders);
 
     // Create captable state
     const captableState = captableInitialState(issuer, stockClasses, stockPlans, stakeholders);
 
     return {
+        issuer: {
+            id: issuer._id,
+            sharesAuthorized: parseInt(issuer.initial_shares_authorized),
+            sharesIssued: 0
+        },
+        stockClasses: stockClasses.reduce((acc, sc) => ({
+            ...acc,
+            [sc._id]: {
+                id: sc._id,
+                sharesAuthorized: parseInt(sc.initial_shares_authorized),
+                sharesIssued: 0
+            }
+        }), {}),
+        stockPlans: {
+            'no-stock-plan': {
+                id: 'no-stock-plan',
+                sharesReserved: 0,
+                sharesIssued: 0,
+                name: 'Unassigned Stock Plan'
+            },
+            ...stockPlans.reduce((acc, sp) => ({
+                ...acc,
+                [sp._id]: {
+                    id: sp._id,
+                    sharesReserved: parseInt(sp.initial_shares_reserved),
+                    sharesIssued: 0,
+                    stockClassIds: sp.stock_class_ids,
+                    name: sp.plan_name
+                }
+            }), {})
+        },
+        equityCompensation: {
+            exercises: {},
+        },
         ...dashboardState,
         ...captableState,  // Add captable specific state
         transactions: [],  // Reset transactions array
@@ -29,16 +63,16 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
     };
 
     const stakeholder = stakeholders.find(s => s.id === transaction.stakeholder_id);
-    const stockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
-
+    // Only need to get and pass the original stock class
+    const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
 
     switch (transaction.object_type) {
         case 'TX_STOCK_ISSUANCE':
-            return processStockIssuance(newState, transaction, stakeholder, stockClass);
+            return processStockIssuance(newState, transaction, stakeholder, originalStockClass);
         case 'TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT':
             return processIssuerAdjustment(newState, transaction);
         case 'TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT':
-            return processStockClassAdjustment(newState, transaction);
+            return processStockClassAdjustment(newState, transaction, stakeholder, originalStockClass);
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
         // case 'TX_EQUITY_COMPENSATION_ISSUANCE':
@@ -63,12 +97,15 @@ const processConvertibleIssuance = (state, transaction, stakeholder) => {
 };
 
 // Process stock issuance
-const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
+const processStockIssuance = (state, transaction, stakeholder, originalStockClass) => {
     const { stock_class_id, quantity } = transaction;
     const numShares = parseInt(quantity);
 
-    // Validate
-    if (stockClass.sharesIssued + numShares > stockClass.sharesAuthorized) {
+    // Access state stock class directly from state
+    const stateStockClass = state.stockClasses[stock_class_id];
+
+    // Validate using state data
+    if (stateStockClass.sharesIssued + numShares > stateStockClass.sharesAuthorized) {
         return {
             ...state,
             errors: [...state.errors, `Cannot issue ${numShares} shares - exceeds stock class authorized amount`]
@@ -82,7 +119,6 @@ const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
         };
     }
 
-
     // Core state updates
     const coreUpdates = {
         issuer: {
@@ -92,15 +128,14 @@ const processStockIssuance = (state, transaction, stakeholder, stockClass) => {
         stockClasses: {
             ...state.stockClasses,
             [stock_class_id]: {
-                ...stockClass,
-                sharesIssued: stockClass.sharesIssued + numShares
+                ...stateStockClass,
+                sharesIssued: stateStockClass.sharesIssued + numShares
             }
         }
     };
 
-    // Get feature-specific updates
     const dashboardUpdates = processDashboardStockIssuance(state, transaction, stakeholder);
-    const captableUpdates = processCaptableStockIssuance(state, transaction, stakeholder, stockClass);
+    const captableUpdates = processCaptableStockIssuance(state, transaction, stakeholder, originalStockClass);
 
     return {
         ...state,
@@ -124,10 +159,11 @@ const processIssuerAdjustment = (state, transaction) => {
 };
 
 // Process stock class adjustment
-const processStockClassAdjustment = (state, transaction) => {
+const processStockClassAdjustment = (state, transaction, _stakeholder, originalStockClass) => {
     const { stock_class_id, new_shares_authorized } = transaction;
-    return {
-        ...state,
+
+    // Core state updates
+    const coreUpdates = {
         stockClasses: {
             ...state.stockClasses,
             [stock_class_id]: {
@@ -135,6 +171,15 @@ const processStockClassAdjustment = (state, transaction) => {
                 sharesAuthorized: parseInt(new_shares_authorized)
             }
         }
+    };
+
+    // Get cap table updates
+    const captableUpdates = processCaptableStockClassAdjustment(state, transaction, originalStockClass);
+
+    return {
+        ...state,
+        ...coreUpdates,
+        ...captableUpdates
     };
 };
 
