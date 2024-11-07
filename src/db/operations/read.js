@@ -127,7 +127,6 @@ export const readFairmintDataBySeriesId = async (series_id) => {
     return await Fairmint.findOne({ series_id });
 };
 
-
 export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
     try {
         const result = await EquityCompensationIssuance.aggregate([
@@ -135,25 +134,25 @@ export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
                 $match: {
                     issuer: issuerId,
                     stock_plan_id: stockPlanId,
-                    quantity: { $exists: true, $ne: null, $type: "string" }
-                }
+                    quantity: { $exists: true, $ne: null, $type: "string" },
+                },
             },
             {
                 $addFields: {
-                    numericQuantity: { $toDouble: "$quantity" }
-                }
+                    numericQuantity: { $toDouble: "$quantity" },
+                },
             },
             {
                 $group: {
                     _id: null,
-                    totalShares: { $sum: "$numericQuantity" }
-                }
-            }
+                    totalShares: { $sum: "$numericQuantity" },
+                },
+            },
         ]);
 
         return result.length > 0 ? result[0].totalShares : 0;
     } catch (error) {
-        console.error('Error in sumEquityCompensationIssuances:', error);
+        console.error("Error in sumEquityCompensationIssuances:", error);
         return 0;
     }
 }
