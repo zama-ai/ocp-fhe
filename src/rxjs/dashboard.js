@@ -113,19 +113,12 @@ export const processDashboardStockIssuance = (state, transaction, stakeholder) =
         !['FOUNDER', 'BOARD_MEMBER'].includes(stakeholder.current_relationship);
     const amountToAdd = shouldCountTowardsRaised ? (numShares * Number(share_price.amount)) : 0;
 
-    // Calculate non-founder/board shares for valuation
-    const nonFounderShares = Object.entries(state.sharesIssuedByCurrentRelationship)
-        .filter(([relationship, _]) => !['FOUNDER', 'BOARD_MEMBER'].includes(relationship))
-        .reduce((acc, [_, shares]) => acc + shares, 0);
-
-    // Only update valuation if it counts
-    const newValuation = shouldCountTowardsRaised ? {
+    const newValuation = {
         type: 'STOCK',
-        amount: (nonFounderShares + numShares) * Number(share_price.amount),
+        amount: (state.issuer.sharesIssued + numShares) * Number(share_price.amount),
         createdAt: transaction.createdAt
-    } : state.valuations.stock;
+    }
 
-    // Update state
     return {
         ...state,
         issuer: {
@@ -150,6 +143,10 @@ export const processDashboardStockIssuance = (state, transaction, stakeholder) =
             stock: newValuation
         }
     }
+}
+
+export const processDashboardEquityCompensationIssuance = (state, transaction) => {
+    return state;
 }
 
 export const processDashboardEquityCompensationExercise = (state, transaction) => {
