@@ -85,24 +85,8 @@ export const processDashboardConvertibleIssuance = (state, transaction, stakehol
 }
 
 export const processDashboardStockIssuance = (state, transaction, stakeholder) => {
-    const { stock_class_id, share_price, quantity } = transaction;
+    const { share_price, quantity } = transaction;
     const numShares = parseInt(quantity);
-    const stockClass = state.stockClasses[stock_class_id];
-
-    // Validate
-    if (stockClass.sharesIssued + numShares > stockClass.sharesAuthorized) {
-        return {
-            ...state,
-            errors: [...state.errors, `Cannot issue ${numShares} shares - exceeds stock class authorized amount`]
-        };
-    }
-
-    if (state.issuer.sharesIssued + numShares > state.issuer.sharesAuthorized) {
-        return {
-            ...state,
-            errors: [...state.errors, `Cannot issue ${numShares} shares - exceeds issuer authorized amount`]
-        };
-    }
 
     // Check if stakeholder is founder/board member
     const shouldCountTowardsRaised = stakeholder &&
