@@ -1,39 +1,5 @@
-export const dashboardInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
+export const dashboardInitialState = (stakeholders) => {
     return {
-        issuer: {
-            id: issuer._id,
-            sharesAuthorized: parseInt(issuer.initial_shares_authorized),
-            sharesIssued: 0
-        },
-        stockClasses: stockClasses.reduce((acc, sc) => ({
-            ...acc,
-            [sc._id]: {
-                id: sc._id,
-                sharesAuthorized: parseInt(sc.initial_shares_authorized),
-                sharesIssued: 0
-            }
-        }), {}),
-        stockPlans: {
-            'no-stock-plan': {
-                id: 'no-stock-plan',
-                sharesReserved: 0,
-                sharesIssued: 0,
-                name: 'Unassigned Stock Plan'
-            },
-            ...stockPlans.reduce((acc, sp) => ({
-                ...acc,
-                [sp._id]: {
-                    id: sp._id,
-                    sharesReserved: parseInt(sp.initial_shares_reserved),
-                    sharesIssued: 0,
-                    stockClassIds: sp.stock_class_ids,
-                    name: sp.plan_name
-                }
-            }), {})
-        },
-        equityCompensation: {
-            exercises: {},
-        },
         sharesIssuedByCurrentRelationship: {},
         positions: [],
         numOfStakeholders: stakeholders.length,
