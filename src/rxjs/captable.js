@@ -14,12 +14,13 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
     // Early return if stock class not found
     if (!originalStockClass) {
         return {
-            ...state,
-            errors: [...state.errors, `Stock class not found: ${stock_class_id}`]
+            errors: [`Stock class not found: ${stock_class_id}`]
         };
     }
 
-    // Get class type from original stock class
+    // Get current state of the stock class (including any adjustments)
+    const currentStockClass = state.stockClasses[stock_class_id];
+    console.log('currentStockClass', currentStockClass);
     const classType = originalStockClass.class_type;
 
     // Determine if this is a founder's preferred stock issuance
@@ -37,7 +38,7 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
         // Update or create founder preferred summary
         newSummary.founderPreferred = newSummary.founderPreferred || {
             outstandingShares: 0,
-            sharesAuthorized: originalStockClass.initial_shares_authorized,
+            sharesAuthorized: currentStockClass.sharesAuthorized,
             fullyDilutedShares: 0,
             liquidation: 0,
             votingPower: 0
@@ -61,6 +62,7 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
             const existingRow = summarySection.rows[existingRowIndex];
             summarySection.rows[existingRowIndex] = {
                 ...existingRow,
+                sharesAuthorized: currentStockClass.sharesAuthorized,
                 outstandingShares: existingRow.outstandingShares + numShares,
                 fullyDilutedShares: existingRow.fullyDilutedShares + numShares,
                 liquidation: existingRow.liquidation + liquidation,
@@ -70,7 +72,7 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
             // Create new row
             summarySection.rows.push({
                 name: originalStockClass.name,
-                sharesAuthorized: originalStockClass.initial_shares_authorized,
+                sharesAuthorized: currentStockClass.sharesAuthorized,
                 outstandingShares: numShares,
                 fullyDilutedShares: numShares,
                 liquidation: liquidation,
@@ -99,25 +101,23 @@ export const captableInitialState = (issuer, stockClasses, _stockPlans, _stakeho
     // Calculate initial authorized shares for common and preferred
     const { commonAuthorized, preferredAuthorized } = stockClasses.reduce((acc, sc) => {
         if (sc.class_type === StockClassTypes.COMMON) {
-            acc.commonAuthorized += parseInt(sc.initial_shares_authorized);
+            acc.commonAuthorized += Number(sc.initial_shares_authorized);
         } else if (sc.class_type === StockClassTypes.PREFERRED) {
-            acc.preferredAuthorized += parseInt(sc.initial_shares_authorized);
+            acc.preferredAuthorized += Number(sc.initial_shares_authorized);
         }
         return acc;
     }, { commonAuthorized: 0, preferredAuthorized: 0 });
 
-    // Calculate total authorized shares
-    const totalAuthorizedShares = parseInt(issuer.initial_shares_authorized);
+    const totalAuthorizedShares = commonAuthorized + preferredAuthorized;
 
     return {
-        // Captable specific state
         summary: {
             common: {
-                totalSharesAuthorized: commonAuthorized,
+                totalSharesAuthorized: Number(commonAuthorized),
                 rows: []
             },
             preferred: {
-                totalSharesAuthorized: preferredAuthorized,
+                totalSharesAuthorized: Number(preferredAuthorized),
                 rows: []
             },
             founderPreferred: null,
@@ -146,5 +146,43 @@ export const captableInitialState = (issuer, stockClasses, _stockPlans, _stakeho
             }
         },
         isCapTableEmpty: true
+    };
+};
+
+
+export const processCaptableStockClassAdjustment = (state, transaction, originalStockClass) => {
+    const { stock_class_id, new_shares_authorized } = transaction;
+    const classType = originalStockClass.class_type;
+
+    // Create new summary with updated totals
+    let newSummary = { ...state.summary };
+
+    // Update the appropriate section's total authorized shares
+    if (classType === StockClassTypes.COMMON) {
+        newSummary.common = {
+            ...newSummary.common,
+            totalSharesAuthorized: Number(new_shares_authorized) // Convert to number
+        };
+    } else if (classType === StockClassTypes.PREFERRED) {
+        newSummary.preferred = {
+            ...newSummary.preferred,
+            totalSharesAuthorized: Number(new_shares_authorized) // Convert to number
+        };
+    }
+
+    // Calculate total authorized shares as sum of all sections
+    const totalAuthorizedShares =
+        Number(newSummary.common.totalSharesAuthorized) +
+        Number(newSummary.preferred.totalSharesAuthorized) +
+        (newSummary.founderPreferred ? Number(newSummary.founderPreferred.sharesAuthorized) : 0);
+
+    // Update totals
+    newSummary.totals = {
+        ...newSummary.totals,
+        totalAuthorizedShares
+    };
+
+    return {
+        summary: newSummary
     };
 }; 
