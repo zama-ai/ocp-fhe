@@ -89,11 +89,11 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
     };
 
     return {
-        ...state,
         summary: newSummary,
         isCapTableEmpty: false
     };
 };
+
 
 export const captableInitialState = (issuer, stockClasses, _stockPlans, _stakeholders) => {
     // Calculate initial authorized shares for common and preferred
