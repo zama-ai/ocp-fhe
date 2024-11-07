@@ -1,5 +1,3 @@
-
-
 export const dashboardInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
     return {
         issuer: {
@@ -50,7 +48,6 @@ export const dashboardInitialState = (issuer, stockClasses, stockPlans, stakehol
 
 export const processDashboardConvertibleIssuance = (state, transaction, stakeholder) => {
     const { investment_amount } = transaction;
-    // Only count towards totalRaised if not FOUNDER or BOARD_MEMBER
     const shouldCountTowardsRaised = stakeholder &&
         !['FOUNDER', 'BOARD_MEMBER'].includes(stakeholder.current_relationship);
     const amountToAdd = shouldCountTowardsRaised ? Number(investment_amount.amount) : 0;
@@ -58,10 +55,11 @@ export const processDashboardConvertibleIssuance = (state, transaction, stakehol
     const conversionTriggers = transaction.conversion_triggers || [];
     let conversionValuationCap = null;
 
-    // Look for SAFE conversion with valuation cap
+    // Look for both SAFE and Convertible Note conversions with valuation cap
     conversionTriggers.forEach(trigger => {
         if (trigger.conversion_right?.type === "CONVERTIBLE_CONVERSION_RIGHT" &&
-            trigger.conversion_right?.conversion_mechanism?.type === "SAFE_CONVERSION") {
+            (trigger.conversion_right?.conversion_mechanism?.type === "SAFE_CONVERSION" ||
+                trigger.conversion_right?.conversion_mechanism?.type === "CONVERTIBLE_NOTE_CONVERSION")) {
             conversionValuationCap = trigger.conversion_right.conversion_mechanism.conversion_valuation_cap?.amount;
         }
     });
@@ -85,7 +83,6 @@ export const processDashboardConvertibleIssuance = (state, transaction, stakehol
             convertible: newValuation
         }
     };
-
 }
 
 export const processDashboardStockIssuance = (state, transaction, stakeholder) => {
@@ -145,48 +142,3 @@ export const processDashboardStockIssuance = (state, transaction, stakeholder) =
     }
 }
 
-export const processDashboardEquityCompensationIssuance = (state, transaction) => {
-    return state;
-}
-
-export const processDashboardEquityCompensationExercise = (state, transaction) => {
-    const { security_id, quantity, resulting_security_ids } = transaction;
-    const numShares = parseInt(quantity);
-
-    // Just check security_id match
-    const equityGrant = state.transactions.find(tx => tx.security_id === security_id);
-
-    if (!equityGrant) {
-        return {
-            ...state,
-            errors: [...state.errors, `Exercise references non-existent equity grant: ${security_id}`]
-        };
-    }
-
-    // Same for stock issuance
-    const stockIssuance = state.transactions.find(tx =>
-        resulting_security_ids.includes(tx.security_id)
-    );
-
-    if (!stockIssuance) {
-        return {
-            ...state,
-            errors: [...state.errors, `Exercise references non-existent stock issuance: ${resulting_security_ids}`]
-        };
-    }
-
-    // Track exercise in state
-    return {
-        ...state,
-        equityCompensation: {
-            ...state.equityCompensation,
-            exercises: {
-                ...state.equityCompensation.exercises,
-                [security_id]: {
-                    exercised: (state.equityCompensation.exercises[security_id]?.exercised || 0) + numShares,
-                    stockSecurityId: resulting_security_ids[0]
-                }
-            }
-        }
-    }
-}

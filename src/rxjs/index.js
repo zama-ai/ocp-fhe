@@ -1,7 +1,7 @@
 import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
-import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardEquityCompensationExercise, processDashboardEquityCompensationIssuance, processDashboardStockIssuance } from "./dashboard.js";
+import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
 import { captableInitialState, processCaptableStockIssuance } from './captable.js';
 import get from 'lodash/get';
 
@@ -11,11 +11,11 @@ const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
     const dashboardState = dashboardInitialState(issuer, stockClasses, stockPlans, stakeholders);
 
     // Create captable state
-    const captableState = captableInitialState(issuer, stockClasses, stockPlans, stakeholders);
+    // const captableState = captableInitialState(issuer, stockClasses, stockPlans, stakeholders);
 
     return {
         ...dashboardState,
-        ...captableState,  // Add captable specific state
+        // ...captableState,  // Add captable specific state
         transactions: [],  // Reset transactions array
         errors: []  // Reset errors array
     };
@@ -41,12 +41,12 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
             return processStockClassAdjustment(newState, transaction);
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
-        case 'TX_EQUITY_COMPENSATION_ISSUANCE':
-            return processEquityCompensationIssuance(newState, transaction);
-        // case 'TX_EQUITY_COMPENSATION_EXERCISE':
-        //     return processEquityCompensationExercise(newState, transaction);
-        // case 'TX_CONVERTIBLE_ISSUANCE':
-        //     return processConvertibleIssuance(newState, transaction, stakeholder);
+        // case 'TX_EQUITY_COMPENSATION_ISSUANCE':
+        //     return processEquityCompensationIssuance(newState, transaction);
+        case 'TX_EQUITY_COMPENSATION_EXERCISE':
+            return processEquityCompensationExercise(newState, transaction);
+        case 'TX_CONVERTIBLE_ISSUANCE':
+            return processConvertibleIssuance(newState, transaction, stakeholder);
         default:
             return state;
     }
@@ -85,13 +85,14 @@ const processIssuerAdjustment = (state, transaction) => {
             ...state.issuer,
             sharesAuthorized: newSharesAuthorized
         },
-        summary: {
-            ...state.summary,
-            totals: {
-                ...state.summary.totals,
-                totalAuthorizedShares: newSharesAuthorized
-            }
-        }
+        // @todo: this code should be in captable
+        // summary: {
+        //     ...state.summary,
+        //     totals: {
+        //         ...state.summary.totals,
+        //         totalAuthorizedShares: newSharesAuthorized
+        //     }
+        // }
     };
 };
 
@@ -111,20 +112,19 @@ const processStockClassAdjustment = (state, transaction) => {
 };
 
 // Process equity compensation issuance
-const processEquityCompensationIssuance = (state, transaction) => {
-    // Process for dashboard stats
-    const dashboardState = processDashboardEquityCompensationIssuance(state, transaction);
+// const processEquityCompensationIssuance = (state, transaction) => {
+// Process for dashboard stats
 
-    // Find original stock class data
-    // const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
+// Find original stock class data
+// const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
 
-    // Process for captable stats
-    // const captableState = processCaptableEquityCompensationIssuance(dashboardState, transaction, originalStockClass);
+// Process for captable stats
+// const captableState = processCaptableEquityCompensationIssuance(dashboardState, transaction, originalStockClass);
 
-    return {
-        ...dashboardState
-    };
-};
+// return {
+//     ...dashboardState
+// };
+// };
 
 // Process stock plan adjustment
 const processStockPlanAdjustment = (state, transaction) => {
@@ -141,14 +141,47 @@ const processStockPlanAdjustment = (state, transaction) => {
     };
 };
 
-// Process equity compensation exercise
-const processEquityCompensationExercise = (state, transaction) => {
-    const dashboardState = processDashboardEquityCompensationExercise(state, transaction);
+// Process equity compensation exercise, globally.
+export const processEquityCompensationExercise = (state, transaction) => {
+    const { security_id, quantity, resulting_security_ids } = transaction;
+    const numShares = parseInt(quantity);
 
-    return {
-        ...dashboardState
+    // Just check security_id match
+    const equityGrant = state.transactions.find(tx => tx.security_id === security_id);
+
+    if (!equityGrant) {
+        console.log('No equity grant found for:', security_id);
+        return {
+            ...state,
+            errors: [...state.errors, `Exercise references non-existent equity grant: ${security_id}`]
+        };
     }
-};
+
+    // Same for stock issuance
+    const stockIssuance = state.transactions.find(tx => resulting_security_ids.includes(tx.security_id));
+
+    if (!stockIssuance) {
+        return {
+            ...state,
+            errors: [...state.errors, `Exercise references non-existent stock issuance: ${resulting_security_ids}`]
+        };
+    }
+
+    // Track exercise in state
+    return {
+        ...state,
+        equityCompensation: {
+            ...state.equityCompensation,
+            exercises: {
+                ...state.equityCompensation.exercises,
+                [security_id]: {
+                    exercised: (state.equityCompensation.exercises[security_id]?.exercised || 0) + numShares,
+                    stockSecurityId: resulting_security_ids[0]
+                }
+            }
+        }
+    }
+}
 
 export const dashboardStats = async (issuerId) => {
     const { issuer, stockClasses, stockPlans, stakeholders, transactions } = await getAllStateMachineObjectsById(issuerId);
