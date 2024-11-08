@@ -2,7 +2,7 @@ import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment } from './captable.js';
+import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableStockPlanAdjustment } from './captable.js';
 import get from 'lodash/get';
 
 // Initial state structure
@@ -75,8 +75,8 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
             return processStockClassAdjustment(newState, transaction, stakeholder, originalStockClass);
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
-        // case 'TX_EQUITY_COMPENSATION_ISSUANCE':
-        //     return processEquityCompensationIssuance(newState, transaction);
+        case 'TX_EQUITY_COMPENSATION_ISSUANCE':
+            return processEquityCompensationIssuance(newState, transaction);
         case 'TX_EQUITY_COMPENSATION_EXERCISE':
             return processEquityCompensationExercise(newState, transaction);
         case 'TX_CONVERTIBLE_ISSUANCE':
@@ -184,25 +184,42 @@ const processStockClassAdjustment = (state, transaction, _stakeholder, originalS
 };
 
 // Process equity compensation issuance
-// const processEquityCompensationIssuance = (state, transaction) => {
-// Process for dashboard stats
+const processEquityCompensationIssuance = (state, transaction) => {
+    const { stock_plan_id, quantity } = transaction;
+    const numShares = parseInt(quantity);
 
-// Find original stock class data
-// const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
+    // Determine which plan ID to use - either the provided one or 'no-stock-plan'
+    const planId = stock_plan_id || 'no-stock-plan';
 
-// Process for captable stats
-// const captableState = processCaptableEquityCompensationIssuance(dashboardState, transaction, originalStockClass);
+    // Ensure the plan exists in state
+    if (!state.stockPlans[planId]) {
+        return {
+            ...state,
+            errors: [...state.errors, `Invalid stock plan: ${planId}`]
+        };
+    }
 
-// return {
-//     ...dashboardState
-// };
-// };
+    // Update stock plan's issued shares
+    const updatedStockPlans = {
+        ...state.stockPlans,
+        [planId]: {
+            ...state.stockPlans[planId],
+            sharesIssued: state.stockPlans[planId].sharesIssued + numShares
+        }
+    };
+
+    return {
+        ...state,
+        stockPlans: updatedStockPlans
+    };
+};
 
 // Process stock plan adjustment
 const processStockPlanAdjustment = (state, transaction) => {
     const { stock_plan_id, shares_reserved } = transaction;
-    return {
-        ...state,
+
+    // Core state updates
+    const coreUpdates = {
         stockPlans: {
             ...state.stockPlans,
             [stock_plan_id]: {
@@ -210,6 +227,15 @@ const processStockPlanAdjustment = (state, transaction) => {
                 sharesReserved: parseInt(shares_reserved)
             }
         }
+    };
+
+    // Get cap table updates
+    const captableUpdates = processCaptableStockPlanAdjustment(state, transaction);
+
+    return {
+        ...state,
+        ...coreUpdates,
+        ...captableUpdates
     };
 };
 
