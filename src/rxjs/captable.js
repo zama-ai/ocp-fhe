@@ -166,3 +166,50 @@ export const processCaptableEquityCompensationIssuance = (state, transaction, st
 
     return { summary: newSummary };
 };
+
+export const processCaptableWarrantAndNonPlanAwardIssuance = (state, transaction, stakeholder, originalStockClass) => {
+    console.log('original stock class', originalStockClass);
+    const { quantity, object_type, compensation_type, exercise_triggers } = transaction;
+    let newSummary = { ...state.summary };
+
+    // Calculate shares based on transaction type
+    let numShares;
+    if (object_type === 'TX_WARRANT_ISSUANCE') {
+        // For warrants, use the conversion quantity from exercise triggers
+        numShares = parseInt(exercise_triggers?.[0]?.conversion_right?.conversion_mechanism?.converts_to_quantity || 0);
+    } else {
+        // For non-plan equity compensation, use quantity directly
+        numShares = parseInt(quantity);
+    }
+
+    // Format row name based on transaction type
+    let rowName;
+    if (object_type === 'TX_WARRANT_ISSUANCE') {
+        rowName = `${originalStockClass.name} Warrants`;
+    } else {
+        const formattedCompType = compensation_type.charAt(0).toUpperCase() +
+            compensation_type.slice(1).toLowerCase() + 's';
+        rowName = `${originalStockClass.name} ${formattedCompType}`;
+    }
+
+    // Find existing row or create new one
+    const rowIndex = newSummary.warrantsAndNonPlanAwards.rows.findIndex(
+        row => row.name === rowName
+    );
+
+    if (rowIndex >= 0) {
+        // Update existing row
+        newSummary.warrantsAndNonPlanAwards.rows[rowIndex] = {
+            ...newSummary.warrantsAndNonPlanAwards.rows[rowIndex],
+            fullyDilutedShares: newSummary.warrantsAndNonPlanAwards.rows[rowIndex].fullyDilutedShares + numShares
+        };
+    } else {
+        // Add new row
+        newSummary.warrantsAndNonPlanAwards.rows.push({
+            name: rowName,
+            fullyDilutedShares: numShares
+        });
+    }
+
+    return { summary: newSummary };
+};
