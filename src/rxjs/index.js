@@ -384,14 +384,53 @@ export const captableStats = async (issuerId) => {
                 console.log('Errors:', state.errors);
             }
         }),
-        map((state) => ({
-            isCapTableEmpty: state.isCapTableEmpty,
-            summary: state.summary,
-            convertibles: state.convertibles
-        }))
+        map((state) => {
+            // Calculate grand totals
+            const totalAuthorizedShares =
+                (state.summary.common.totalSharesAuthorized || 0) +
+                (state.summary.preferred.totalSharesAuthorized || 0) +
+                (state.summary.stockPlans.totalSharesAuthorized || 0) +
+                (state.summary.founderPreferred?.sharesAuthorized || 0);
+
+            const totalOutstandingShares =
+                state.summary.common.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
+                state.summary.preferred.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
+                (state.summary.founderPreferred?.outstandingShares || 0);
+
+            const totalFullyDilutedShares =
+                totalOutstandingShares +
+                state.summary.warrantsAndNonPlanAwards.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+                state.summary.stockPlans.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0);
+
+            const totalVotingPower =
+                state.summary.common.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
+                state.summary.preferred.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
+                (state.summary.founderPreferred?.votingPower || 0);
+
+            const totalLiquidation =
+                state.summary.common.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+                state.summary.preferred.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+                (state.summary.founderPreferred?.liquidation || 0);
+
+            return {
+                isCapTableEmpty: state.isCapTableEmpty,
+                summary: {
+                    ...state.summary,
+                    totals: {
+                        totalAuthorizedShares,
+                        totalFullyDilutedShares,
+                        totalFullyPercentage: 1,
+                        totalLiquidation,
+                        totalOutstandingShares,
+                        totalVotingPower,
+                        totalVotingPowerPercentage: 1
+                    }
+                },
+                convertibles: state.convertibles
+            };
+        })
     ));
 
     console.log("finalState", finalState);
-
     return finalState;
 };
