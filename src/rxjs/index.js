@@ -2,7 +2,7 @@ import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableEquityCompensationIssuance } from './captable.js';
+import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableEquityCompensationIssuance, processCaptableWarrantAndNonPlanAwardIssuance } from './captable.js';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
@@ -61,11 +61,20 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
         transactions: [...state.transactions, transaction]
     };
 
+    console.log('transaction', transaction);
+
     const stakeholder = stakeholders.find(s => s.id === transaction.stakeholder_id);
-    // Only need to get and pass the original stock class
-    const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
 
     const originalStockPlan = transaction.stock_plan_id ? stockPlans.find(sp => sp._id === transaction.stock_plan_id) : null;
+
+    let originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
+
+    if (transaction.object_type === 'TX_WARRANT_ISSUANCE') {
+        // Checking if the warrant converts to a stock class
+        if (transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id) {
+            originalStockClass = stockClasses.find(sc => sc._id === transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id);
+        }
+    }
 
     switch (transaction.object_type) {
         case 'TX_STOCK_ISSUANCE':
@@ -77,11 +86,17 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
         case 'TX_EQUITY_COMPENSATION_ISSUANCE':
-            return processEquityCompensationIssuance(newState, transaction, originalStockPlan);
+            if (transaction.stock_plan_id) return processEquityCompensationIssuance(newState, transaction, originalStockPlan);
+            else return processWarrantAndNonPlanAwardIssuance(newState, transaction, stakeholder, originalStockClass);
         case 'TX_EQUITY_COMPENSATION_EXERCISE':
             return processEquityCompensationExercise(newState, transaction);
         case 'TX_CONVERTIBLE_ISSUANCE':
             return processConvertibleIssuance(newState, transaction, stakeholder);
+        case 'TX_WARRANT_ISSUANCE':
+            // If the warrant has a stock class, it belongs in the Warrants and Non Plan Awards section, else it belongs in the Convertibles section
+            if (transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id)
+                return processWarrantAndNonPlanAwardIssuance(newState, transaction, stakeholder, originalStockClass);
+            else return processConvertibleIssuance(newState, transaction, stakeholder);
         default:
             return state;
     }
@@ -96,6 +111,14 @@ const processConvertibleIssuance = (state, transaction, stakeholder) => {
         ...dashboardState
     }
 };
+
+const processWarrantAndNonPlanAwardIssuance = (state, transaction, stakeholder, originalStockClass) => {
+    const captableUpdates = processCaptableWarrantAndNonPlanAwardIssuance(state, transaction, stakeholder, originalStockClass);
+    return {
+        ...state,
+        ...captableUpdates
+    }
+}
 
 // Process stock issuance
 const processStockIssuance = (state, transaction, stakeholder, originalStockClass) => {
@@ -158,6 +181,8 @@ const processIssuerAdjustment = (state, transaction) => {
         },
     };
 };
+
+// const proce
 
 // Process stock class adjustment
 const processStockClassAdjustment = (state, transaction, _stakeholder, originalStockClass) => {
@@ -294,7 +319,7 @@ export const dashboardStats = async (issuerId) => {
 
     const finalState = await lastValueFrom(from(transactions).pipe(
         scan((state, transaction) => {
-            return processTransaction(state, transaction, stakeholders, stockClasses);
+            return processTransaction(state, transaction, stakeholders, stockClasses, stockPlans);
         }, createInitialState(issuer, stockClasses, stockPlans, stakeholders)),
         last(),
         tap(state => {
