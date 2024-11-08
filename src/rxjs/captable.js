@@ -167,6 +167,92 @@ export const processCaptableEquityCompensationIssuance = (state, transaction, st
     return { summary: newSummary };
 };
 
+export const processCaptableConvertibleIssuance = (state, transaction, stakeholder) => {
+    const isWarrant = transaction.object_type === 'TX_WARRANT_ISSUANCE';
+    const stakeholderName = stakeholder?.name?.legal_name || 'Unknown Stakeholder';
+
+    // Get conversion details
+    const conversionTrigger = transaction.conversion_triggers?.[0];
+    const conversionMechanism = conversionTrigger?.conversion_right?.conversion_mechanism;
+    const discount = Number(conversionMechanism?.conversion_discount || 0);
+    const valuationCap = Number(conversionMechanism?.conversion_valuation_cap?.amount || 0);
+    const valuationCapInMillions = valuationCap > 0 ? `${Math.floor(valuationCap / 1000000)}M` : '';
+
+    // Determine key and type
+    let type, subType, key;
+    if (isWarrant) {
+        type = 'WARRANT';
+        subType = 'Warrants for future series of Preferred Stock';
+        key = subType;
+        if (discount > 0) {
+            key += ` - ${discount}% discount`;
+        } else if (valuationCap > 0) {
+            key += ` - ${valuationCapInMillions} valuation cap`;
+        } else {
+            key += ' - No discount or valuation cap';
+        }
+    } else {
+        type = transaction.convertible_type || 'Other';
+        if (type === 'SAFE') {
+            const conversionTiming = conversionMechanism?.conversion_timing;
+            subType = conversionTiming === 'PRE_MONEY' ? 'Pre-Money SAFE' :
+                conversionTiming === 'POST_MONEY' ? 'Post-Money SAFE' : 'Other SAFE';
+        } else if (type === 'NOTE') {
+            subType = 'Convertible Notes';
+        } else {
+            subType = 'Other';
+        }
+
+        key = subType;
+        if (discount > 0 && valuationCap > 0) {
+            key += ` - ${discount}% discount, ${valuationCapInMillions} valuation cap`;
+        } else if (discount > 0) {
+            key += ` - ${discount}% discount`;
+        } else if (valuationCap > 0) {
+            key += ` - ${valuationCapInMillions} valuation cap`;
+        } else {
+            key += ' - No discount or valuation cap';
+        }
+    }
+
+    // Get amount based on type
+    const amount = Number((isWarrant ? transaction.purchase_price : transaction.investment_amount)?.amount || 0);
+
+    // Create or update convertible entry
+    const existingConvertiblesSummary = state.convertibles?.convertiblesSummary || {};
+    const existingGroup = existingConvertiblesSummary[key] || {
+        numberOfSecurities: 0,
+        outstandingAmount: 0,
+        discount,
+        valuationCap,
+        rows: []
+    };
+
+    return {
+        ...state,
+        convertibles: {
+            convertiblesSummary: {
+                ...existingConvertiblesSummary,
+                [key]: {
+                    ...existingGroup,
+                    numberOfSecurities: existingGroup.numberOfSecurities + 1,
+                    outstandingAmount: existingGroup.outstandingAmount + amount,
+                    rows: [
+                        ...existingGroup.rows,
+                        {
+                            name: `${isWarrant ? 'Warrant' : subType} - ${stakeholderName}`,
+                            numberOfSecurities: 1,
+                            outstandingAmount: amount,
+                            discount,
+                            valuationCap
+                        }
+                    ]
+                }
+            }
+        }
+    };
+};
+
 export const processCaptableWarrantAndNonPlanAwardIssuance = (state, transaction, stakeholder, originalStockClass) => {
     console.log('original stock class', originalStockClass);
     const { quantity, object_type, compensation_type, exercise_triggers } = transaction;
