@@ -385,46 +385,111 @@ export const captableStats = async (issuerId) => {
             }
         }),
         map((state) => {
-            // Calculate grand totals
-            const totalAuthorizedShares =
-                (state.summary.common.totalSharesAuthorized || 0) +
-                (state.summary.preferred.totalSharesAuthorized || 0) +
-                (state.summary.stockPlans.totalSharesAuthorized || 0) +
-                (state.summary.founderPreferred?.sharesAuthorized || 0);
+            // Just maintain section structures without calculating totals yet
+            const commonSummary = {
+                rows: state.summary.common.rows,
+                totalSharesAuthorized: state.summary.common.rows.reduce((acc, row) => acc + row.sharesAuthorized, 0)
+            };
 
-            const totalOutstandingShares =
-                state.summary.common.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
-                state.summary.preferred.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
-                (state.summary.founderPreferred?.outstandingShares || 0);
+            const preferredSummary = {
+                rows: state.summary.preferred.rows,
+                totalSharesAuthorized: state.summary.preferred.rows.reduce((acc, row) => acc + row.sharesAuthorized, 0)
+            };
 
-            const totalFullyDilutedShares =
-                totalOutstandingShares +
-                state.summary.warrantsAndNonPlanAwards.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
-                state.summary.stockPlans.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0);
+            const warrantsAndNonPlanAwardsSummary = {
+                rows: state.summary.warrantsAndNonPlanAwards.rows
+            };
 
-            const totalVotingPower =
-                state.summary.common.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
-                state.summary.preferred.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
-                (state.summary.founderPreferred?.votingPower || 0);
+            const stockPlansSummary = {
+                rows: (() => {
+                    const totalSharesAuthorized = Object.entries(state.stockPlans)
+                        .filter(([id, _]) => id !== 'no-stock-plan')
+                        .reduce((acc, [_, plan]) => acc + plan.sharesReserved, 0);
 
-            const totalLiquidation =
-                state.summary.common.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
-                state.summary.preferred.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
-                (state.summary.founderPreferred?.liquidation || 0);
+                    const totalIssuedShares = state.summary.stockPlans.rows.reduce(
+                        (sum, row) => sum + (row.name !== 'Available for Grants' ? row.fullyDilutedShares : 0),
+                        0
+                    );
+
+                    const availableForGrants = totalSharesAuthorized - totalIssuedShares;
+
+                    const finalRows = [
+                        ...state.summary.stockPlans.rows.filter(row => row.name !== 'Available for Grants')
+                    ];
+
+                    if (availableForGrants > 0) {
+                        finalRows.push({
+                            name: 'Available for Grants',
+                            fullyDilutedShares: availableForGrants
+                        });
+                    }
+
+                    return finalRows;
+                })(),
+                totalSharesAuthorized: Object.entries(state.stockPlans)
+                    .filter(([id, _]) => id !== 'no-stock-plan')
+                    .reduce((acc, [_, plan]) => acc + plan.sharesReserved, 0)
+            };
+
+            // Calculate totals
+            const totals = {
+                totalSharesAuthorized: commonSummary.totalSharesAuthorized + preferredSummary.totalSharesAuthorized + (state.summary.founderPreferred?.sharesAuthorized || 0),
+                totalOutstandingShares: commonSummary.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
+                    preferredSummary.rows.reduce((sum, row) => sum + (row.outstandingShares || 0), 0) +
+                    (state.summary.founderPreferred?.outstandingShares || 0),
+                totalFullyDilutedShares: commonSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+                    preferredSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+                    (state.summary.founderPreferred?.fullyDilutedShares || 0) +
+                    warrantsAndNonPlanAwardsSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0) +
+                    stockPlansSummary.rows.reduce((sum, row) => sum + row.fullyDilutedShares, 0),
+                totalFullyPercentage: 1,
+                totalLiquidation: commonSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+                    preferredSummary.rows.reduce((sum, row) => sum + (row.liquidation || 0), 0) +
+                    (state.summary.founderPreferred?.liquidation || 0),
+                totalVotingPower: commonSummary.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
+                    preferredSummary.rows.reduce((sum, row) => sum + (row.votingPower || 0), 0) +
+                    (state.summary.founderPreferred?.votingPower || 0),
+                totalVotingPowerPercentage: 1,
+            }
+
+            // Function to recalculate percentages
+            const recalculatePercentages = (summary) => {
+                if (!summary.rows) return summary;
+
+                const updatedRows = summary.rows.map(row => ({
+                    ...row,
+                    fullyDilutedPercentage: ((row.fullyDilutedShares / totals.totalFullyDilutedShares)).toFixed(4),
+                    ...(row.votingPower !== undefined ? {
+                        votingPercentage: ((row.votingPower / totals.totalVotingPower)).toFixed(4)
+                    } : {})
+                }));
+
+                return {
+                    ...summary,
+                    rows: updatedRows
+                };
+            };
+
+            // Recalculate percentages for all summaries
+            const updatedCommonSummary = recalculatePercentages(commonSummary);
+            const updatedPreferredSummary = recalculatePercentages(preferredSummary);
+            const updatedWarrantsAndNonPlanAwardsSummary = recalculatePercentages(warrantsAndNonPlanAwardsSummary);
+            const updatedStockPlansSummary = recalculatePercentages(stockPlansSummary);
 
             return {
                 isCapTableEmpty: state.isCapTableEmpty,
                 summary: {
-                    ...state.summary,
-                    totals: {
-                        totalAuthorizedShares,
-                        totalFullyDilutedShares,
-                        totalFullyPercentage: 1,
-                        totalLiquidation,
-                        totalOutstandingShares,
-                        totalVotingPower,
-                        totalVotingPowerPercentage: 1
-                    }
+                    isEmpty: false,
+                    common: updatedCommonSummary,
+                    preferred: updatedPreferredSummary,
+                    founderPreferred: state.summary.founderPreferred ? {
+                        ...state.summary.founderPreferred,
+                        fullyDilutedPercentage: ((state.summary.founderPreferred.fullyDilutedShares / totals.totalFullyDilutedShares)).toFixed(4),
+                        votingPercentage: ((state.summary.founderPreferred.votingPower / totals.totalVotingPower)).toFixed(4)
+                    } : null,
+                    warrantsAndNonPlanAwards: updatedWarrantsAndNonPlanAwardsSummary,
+                    stockPlans: updatedStockPlansSummary,
+                    totals
                 },
                 convertibles: state.convertibles
             };
