@@ -99,7 +99,7 @@ const startServer = async () => {
             console.log("Issuer -> Contract Address");
             const contractsToWatch = Object.values(contractAddresses)
             console.log("Watching ", contractsToWatch.length, " Contracts");
-            // startListener(contractsToWatch);
+            startListener(contractsToWatch);
         }
 
     });
