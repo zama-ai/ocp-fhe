@@ -2,7 +2,7 @@ import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableEquityCompensationIssuance, processCaptableWarrantAndNonPlanAwardIssuance } from './captable.js';
+import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableEquityCompensationIssuance, processCaptableWarrantAndNonPlanAwardIssuance, processCaptableConvertibleIssuance } from './captable.js';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
@@ -106,9 +106,12 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
 const processConvertibleIssuance = (state, transaction, stakeholder) => {
     const dashboardState = processDashboardConvertibleIssuance(state, transaction, stakeholder);
 
+    const captableState = processCaptableConvertibleIssuance(state, transaction, stakeholder);
+
     return {
         ...state,
-        ...dashboardState
+        ...dashboardState,
+        ...captableState
     }
 };
 
@@ -476,10 +479,27 @@ export const captableStats = async (issuerId) => {
             const updatedWarrantsAndNonPlanAwardsSummary = recalculatePercentages(warrantsAndNonPlanAwardsSummary);
             const updatedStockPlansSummary = recalculatePercentages(stockPlansSummary);
 
+            // Check if the summary is empty
+            const isSummaryEmpty =
+                commonSummary.rows.length === 0 &&
+                preferredSummary.rows.length === 0 &&
+                !state.summary.founderPreferred &&
+                warrantsAndNonPlanAwardsSummary.rows.length === 0 &&
+                stockPlansSummary.rows.length === 0;
+
+            // Check if convertibles are empty
+            const isConvertiblesEmpty = !state.convertibles?.convertiblesSummary ||
+                Object.keys(state.convertibles.convertiblesSummary).length === 0;
+
+            // Calculate convertibles total outstanding amount
+            const convertiblesTotalOutstandingAmount = isConvertiblesEmpty ? 0 :
+                Object.values(state.convertibles.convertiblesSummary)
+                    .reduce((sum, group) => sum + (group.outstandingAmount || 0), 0);
+
             return {
-                isCapTableEmpty: state.isCapTableEmpty,
+                isCapTableEmpty: isSummaryEmpty && isConvertiblesEmpty,
                 summary: {
-                    isEmpty: false,
+                    isEmpty: isSummaryEmpty,
                     common: updatedCommonSummary,
                     preferred: updatedPreferredSummary,
                     founderPreferred: state.summary.founderPreferred ? {
@@ -491,7 +511,13 @@ export const captableStats = async (issuerId) => {
                     stockPlans: updatedStockPlansSummary,
                     totals
                 },
-                convertibles: state.convertibles
+                convertibles: {
+                    isEmpty: isConvertiblesEmpty,
+                    convertiblesSummary: state.convertibles?.convertiblesSummary || {},
+                    totals: {
+                        outstandingAmount: convertiblesTotalOutstandingAmount
+                    }
+                }
             };
         })
     ));
