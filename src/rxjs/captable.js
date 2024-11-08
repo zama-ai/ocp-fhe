@@ -7,34 +7,51 @@ const StockIssuanceTypes = {
     FOUNDERS_STOCK: "FOUNDERS_STOCK",
 };
 
+const processFounderPreferredStock = (state, summary, stockClassId, numShares, liquidation, votingPower) => {
+    // Initialize if this is the first founder preferred issuance
+    if (!summary.founderPreferred) {
+        summary.founderPreferred = {
+            outstandingShares: 0,
+            sharesAuthorized: 0, // There's no shares authorized for founder preferred stock, we use outstanding shares
+            fullyDilutedShares: 0,
+            liquidation: 0,
+            votingPower: 0
+        };
+    }
+
+    // Add new shares to existing totals
+    summary.founderPreferred.sharesAuthorized += numShares;
+    summary.founderPreferred.outstandingShares += numShares;
+    summary.founderPreferred.fullyDilutedShares += numShares;
+    summary.founderPreferred.liquidation += liquidation;
+    summary.founderPreferred.votingPower += votingPower;
+
+    return summary;
+};
+
 export const processCaptableStockIssuance = (state, transaction, _stakeholder, originalStockClass) => {
-    const { stock_class_id, quantity, share_price, issuance_type } = transaction;
+    const { stock_class_id, quantity, issuance_type } = transaction;
     const numShares = parseInt(quantity);
     const classType = originalStockClass.class_type;
 
     let newSummary = { ...state.summary };
 
-    // Calculate basic metrics
+    // Calculate metrics for this issuance
     const votingPower = originalStockClass.votes_per_share * numShares;
-    const liquidation = numShares * Number(share_price?.amount || 0);
+    const liquidation = numShares * Number(originalStockClass.price_per_share.amount) * Number(originalStockClass.liquidation_preference_multiple);
 
-    // Handle founder preferred stock differently
-    if (classType === StockClassTypes.PREFERRED && issuance_type === StockIssuanceTypes.FOUNDERS_STOCK) {
-        newSummary.founderPreferred = newSummary.founderPreferred || {
-            outstandingShares: 0,
-            sharesAuthorized: state.stockClasses[stock_class_id].sharesAuthorized,
-            fullyDilutedShares: 0,
-            liquidation: 0,
-            votingPower: 0
-        };
+    // Check if this is founder preferred stock
+    if (classType === StockClassTypes.PREFERRED &&
+        issuance_type === StockIssuanceTypes.FOUNDERS_STOCK) {
 
-        newSummary.founderPreferred = {
-            ...newSummary.founderPreferred,
-            outstandingShares: newSummary.founderPreferred.outstandingShares + numShares,
-            fullyDilutedShares: newSummary.founderPreferred.fullyDilutedShares + numShares,
-            liquidation: newSummary.founderPreferred.liquidation + liquidation,
-            votingPower: newSummary.founderPreferred.votingPower + votingPower
-        };
+        newSummary = processFounderPreferredStock(
+            state,
+            newSummary,
+            stock_class_id,
+            numShares,
+            liquidation,
+            votingPower
+        );
 
         return { summary: newSummary };
     }
