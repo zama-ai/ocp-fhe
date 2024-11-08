@@ -13,19 +13,24 @@ export const dashboardInitialState = (stakeholders) => {
 }
 
 export const processDashboardConvertibleIssuance = (state, transaction, stakeholder) => {
-    const { investment_amount } = transaction;
+    // Get investment amount based on transaction type
+    const investmentAmount = transaction.object_type === 'TX_WARRANT_ISSUANCE'
+        ? transaction.purchase_price
+        : transaction.investment_amount;
+
     const shouldCountTowardsRaised = stakeholder &&
         !['FOUNDER', 'BOARD_MEMBER'].includes(stakeholder.current_relationship);
-    const amountToAdd = shouldCountTowardsRaised ? Number(investment_amount.amount) : 0;
+    const amountToAdd = shouldCountTowardsRaised ? Number(investmentAmount?.amount || 0) : 0;
 
     const conversionTriggers = transaction.conversion_triggers || [];
     let conversionValuationCap = null;
 
-    // Look for both SAFE and Convertible Note conversions with valuation cap
+    // Look for SAFE, Convertible Note, and Warrant conversions with valuation cap
     conversionTriggers.forEach(trigger => {
         if (trigger.conversion_right?.type === "CONVERTIBLE_CONVERSION_RIGHT" &&
             (trigger.conversion_right?.conversion_mechanism?.type === "SAFE_CONVERSION" ||
-                trigger.conversion_right?.conversion_mechanism?.type === "CONVERTIBLE_NOTE_CONVERSION")) {
+                trigger.conversion_right?.conversion_mechanism?.type === "CONVERTIBLE_NOTE_CONVERSION" ||
+                trigger.conversion_right?.conversion_mechanism?.type === "WARRANT_CONVERSION")) {
             conversionValuationCap = trigger.conversion_right.conversion_mechanism.conversion_valuation_cap?.amount;
         }
     });
