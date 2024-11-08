@@ -2,7 +2,7 @@ import { from, lastValueFrom } from 'rxjs';
 import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
-import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableStockPlanAdjustment } from './captable.js';
+import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableEquityCompensationIssuance } from './captable.js';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
@@ -55,7 +55,7 @@ const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
 };
 
 // Process transactions
-const processTransaction = (state, transaction, stakeholders, stockClasses) => {
+const processTransaction = (state, transaction, stakeholders, stockClasses, stockPlans) => {
     const newState = {
         ...state,
         transactions: [...state.transactions, transaction]
@@ -64,6 +64,8 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
     const stakeholder = stakeholders.find(s => s.id === transaction.stakeholder_id);
     // Only need to get and pass the original stock class
     const originalStockClass = stockClasses.find(sc => sc._id === transaction.stock_class_id);
+
+    const originalStockPlan = transaction.stock_plan_id ? stockPlans.find(sp => sp._id === transaction.stock_plan_id) : null;
 
     switch (transaction.object_type) {
         case 'TX_STOCK_ISSUANCE':
@@ -75,7 +77,7 @@ const processTransaction = (state, transaction, stakeholders, stockClasses) => {
         case 'TX_STOCK_PLAN_POOL_ADJUSTMENT':
             return processStockPlanAdjustment(newState, transaction);
         case 'TX_EQUITY_COMPENSATION_ISSUANCE':
-            return processEquityCompensationIssuance(newState, transaction);
+            return processEquityCompensationIssuance(newState, transaction, originalStockPlan);
         case 'TX_EQUITY_COMPENSATION_EXERCISE':
             return processEquityCompensationExercise(newState, transaction);
         case 'TX_CONVERTIBLE_ISSUANCE':
@@ -183,7 +185,7 @@ const processStockClassAdjustment = (state, transaction, _stakeholder, originalS
 };
 
 // Process equity compensation issuance
-const processEquityCompensationIssuance = (state, transaction) => {
+const processEquityCompensationIssuance = (state, transaction, originalStockPlan) => {
     const { stock_plan_id, quantity } = transaction;
     const numShares = parseInt(quantity);
 
@@ -207,8 +209,11 @@ const processEquityCompensationIssuance = (state, transaction) => {
         }
     };
 
+    const captableUpdates = processCaptableEquityCompensationIssuance(state, transaction, originalStockPlan);
+
     return {
         ...state,
+        ...captableUpdates,
         stockPlans: updatedStockPlans
     };
 };
@@ -228,13 +233,9 @@ const processStockPlanAdjustment = (state, transaction) => {
         }
     };
 
-    // Get cap table updates
-    const captableUpdates = processCaptableStockPlanAdjustment(state, transaction);
-
     return {
         ...state,
         ...coreUpdates,
-        ...captableUpdates
     };
 };
 
@@ -347,7 +348,7 @@ export const captableStats = async (issuerId) => {
     const { issuer, stockClasses, stockPlans, stakeholders, transactions } = await getAllStateMachineObjectsById(issuerId);
 
     const finalState = await lastValueFrom(from(transactions).pipe(
-        scan((state, transaction) => processTransaction(state, transaction, stakeholders, stockClasses),
+        scan((state, transaction) => processTransaction(state, transaction, stakeholders, stockClasses, stockPlans),
             createInitialState(issuer, stockClasses, stockPlans, stakeholders)),
         last(),
         tap(state => {

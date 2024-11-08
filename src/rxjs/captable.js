@@ -83,7 +83,7 @@ export const processCaptableStockIssuance = (state, transaction, _stakeholder, o
     return { summary: newSummary };
 };
 
-export const captableInitialState = (issuer, stockClasses, stockPlans, _stakeholders) => {
+export const captableInitialState = (_stakeholders) => {
     // Initialize sections with empty rows
     return {
         summary: {
@@ -98,12 +98,7 @@ export const captableInitialState = (issuer, stockClasses, stockPlans, _stakehol
                 rows: []
             },
             stockPlans: {
-                rows: stockPlans
-                    .filter(plan => plan.initial_shares_reserved > 0)
-                    .map(plan => ({
-                        name: `${plan.plan_name} Available for Grants`,
-                        fullyDilutedShares: Number(plan.initial_shares_reserved)
-                    }))
+                rows: []
             },
             totals: {} // Empty totals object - will be calculated in index.js
         },
@@ -135,32 +130,39 @@ export const processCaptableStockClassAdjustment = (state, transaction, original
     return { summary: newSummary };
 };
 
-export const processCaptableStockPlanAdjustment = (state, transaction) => {
-    const { stock_plan_id, shares_reserved } = transaction;
+export const processCaptableEquityCompensationIssuance = (state, transaction, stockPlan) => {
+    const { stock_plan_id, quantity, compensation_type } = transaction;
+    const numShares = parseInt(quantity);
     let newSummary = { ...state.summary };
 
-    const planName = state.stockPlans[stock_plan_id].name;
+    // Skip if no stock plan, it belongs inside of Warrans and Non Plan Awards
+    if (!stock_plan_id || !stockPlan) {
+        return { summary: newSummary };
+    }
+
+    // Format the row name: "Plan Name Options" or "Plan Name RSUs"
+    const formattedCompType = compensation_type.charAt(0).toUpperCase() +
+        compensation_type.slice(1).toLowerCase() + 's';
+    const rowName = `${stockPlan.plan_name} ${formattedCompType}`;
+
+    // Find existing row for this plan + compensation type combination
     const rowIndex = newSummary.stockPlans.rows.findIndex(
-        row => row.name === `${planName} Available for Grants`
+        row => row.name === rowName
     );
 
-    const issuedShares = state.stockPlans[stock_plan_id].sharesIssued || 0;
-    const availableShares = parseInt(shares_reserved) - issuedShares;
-
     if (rowIndex >= 0) {
+        // Update existing row's shares
         newSummary.stockPlans.rows[rowIndex] = {
             ...newSummary.stockPlans.rows[rowIndex],
-            fullyDilutedShares: availableShares,
-            name: `${planName} Available for Grants`
+            fullyDilutedShares: newSummary.stockPlans.rows[rowIndex].fullyDilutedShares + numShares
         };
     } else {
+        // Add new row for this plan + compensation type
         newSummary.stockPlans.rows.push({
-            name: `${planName} Available for Grants`,
-            fullyDilutedShares: availableShares
+            name: rowName,
+            fullyDilutedShares: numShares
         });
     }
 
     return { summary: newSummary };
 };
-
-
