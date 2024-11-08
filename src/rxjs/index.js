@@ -3,7 +3,6 @@ import { scan, tap, last, map } from 'rxjs/operators';
 import { getAllStateMachineObjectsById } from "../db/operations/read.js";
 import { dashboardInitialState, processDashboardConvertibleIssuance, processDashboardStockIssuance } from "./dashboard.js";
 import { captableInitialState, processCaptableStockIssuance, processCaptableStockClassAdjustment, processCaptableStockPlanAdjustment } from './captable.js';
-import get from 'lodash/get';
 
 // Initial state structure
 const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
