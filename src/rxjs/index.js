@@ -353,6 +353,7 @@ export const dashboardStats = async (issuerId) => {
 
             return {
                 numOfStakeholders: state.numOfStakeholders,
+                totalOutstandingShares: state.issuer.sharesIssued,
                 totalRaised: state.totalRaised,
                 // Calculating the sum across all stock plans
                 totalStockPlanAuthorizedShares: Object.entries(state.stockPlans)
