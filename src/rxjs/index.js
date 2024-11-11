@@ -77,10 +77,18 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
     // console.log("transaction", transaction);
 
     const stakeholder = stakeholders.find((s) => s.id === transaction.stakeholder_id);
-    if (!stakeholder) {
+    if (
+        !stakeholder &&
+        ![
+            "TX_EQUITY_COMPENSATION_EXERCISE",
+            "TX_STOCK_PLAN_POOL_ADJUSTMENT",
+            "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
+            "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT",
+        ].includes(transaction.object_type)
+    ) {
         return {
             ...state,
-            errors: new Set([...state.errors, `Stakeholder not found: ${transaction.stakeholder_id}`]),
+            errors: new Set([...state.errors, `Stakeholder not found - ${transaction.object_type}: ${transaction._id}`]),
         };
     }
 
@@ -100,19 +108,36 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
     }
 
     const originalStockClass = stockClasses.find((sc) => sc._id === targetStockClassId);
-    const isConvertibleIssuance = transaction.object_type === "TX_CONVERTIBLE_ISSUANCE";
-    // if transaction is convertible issuance, we don't need a stock class ID
-    if (!targetStockClassId && !isConvertibleIssuance) {
+    // if transaction is one of the following, we need a stock class ID
+    if (
+        !targetStockClassId &&
+        ![
+            "TX_CONVERTIBLE_ISSUANCE",
+            "TX_EQUITY_COMPENSATION_EXERCISE",
+            "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
+            "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT",
+            "TX_STOCK_PLAN_POOL_ADJUSTMENT",
+        ].includes(transaction.object_type)
+    ) {
         return {
             ...state,
-            errors: new Set([...state.errors, `No stock class ID found for transaction - ${transaction.object_type}: ${transaction._id}`]),
+            errors: new Set([...state.errors, `No stock class ID found for - ${transaction.object_type}: ${transaction._id}`]),
         };
     }
-    // if transaction is convertible issuance, we don't need a stock class ID
-    if (!originalStockClass && !isConvertibleIssuance) {
+    // if transaction is one of the following, we need a stock class ID
+    if (
+        !originalStockClass &&
+        ![
+            "TX_CONVERTIBLE_ISSUANCE",
+            "TX_EQUITY_COMPENSATION_EXERCISE",
+            "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
+            "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT",
+            "TX_STOCK_PLAN_POOL_ADJUSTMENT",
+        ].includes(transaction.object_type)
+    ) {
         return {
             ...state,
-            errors: new Set([...state.errors, `Invalid stock class: ${targetStockClassId}`]),
+            errors: new Set([...state.errors, `Invalid stock class - ${transaction.object_type}: ${transaction._id}`]),
         };
     }
 
