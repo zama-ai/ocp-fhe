@@ -25,7 +25,7 @@ stats.get("/rxjs/dashboard", async (req, res) => {
 
     const rxjsData = await dashboardStats(issuerId);
 
-    console.log("rxjsData", rxjsData)
+    console.log("rxjsData", rxjsData);
 
     res.status(200).send(rxjsData);
 });
@@ -36,11 +36,10 @@ stats.get("/rxjs/captable", async (req, res) => {
 
     const rxjsData = await captableStats(issuerId);
 
-    console.log("rxjsData", rxjsData)
+    console.log("rxjsData", rxjsData);
 
     res.status(200).send(rxjsData);
 });
-
 
 stats.get("/captable", async (req, res) => {
     const { issuerId } = req.query;
