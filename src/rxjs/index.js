@@ -113,8 +113,8 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
         !targetStockClassId &&
         ![
             "TX_CONVERTIBLE_ISSUANCE",
+            "TX_WARRANT_ISSUANCE",
             "TX_EQUITY_COMPENSATION_EXERCISE",
-            "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
             "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT",
             "TX_STOCK_PLAN_POOL_ADJUSTMENT",
         ].includes(transaction.object_type)
@@ -129,6 +129,7 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
         !originalStockClass &&
         ![
             "TX_CONVERTIBLE_ISSUANCE",
+            "TX_WARRANT_ISSUANCE",
             "TX_EQUITY_COMPENSATION_EXERCISE",
             "TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT",
             "TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT",
