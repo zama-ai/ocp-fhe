@@ -132,7 +132,6 @@ export const readFairmintDataBySeriesId = async (series_id) => {
     return await Fairmint.findOne({ series_id });
 };
 
-
 export const getAllStateMachineObjectsById = async (issuerId) => {
     const issuer = await readIssuerById(issuerId);
     const stockClasses = await find(StockClass, { issuer: issuerId });
@@ -149,7 +148,6 @@ export const getAllStateMachineObjectsById = async (issuerId) => {
     const convertibleIssuances = await find(ConvertibleIssuance, { issuer: issuerId });
     const warrantIssuances = await find(WarrantIssuance, { issuer: issuerId });
 
-
     // Combine all transactions into one array
     const allTransactions = [
         ...issuerAuthorizedSharesAdjustments,
@@ -163,14 +161,14 @@ export const getAllStateMachineObjectsById = async (issuerId) => {
     ].sort((a, b) => {
         // First sort by transaction type to ensure adjustments happen first
         const typeOrder = {
-            'TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT': 0,
-            'TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT': 1,
-            'TX_STOCK_PLAN_POOL_ADJUSTMENT': 2,
-            'TX_STOCK_ISSUANCE': 3,
-            'TX_EQUITY_COMPENSATION_ISSUANCE': 3,
-            'TX_CONVERTIBLE_ISSUANCE': 3,
-            'TX_EQUITY_COMPENSATION_EXERCISE': 3,
-            'TX_WARRANT_ISSUANCE': 3,
+            TX_ISSUER_AUTHORIZED_SHARES_ADJUSTMENT: 0,
+            TX_STOCK_CLASS_AUTHORIZED_SHARES_ADJUSTMENT: 1,
+            TX_STOCK_PLAN_POOL_ADJUSTMENT: 2,
+            TX_STOCK_ISSUANCE: 3,
+            TX_EQUITY_COMPENSATION_ISSUANCE: 3,
+            TX_CONVERTIBLE_ISSUANCE: 3,
+            TX_EQUITY_COMPENSATION_EXERCISE: 3,
+            TX_WARRANT_ISSUANCE: 3,
         };
         const typeCompare = typeOrder[a.object_type] - typeOrder[b.object_type];
 
@@ -185,7 +183,7 @@ export const getAllStateMachineObjectsById = async (issuerId) => {
         stockClasses,
         stockPlans,
         stakeholders,
-        transactions: allTransactions
+        transactions: allTransactions,
     };
 };
 
