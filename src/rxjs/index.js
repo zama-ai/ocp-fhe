@@ -63,7 +63,7 @@ const createInitialState = (issuer, stockClasses, stockPlans, stakeholders) => {
         ...dashboardState,
         ...captableState, // Add captable specific state
         transactions: [], // Reset transactions array
-        errors: [], // Reset errors array
+        errors: new Set(), // Reset errors array
     };
 };
 
@@ -74,21 +74,43 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
         transactions: [...state.transactions, transaction],
     };
 
-    console.log("transaction", transaction);
+    // console.log("transaction", transaction);
 
     const stakeholder = stakeholders.find((s) => s.id === transaction.stakeholder_id);
+    if (!stakeholder) {
+        return {
+            ...state,
+            errors: new Set([...state.errors, `Stakeholder not found: ${transaction.stakeholder_id}`]),
+        };
+    }
 
     const originalStockPlan = transaction.stock_plan_id ? stockPlans.find((sp) => sp._id === transaction.stock_plan_id) : null;
 
-    let originalStockClass = stockClasses.find((sc) => sc._id === transaction.stock_class_id);
+    // let originalStockClass;
+    let targetStockClassId;
+    if (transaction.stock_class_id) {
+        targetStockClassId = transaction.stock_class_id;
+    }
 
-    if (transaction.object_type === "TX_WARRANT_ISSUANCE") {
+    const warrantConvertsToStockClass =
+        transaction.object_type === "TX_WARRANT_ISSUANCE" && transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id;
+    if (warrantConvertsToStockClass) {
         // Checking if the warrant converts to a stock class
-        if (transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id) {
-            originalStockClass = stockClasses.find(
-                (sc) => sc._id === transaction.exercise_triggers?.[0]?.conversion_right?.converts_to_stock_class_id
-            );
-        }
+        targetStockClassId = warrantConvertsToStockClass;
+    }
+
+    const originalStockClass = stockClasses.find((sc) => sc._id === targetStockClassId);
+    if (!targetStockClassId) {
+        return {
+            ...state,
+            errors: new Set([...state.errors, `No stock class ID found for transaction: ${transaction._id}`]),
+        };
+    }
+    if (!originalStockClass) {
+        return {
+            ...state,
+            errors: new Set([...state.errors, `Invalid stock class: ${targetStockClassId}`]),
+        };
     }
 
     switch (transaction.object_type) {
@@ -346,11 +368,12 @@ export const dashboardStats = async (issuerId) => {
                 delete stateWithoutTransactions.transactions;
 
                 console.log("\nProcessed transaction. New state:", JSON.stringify(stateWithoutTransactions, null, 2));
-                if (state.errors.length > 0) {
-                    console.log("Errors:", state.errors);
-                }
             }),
             map((state) => {
+                // If there are errors, return the state as is
+                if (state.errors.size > 0) {
+                    return state;
+                }
                 // Calculate ownership percentages
                 const ownership = Object.entries(state.sharesIssuedByCurrentRelationship).reduce(
                     (acc, [relationship, shares]) => ({
@@ -407,11 +430,12 @@ export const captableStats = async (issuerId) => {
                 const stateWithoutTransactions = { ...state };
                 delete stateWithoutTransactions.transactions;
                 console.log("\nProcessed transaction. New state:", JSON.stringify(stateWithoutTransactions, null, 2));
-                if (state.errors.length > 0) {
-                    console.log("Errors:", state.errors);
-                }
             }),
             map((state) => {
+                // If there are errors, return the state as is
+                if (state.errors.size > 0) {
+                    return state;
+                }
                 // Just maintain section structures without calculating totals yet
                 const commonSummary = {
                     rows: state.summary.common.rows,

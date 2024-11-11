@@ -2,6 +2,7 @@ import express, { json, urlencoded } from "express";
 import { setupEnv } from "./utils/env.js";
 import { connectDB } from "./db/config/mongoose.ts";
 import { startListener } from "./utils/websocket.ts";
+import * as Sentry from "@sentry/node";
 
 // Routes
 import historicalTransactions from "./routes/historicalTransactions.js";
@@ -23,6 +24,12 @@ import { contractCache } from "./utils/simple_caches.js";
 import { getContractInstance } from "./chain-operations/getContractInstances.js";
 
 setupEnv();
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    sendDefaultPii: false,
+});
+
 const app = express();
 
 const PORT = process.env.PORT;
