@@ -100,13 +100,16 @@ const processTransaction = (state, transaction, stakeholders, stockClasses, stoc
     }
 
     const originalStockClass = stockClasses.find((sc) => sc._id === targetStockClassId);
-    if (!targetStockClassId) {
+    const isConvertibleIssuance = transaction.object_type === "TX_CONVERTIBLE_ISSUANCE";
+    // if transaction is convertible issuance, we don't need a stock class ID
+    if (!targetStockClassId && !isConvertibleIssuance) {
         return {
             ...state,
-            errors: new Set([...state.errors, `No stock class ID found for transaction: ${transaction._id}`]),
+            errors: new Set([...state.errors, `No stock class ID found for transaction - ${transaction.object_type}: ${transaction._id}`]),
         };
     }
-    if (!originalStockClass) {
+    // if transaction is convertible issuance, we don't need a stock class ID
+    if (!originalStockClass && !isConvertibleIssuance) {
         return {
             ...state,
             errors: new Set([...state.errors, `Invalid stock class: ${targetStockClassId}`]),
