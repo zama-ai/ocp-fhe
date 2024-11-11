@@ -3,7 +3,7 @@ import calculateDashboardStats from "./dashboard.js";
 import { readIssuerById } from "../../db/operations/read.js";
 import calculateCaptableStats from "./captable.js";
 import { dashboardStats, captableStats } from "../../rxjs/index.js";
-
+import { captureException, setTag } from "@sentry/node";
 const stats = Router();
 
 stats.get("/dashboard", async (req, res) => {
@@ -21,11 +21,13 @@ stats.get("/dashboard", async (req, res) => {
 
 stats.get("/rxjs/dashboard", async (req, res) => {
     const { issuerId } = req.query;
+    setTag("issuerId", issuerId);
     console.log("issuerId", issuerId);
 
     const rxjsData = await dashboardStats(issuerId);
 
     if (rxjsData.errors.size > 0) {
+        captureException(new Error(Array.from(rxjsData.errors).join("\n")));
         return res.status(500).send({ errors: Array.from(rxjsData.errors) });
     }
 
@@ -36,10 +38,12 @@ stats.get("/rxjs/dashboard", async (req, res) => {
 
 stats.get("/rxjs/captable", async (req, res) => {
     const { issuerId } = req.query;
+    setTag("issuerId", issuerId);
     console.log("issuerId", issuerId);
 
     const rxjsData = await captableStats(issuerId);
     if (rxjsData.errors.size > 0) {
+        captureException(new Error(Array.from(rxjsData.errors).join("\n")));
         return res.status(500).send({ errors: Array.from(rxjsData.errors) });
     }
 
