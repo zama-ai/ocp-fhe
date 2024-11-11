@@ -24,6 +24,7 @@
     "export-manifest": "cd src/db/samples && zip -r fairmint.zip fairmint && mv fairmint.zip $HOME/Downloads"
   },
   "dependencies": {
+    "@sentry/node": "^8.37.1",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "axios": "^1.4.0",
