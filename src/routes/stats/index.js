@@ -26,7 +26,7 @@ stats.get("/rxjs/dashboard", async (req, res) => {
 
     const rxjsData = await dashboardStats(issuerId);
 
-    if (rxjsData.errors.size > 0) {
+    if (rxjsData?.errors?.size > 0) {
         captureException(new Error(Array.from(rxjsData.errors).join("\n")));
         return res.status(500).send({ errors: Array.from(rxjsData.errors) });
     }
@@ -42,7 +42,7 @@ stats.get("/rxjs/captable", async (req, res) => {
     console.log("issuerId", issuerId);
 
     const rxjsData = await captableStats(issuerId);
-    if (rxjsData.errors.size > 0) {
+    if (rxjsData?.errors?.size > 0) {
         captureException(new Error(Array.from(rxjsData.errors).join("\n")));
         return res.status(500).send({ errors: Array.from(rxjsData.errors) });
     }
