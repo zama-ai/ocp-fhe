@@ -25,11 +25,8 @@ contract DiamondDeployer {
         });
 
         // StockFacet with both issueStock and initializeIssuer
-        bytes4[] memory stockSelectors = new bytes4[](4);
+        bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
-        stockSelectors[1] = StockFacet.initializeIssuer.selector;
-        stockSelectors[2] = StockFacet.createStockClass.selector;
-        stockSelectors[3] = StockFacet.createStakeholder.selector;
         cuts[1] = IDiamondCut.FacetCut({
             facetAddress: address(stockFacet),
             action: IDiamondCut.FacetCutAction.Add,

@@ -4,6 +4,17 @@ pragma solidity ^0.8.20;
 // My bet is that Issuer and Stock Class need to have a quanity field where the shares are added back for retractions or cancellations
 // On issuance, we must verify there are enough shares available to issue for that stock class
 
+struct Storage {
+    mapping(bytes16 => mapping(bytes16 => ActivePosition)) activePositions;
+    mapping(bytes16 => mapping(bytes16 => bytes16[])) activeSecurityIdsByStockClass;
+    bytes[] transactions;
+    Issuer issuer;
+    Stakeholder[] stakeholders;
+    StockClass[] stockClasses;
+    mapping(bytes16 => uint256) stakeholderIndex;
+    mapping(bytes16 => uint256) stockClassIndex;
+}
+
 struct Issuer {
     bytes16 id;
     uint256 shares_issued;
