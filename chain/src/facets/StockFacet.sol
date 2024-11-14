@@ -73,9 +73,9 @@ contract StockFacet {
         mapping(bytes16 => uint256) stockClassIndex;
     }
 
-    bytes32 constant _DIAMOND_STORAGE_POSITION = keccak256("diamond.storage.stock");
+    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.storage.stock");
 
-    function _diamondStorage() internal pure returns (DiamondStorage storage ds) {
+    function diamondStorage() internal pure returns (DiamondStorage storage ds) {
         bytes32 position = DIAMOND_STORAGE_POSITION;
         assembly {
             ds.slot := position
