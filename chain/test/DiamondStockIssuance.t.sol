@@ -6,9 +6,9 @@ import "forge-std/console.sol";
 import "../src/DiamondCapTableFactory.sol";
 import "../src/facets/StockFacet.sol";
 import "../src/DiamondCapTable.sol";
-import "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import "diamond-3-hardhat/Diamond.sol";
+import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
+import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 
 contract DiamondStockIssuanceTest is Test {
     uint256 public issuerInitialSharesAuthorized = 1000000;

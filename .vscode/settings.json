@@ -1,0 +1,10 @@
+{
+    "solidity.packageDefaultDependenciesDirectory": "lib",
+    "solidity.packageDefaultDependenciesContractsDirectory": "src",
+    "solidity.formatter": "forge",
+    "solidity.compileUsingRemoteVersion": "v0.8.20",
+    "solidity.remappings": [
+        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+        "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
+    ]
+}
