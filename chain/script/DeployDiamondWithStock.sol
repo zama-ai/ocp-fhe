@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Diamond} from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import {DiamondCutFacet} from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import {StockFacet} from "../src/facets/StockFacet.sol";
-import {IDiamondCut} from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { Diamond } from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
+import { DiamondCutFacet } from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
+import { StockFacet } from "../src/facets/StockFacet.sol";
+import { IDiamondCut } from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
 
 contract DiamondDeployer {
     function deployDiamond() public returns (address) {

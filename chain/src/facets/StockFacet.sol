@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {LibDiamond} from "../../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
+import { LibDiamond } from "../../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
 
 contract StockFacet {
     // Core structs
@@ -73,9 +73,9 @@ contract StockFacet {
         mapping(bytes16 => uint256) stockClassIndex;
     }
 
-    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.storage.stock");
+    bytes32 constant _DIAMOND_STORAGE_POSITION = keccak256("diamond.storage.stock");
 
-    function diamondStorage() internal pure returns (DiamondStorage storage ds) {
+    function _diamondStorage() internal pure returns (DiamondStorage storage ds) {
         bytes32 position = DIAMOND_STORAGE_POSITION;
         assembly {
             ds.slot := position
@@ -83,13 +83,9 @@ contract StockFacet {
     }
 
     // Events
-    event StockIssued(
-        bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice
-    );
+    event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
     event StakeholderCreated(bytes16 indexed id);
-    event StockClassCreated(
-        bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized
-    );
+    event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
 
     // Errors
     error StakeholderAlreadyExists(bytes16 stakeholder_id);
@@ -104,12 +100,10 @@ contract StockFacet {
         // Ensure issuer hasn't been initialized
         require(ds.issuer.shares_authorized == 0, "Issuer already initialized");
 
-        ds.issuer = Issuer({id: id, shares_issued: 0, shares_authorized: initial_shares_authorized});
+        ds.issuer = Issuer({ id: id, shares_issued: 0, shares_authorized: initial_shares_authorized });
     }
 
-    function createStakeholder(bytes16 _id, string memory _stakeholder_type, string memory _current_relationship)
-        external
-    {
+    function createStakeholder(bytes16 _id, string memory _stakeholder_type, string memory _current_relationship) external {
         DiamondStorage storage ds = diamondStorage();
 
         if (ds.stakeholderIndex[_id] > 0) {
@@ -121,12 +115,7 @@ contract StockFacet {
         emit StakeholderCreated(_id);
     }
 
-    function createStockClass(
-        bytes16 _id,
-        string memory _class_type,
-        uint256 _price_per_share,
-        uint256 _initial_share_authorized
-    ) external {
+    function createStockClass(bytes16 _id, string memory _class_type, uint256 _price_per_share, uint256 _initial_share_authorized) external {
         DiamondStorage storage ds = diamondStorage();
 
         if (ds.stockClassIndex[_id] > 0) {
@@ -156,18 +145,11 @@ contract StockFacet {
         uint256 stockClassIdx = ds.stockClassIndex[params.stock_class_id] - 1;
         StockClass storage stockClass = ds.stockClasses[stockClassIdx];
 
-        require(
-            ds.issuer.shares_issued + params.quantity <= ds.issuer.shares_authorized,
-            "Issuer: Insufficient shares authorized"
-        );
-        require(
-            stockClass.shares_issued + params.quantity <= stockClass.shares_authorized,
-            "StockClass: Insufficient shares authorized"
-        );
+        require(ds.issuer.shares_issued + params.quantity <= ds.issuer.shares_authorized, "Issuer: Insufficient shares authorized");
+        require(stockClass.shares_issued + params.quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
 
         // Generate security ID
-        bytes16 securityId =
-            bytes16(keccak256(abi.encodePacked(params.stakeholder_id, block.timestamp, block.prevrandao)));
+        bytes16 securityId = bytes16(keccak256(abi.encodePacked(params.stakeholder_id, block.timestamp, block.prevrandao)));
 
         // Update storage
         ds.activePositions[params.stakeholder_id][securityId] = ActivePosition({

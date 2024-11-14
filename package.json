@@ -10,7 +10,7 @@
     "prod": "npx tsx src/app.js",
     "dev": "npx tsx watch src/app.js",
     "lint": "eslint \"src/**/*.{js,ts,mjs,mts}\"",
-    "format": "prettier --write \"src/**/*.{js,mjs,ts,mts,json,md}\"",
+    "format": "prettier --write \"src/**/*.{js,mjs,ts,mts,json,md}\" --write chain/**/*.sol",
     "typecheck": "concurrently --raw yarn:typecheck:*",
     "typecheck:app": "tsc --noEmit",
     "prepare": "husky install",

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Diamond} from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import {DiamondCutFacet} from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import {StockFacet} from "./facets/StockFacet.sol";
-import {IDiamondCut} from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
-import {LibDiamond} from "../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
-import "forge-std/console.sol";
+import { Diamond } from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
+import { DiamondCutFacet } from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
+import { StockFacet } from "./facets/StockFacet.sol";
+import { IDiamondCut } from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { LibDiamond } from "../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
+
 // Create initialization contract
 
 contract DiamondInit {
@@ -60,11 +60,8 @@ contract DiamondCapTableFactory {
         });
 
         // Deploy Diamond
-        console.log("Deploying diamond...");
-        console.log("Diamond cut facet deployed at", address(diamondCutFacet));
-        console.log("msg.sender", msg.sender);
+
         Diamond diamond = new Diamond(msg.sender, address(diamondCutFacet));
-        console.log("Diamond deployed at", address(diamond));
 
         // Create initialization calldata
         bytes memory initCalldata = abi.encodeWithSelector(DiamondInit.init.selector, id, initial_shares_authorized);

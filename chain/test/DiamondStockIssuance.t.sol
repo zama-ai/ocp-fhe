@@ -19,13 +19,9 @@ contract DiamondStockIssuanceTest is Test {
     StockFacet public sf;
     Diamond public diamond;
 
-    event StockIssued(
-        bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice
-    );
+    event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
     event StakeholderCreated(bytes16 indexed id);
-    event StockClassCreated(
-        bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized
-    );
+    event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
 
     function setUp() public {
         // Set contract owner
@@ -48,11 +44,7 @@ contract DiamondStockIssuanceTest is Test {
         stockSelectors[2] = StockFacet.createStockClass.selector;
         stockSelectors[3] = StockFacet.createStakeholder.selector;
 
-        cut[0] = IDiamondCut.FacetCut({
-            facetAddress: address(sf),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: stockSelectors
-        });
+        cut[0] = IDiamondCut.FacetCut({ facetAddress: address(sf), action: IDiamondCut.FacetCutAction.Add, functionSelectors: stockSelectors });
 
         // Perform the cuts
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
