@@ -1,23 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {AccessControlDefaultAdminRulesUpgradeable} from
-    "@openzeppelin-upgradeable/contracts/access/AccessControlDefaultAdminRulesUpgradeable.sol";
+import { AccessControlDefaultAdminRulesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/AccessControlDefaultAdminRulesUpgradeable.sol";
 
-import {ICapTable} from "./interfaces/ICapTable.sol";
-import {
-    StockTransferParams,
-    Issuer,
-    Stakeholder,
-    StockClass,
-    InitialShares,
-    ActivePositions,
-    SecIdsStockClass,
-    StockLegendTemplate,
-    StockParams,
-    StockParamsQuantity,
-    StockIssuanceParams
-} from "./lib/Structs.sol";
+import { ICapTable } from "./interfaces/ICapTable.sol";
+import { StockTransferParams, Issuer, Stakeholder, StockClass, InitialShares, ActivePositions, SecIdsStockClass, StockLegendTemplate, StockParams, StockParamsQuantity, StockIssuanceParams } from "./lib/Structs.sol";
 import "./lib/transactions/Adjustment.sol";
 import "./lib/Stock.sol";
 
@@ -50,9 +37,7 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
 
     event IssuerCreated(bytes16 indexed id);
     event StakeholderCreated(bytes16 indexed id);
-    event StockClassCreated(
-        bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized
-    );
+    event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
 
     error StakeholderAlreadyExists(bytes16 stakeholder_id);
     error StockClassAlreadyExists(bytes16 stock_class_id);
@@ -99,8 +84,9 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
     /// @inheritdoc ICapTable
     function seedSharesAuthorizedAndIssued(InitialShares calldata params) external override {
         require(
-            params.issuerInitialShares.shares_authorized > 0 && params.issuerInitialShares.shares_issued > 0
-                && params.stockClassesInitialShares.length > 0,
+            params.issuerInitialShares.shares_authorized > 0 &&
+                params.issuerInitialShares.shares_issued > 0 &&
+                params.stockClassesInitialShares.length > 0,
             "Invalid Seeding Shares Params"
         );
 
@@ -127,9 +113,11 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
         uint40[] calldata timestamps
     ) external override onlyAdmin {
         require(
-            stakeholderIds.length == securityIds.length && securityIds.length == stockClassIds.length
-                && stockClassIds.length == quantities.length && quantities.length == sharePrices.length
-                && sharePrices.length == timestamps.length,
+            stakeholderIds.length == securityIds.length &&
+                securityIds.length == stockClassIds.length &&
+                stockClassIds.length == quantities.length &&
+                quantities.length == sharePrices.length &&
+                sharePrices.length == timestamps.length,
             "Input arrays must have the same length"
         );
 
@@ -137,19 +125,19 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
             // perform requires to ensure valid stakeholders and stock classes
             _checkStakeholderIsStored(stakeholderIds[i]);
             _checkInvalidStockClass(stockClassIds[i]);
-            positions.activePositions[stakeholderIds[i]][securityIds[i]] =
-                ActivePosition(stockClassIds[i], quantities[i], sharePrices[i], timestamps[i]);
+            positions.activePositions[stakeholderIds[i]][securityIds[i]] = ActivePosition(
+                stockClassIds[i],
+                quantities[i],
+                sharePrices[i],
+                timestamps[i]
+            );
 
             activeSecs.activeSecurityIdsByStockClass[stakeholderIds[i]][stockClassIds[i]].push(securityIds[i]);
         }
     }
 
     /// @inheritdoc ICapTable
-    function createStakeholder(bytes16 _id, string memory _stakeholder_type, string memory _current_relationship)
-        external
-        override
-        onlyAdmin
-    {
+    function createStakeholder(bytes16 _id, string memory _stakeholder_type, string memory _current_relationship) external override onlyAdmin {
         _checkStakeholderExists(_id);
 
         stakeholders.push(Stakeholder(_id, _stakeholder_type, _current_relationship));
@@ -204,13 +192,8 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
 
         StockClass storage stockClass = stockClasses[stockClassIndex[params.stock_class_id] - 1];
 
-        require(
-            issuer.shares_issued + params.quantity <= issuer.shares_authorized, "Issuer: Insufficient shares authorized"
-        );
-        require(
-            stockClass.shares_issued + params.quantity <= stockClass.shares_authorized,
-            "StockClass: Insufficient shares authorized"
-        );
+        require(issuer.shares_issued + params.quantity <= issuer.shares_authorized, "Issuer: Insufficient shares authorized");
+        require(stockClass.shares_issued + params.quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
 
         nonce++;
 
@@ -218,11 +201,7 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
     }
 
     /// @inheritdoc ICapTable
-    function repurchaseStock(StockParams calldata params, uint256 quantity, uint256 price)
-        external
-        override
-        onlyOperator
-    {
+    function repurchaseStock(StockParams calldata params, uint256 quantity, uint256 price) external override onlyOperator {
         _checkStakeholderIsStored(params.stakeholder_id);
         _checkInvalidStockClass(params.stock_class_id);
 
@@ -268,11 +247,7 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
     }
 
     /// @inheritdoc ICapTable
-    function reissueStock(StockParams calldata params, bytes16[] memory resulting_security_ids)
-        external
-        override
-        onlyOperator
-    {
+    function reissueStock(StockParams calldata params, bytes16[] memory resulting_security_ids) external override onlyOperator {
         _checkStakeholderIsStored(params.stakeholder_id);
         _checkInvalidStockClass(params.stock_class_id);
         _checkResultingSecurityIds(resulting_security_ids, params.stakeholder_id, params.stock_class_id);
@@ -343,18 +318,12 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
             nonce
         );
 
-        StockLib.createTransfer(
-            params, positions, activeSecs, transactions, issuer, stockClasses[stockClassIndex[stockClassId] - 1]
-        );
+        StockLib.createTransfer(params, positions, activeSecs, transactions, issuer, stockClasses[stockClassIndex[stockClassId] - 1]);
     }
 
     /// @inheritdoc ICapTable
     // Stock Acceptance does not impact an active position. It's only recorded.
-    function acceptStock(bytes16 stakeholderId, bytes16 stockClassId, bytes16 securityId, string[] memory comments)
-        external
-        override
-        onlyOperator
-    {
+    function acceptStock(bytes16 stakeholderId, bytes16 stockClassId, bytes16 securityId, string[] memory comments) external override onlyOperator {
         _checkStakeholderIsStored(stakeholderId);
         _checkInvalidStockClass(stockClassId);
 
@@ -374,15 +343,18 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
         string memory boardApprovalDate,
         string memory stockholderApprovalDate
     ) external override onlyAdmin {
-        require(
-            newSharesAuthorized >= issuer.shares_issued,
-            "InsufficientIssuerSharesAuthorized: shares_issued exceeds newSharesAuthorized"
-        );
+        require(newSharesAuthorized >= issuer.shares_issued, "InsufficientIssuerSharesAuthorized: shares_issued exceeds newSharesAuthorized");
 
         nonce++;
 
         Adjustment.adjustIssuerAuthorizedShares(
-            nonce, newSharesAuthorized, comments, boardApprovalDate, stockholderApprovalDate, issuer, transactions
+            nonce,
+            newSharesAuthorized,
+            comments,
+            boardApprovalDate,
+            stockholderApprovalDate,
+            issuer,
+            transactions
         );
     }
 
@@ -405,7 +377,13 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
         nonce++;
 
         Adjustment.adjustStockClassAuthorizedShares(
-            nonce, newAuthorizedShares, comments, boardApprovalDate, stockholderApprovalDate, stockClass, transactions
+            nonce,
+            newAuthorizedShares,
+            comments,
+            boardApprovalDate,
+            stockholderApprovalDate,
+            stockClass,
+            transactions
         );
     }
 
@@ -420,21 +398,10 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
     }
 
     /// @inheritdoc ICapTable
-    function getStockClassById(bytes16 _id)
-        external
-        view
-        override
-        returns (bytes16, string memory, uint256, uint256, uint256)
-    {
+    function getStockClassById(bytes16 _id) external view override returns (bytes16, string memory, uint256, uint256, uint256) {
         if (stockClassIndex[_id] > 0) {
             StockClass memory stockClass = stockClasses[stockClassIndex[_id] - 1];
-            return (
-                stockClass.id,
-                stockClass.class_type,
-                stockClass.price_per_share,
-                stockClass.shares_issued,
-                stockClass.shares_authorized
-            );
+            return (stockClass.id, stockClass.class_type, stockClass.price_per_share, stockClass.shares_issued, stockClass.shares_authorized);
         } else {
             return ("", "", 0, 0, 0);
         }
@@ -457,21 +424,13 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
     }
 
     /// @inheritdoc ICapTable
-    function getActivePosition(bytes16 stakeholderId, bytes16 securityId)
-        external
-        view
-        returns (bytes16, uint256, uint256, uint40)
-    {
+    function getActivePosition(bytes16 stakeholderId, bytes16 securityId) external view returns (bytes16, uint256, uint256, uint40) {
         ActivePosition storage position = positions.activePositions[stakeholderId][securityId];
         return (position.stock_class_id, position.quantity, position.share_price, position.timestamp);
     }
 
     /// @inheritdoc ICapTable
-    function getAveragePosition(bytes16 stakeholderId, bytes16 stockClassId)
-        external
-        view
-        returns (uint256, uint256, uint40)
-    {
+    function getAveragePosition(bytes16 stakeholderId, bytes16 stockClassId) external view returns (uint256, uint256, uint40) {
         bytes16[] memory activeSecurityIDs = activeSecs.activeSecurityIdsByStockClass[stakeholderId][stockClassId];
         uint256 quantityPrice = 0;
         uint256 quantity = 0;
@@ -560,11 +519,7 @@ contract CapTable is ICapTable, AccessControlDefaultAdminRulesUpgradeable {
         }
     }
 
-    function _checkResultingSecurityIds(
-        bytes16[] memory resulting_security_ids,
-        bytes16 stakeholder_id,
-        bytes16 stock_class_id
-    ) internal view {
+    function _checkResultingSecurityIds(bytes16[] memory resulting_security_ids, bytes16 stakeholder_id, bytes16 stock_class_id) internal view {
         if (resulting_security_ids.length == 0) {
             revert NoIssuanceFound();
         }

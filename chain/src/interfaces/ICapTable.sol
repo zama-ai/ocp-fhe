@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { AccessControlDefaultAdminRules } from "openzeppelin/contracts/access/AccessControlDefaultAdminRules.sol";
+import { IAccessControlDefaultAdminRules } from "openzeppelin-contracts/contracts/access/IAccessControlDefaultAdminRules.sol";
+
+import { AccessControlDefaultAdminRulesUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/AccessControlDefaultAdminRulesUpgradeable.sol";
 import { Issuer, Stakeholder, StockClass, ActivePositions, SecIdsStockClass, StockLegendTemplate, InitialShares, ShareNumbersIssued, StockParams, StockParamsQuantity, StockIssuanceParams } from "../lib/Structs.sol";
 
 interface ICapTable {
