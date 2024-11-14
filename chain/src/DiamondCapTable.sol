@@ -6,7 +6,7 @@ import {IDiamondCut} from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamon
 import {Diamond} from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
 
 contract DiamondCapTable is Diamond {
-    constructor(address _contractOwner) Diamond(_contractOwner) {
+    constructor(address _contractOwner, address _diamondCutFacet) Diamond(_contractOwner, _diamondCutFacet) {
         // Initialize any additional CapTable specific state here if needed
     }
 }
