@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Diamond} from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import {DiamondCutFacet} from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import {StockFacet} from "../src/facets/StockFacet.sol";
-import {IDiamondCut} from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { Diamond } from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
+import { DiamondCutFacet } from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
+import { StockFacet } from "../src/facets/StockFacet.sol";
+import { IDiamondCut } from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
 
 contract DiamondDeployer {
     function deployDiamond() public returns (address) {
@@ -25,11 +25,8 @@ contract DiamondDeployer {
         });
 
         // StockFacet with both issueStock and initializeIssuer
-        bytes4[] memory stockSelectors = new bytes4[](4);
+        bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
-        stockSelectors[1] = StockFacet.initializeIssuer.selector;
-        stockSelectors[2] = StockFacet.createStockClass.selector;
-        stockSelectors[3] = StockFacet.createStakeholder.selector;
         cuts[1] = IDiamondCut.FacetCut({
             facetAddress: address(stockFacet),
             action: IDiamondCut.FacetCutAction.Add,

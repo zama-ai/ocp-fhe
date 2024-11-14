@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Diamond} from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import {DiamondCutFacet} from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import {StockFacet} from "./facets/StockFacet.sol";
-import {IDiamondCut} from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
-import {LibDiamond} from "../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
-import "forge-std/console.sol";
+import { Diamond } from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
+import { DiamondCutFacet } from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
+import { StockFacet } from "./facets/StockFacet.sol";
+import { IDiamondCut } from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { LibDiamond } from "../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
+import { DiamondCapTable } from "./DiamondCapTable.sol";
+
 // Create initialization contract
 
 contract DiamondInit {
@@ -18,7 +19,7 @@ contract DiamondInit {
         ds.contractOwner = msg.sender;
 
         // Initialize the issuer through StockFacet
-        StockFacet(address(this)).initializeIssuer(id, initial_shares_authorized);
+        DiamondCapTable(payable(address(this))).initializeIssuer(id, initial_shares_authorized);
     }
 }
 
@@ -48,11 +49,8 @@ contract DiamondCapTableFactory {
         });
 
         // StockFacet
-        bytes4[] memory stockSelectors = new bytes4[](4);
+        bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
-        stockSelectors[1] = StockFacet.initializeIssuer.selector;
-        stockSelectors[2] = StockFacet.createStockClass.selector;
-        stockSelectors[3] = StockFacet.createStakeholder.selector;
         cuts[1] = IDiamondCut.FacetCut({
             facetAddress: address(stockFacet),
             action: IDiamondCut.FacetCutAction.Add,
@@ -60,11 +58,7 @@ contract DiamondCapTableFactory {
         });
 
         // Deploy Diamond
-        console.log("Deploying diamond...");
-        console.log("Diamond cut facet deployed at", address(diamondCutFacet));
-        console.log("msg.sender", msg.sender);
         Diamond diamond = new Diamond(msg.sender, address(diamondCutFacet));
-        console.log("Diamond deployed at", address(diamond));
 
         // Create initialization calldata
         bytes memory initCalldata = abi.encodeWithSelector(DiamondInit.init.selector, id, initial_shares_authorized);

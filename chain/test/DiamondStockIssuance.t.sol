@@ -5,10 +5,11 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../src/DiamondCapTableFactory.sol";
 import "../src/facets/StockFacet.sol";
-import "../src/DiamondCapTable.sol";
-import "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { DiamondCapTable } from "../src/DiamondCapTable.sol";
+import "diamond-3-hardhat/Diamond.sol";
+import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
+import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
+import "../src/lib/Structs.sol";
 
 contract DiamondStockIssuanceTest is Test {
     uint256 public issuerInitialSharesAuthorized = 1000000;
@@ -19,13 +20,9 @@ contract DiamondStockIssuanceTest is Test {
     StockFacet public sf;
     Diamond public diamond;
 
-    event StockIssued(
-        bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice
-    );
+    event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
     event StakeholderCreated(bytes16 indexed id);
-    event StockClassCreated(
-        bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized
-    );
+    event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
 
     function setUp() public {
         // Set contract owner
@@ -36,29 +33,22 @@ contract DiamondStockIssuanceTest is Test {
         sf = new StockFacet();
 
         // Deploy Diamond with cut facet
-        diamond = new Diamond(contractOwner, address(dcf));
+        diamond = new DiamondCapTable(contractOwner, address(dcf));
 
         // Create FacetCut array - only for StockFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
 
         // StockFacet
-        bytes4[] memory stockSelectors = new bytes4[](4);
+        bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
-        stockSelectors[1] = StockFacet.initializeIssuer.selector;
-        stockSelectors[2] = StockFacet.createStockClass.selector;
-        stockSelectors[3] = StockFacet.createStakeholder.selector;
 
-        cut[0] = IDiamondCut.FacetCut({
-            facetAddress: address(sf),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: stockSelectors
-        });
+        cut[0] = IDiamondCut.FacetCut({ facetAddress: address(sf), action: IDiamondCut.FacetCutAction.Add, functionSelectors: stockSelectors });
 
         // Perform the cuts
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
 
         // Initialize the issuer
-        StockFacet(address(diamond)).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
+        DiamondCapTable(payable(address(diamond))).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
     }
 
     function createStockClassAndStakeholder(uint256 sharesAuthorized) public returns (bytes16, bytes16) {
@@ -68,11 +58,11 @@ contract DiamondStockIssuanceTest is Test {
         // Create stakeholder and stock class without expecting events
         vm.expectEmit(true, false, false, false, address(diamond));
         emit StakeholderCreated(stakeholderId);
-        StockFacet(address(diamond)).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
+        DiamondCapTable(payable(address(diamond))).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
 
         vm.expectEmit(true, true, false, false, address(diamond));
         emit StockClassCreated(stockClassId, "COMMON", 100, sharesAuthorized);
-        StockFacet(address(diamond)).createStockClass(stockClassId, "COMMON", 100, sharesAuthorized);
+        DiamondCapTable(payable(address(diamond))).createStockClass(stockClassId, "COMMON", 100, sharesAuthorized);
 
         return (stockClassId, stakeholderId);
     }
@@ -82,12 +72,12 @@ contract DiamondStockIssuanceTest is Test {
 
         bytes16[] memory stockLegendIds = new bytes16[](0);
         string[] memory comments = new string[](0);
-        StockFacet.SecurityLawExemption[] memory exemptions = new StockFacet.SecurityLawExemption[](0);
+        SecurityLawExemption[] memory exemptions = new SecurityLawExemption[](0);
 
-        StockFacet.StockIssuanceParams memory params = StockFacet.StockIssuanceParams({
+        StockIssuanceParams memory params = StockIssuanceParams({
             stock_class_id: stockClassId,
             stock_plan_id: bytes16(0),
-            share_numbers_issued: StockFacet.ShareNumbersIssued(0, 0),
+            share_numbers_issued: ShareNumbersIssued(0, 0),
             share_price: 10000000000,
             quantity: 1000,
             vesting_terms_id: bytes16(0),
