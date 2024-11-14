@@ -48,4 +48,4 @@ tsconfig.tsbuildinfo
 *.pem
 .env.*
 chain/out
-chain/lib
+chain/lib/*

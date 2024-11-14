@@ -1,10 +1,15 @@
 {
     "solidity.packageDefaultDependenciesDirectory": "lib",
     "solidity.packageDefaultDependenciesContractsDirectory": "src",
-    "solidity.formatter": "forge",
+    "solidity.formatter": "prettier",
     "solidity.compileUsingRemoteVersion": "v0.8.20",
     "solidity.remappings": [
-        "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-        "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
+        "diamond-3-hardhat/=lib/diamond-3-hardhat/contracts/",
+        "ds-test/=lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test/src/",
+        "erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/",
+        "forge-std/=lib/forge-std/src/",
+        "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+        "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+        "openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/"
     ]
 }
