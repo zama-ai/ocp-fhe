@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
 import { IDiamondCut } from "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import { Diamond } from "diamond-3-hardhat/Diamond.sol";
-import { StorageLib } from "./lib/Storage.sol";
-import { Issuer, StockClass, Stakeholder, ActivePosition, Storage } from "./lib/Structs.sol";
+import { StorageLibV2 } from "./lib/StorageV2.sol";
+import { StorageV2, Issuer, Stakeholder, StockClass } from "./lib/Structs.sol";
 
 contract DiamondCapTable is Diamond {
     constructor(address _contractOwner, address _diamondCutFacet) Diamond(_contractOwner, _diamondCutFacet) {
@@ -21,7 +21,7 @@ contract DiamondCapTable is Diamond {
 
     function initializeIssuer(bytes16 id, uint256 initial_shares_authorized) external {
         LibDiamond.enforceIsContractOwner();
-        Storage storage ds = StorageLib.get();
+        StorageV2 storage ds = StorageLibV2.get();
 
         // Ensure issuer hasn't been initialized
         require(ds.issuer.shares_authorized == 0, "Issuer already initialized");
@@ -30,7 +30,7 @@ contract DiamondCapTable is Diamond {
     }
 
     function createStakeholder(bytes16 _id, string memory _stakeholder_type, string memory _current_relationship) external {
-        Storage storage ds = StorageLib.get();
+        StorageV2 storage ds = StorageLibV2.get();
 
         if (ds.stakeholderIndex[_id] > 0) {
             revert StakeholderAlreadyExists(_id);
@@ -42,7 +42,7 @@ contract DiamondCapTable is Diamond {
     }
 
     function createStockClass(bytes16 _id, string memory _class_type, uint256 _price_per_share, uint256 _initial_share_authorized) external {
-        Storage storage ds = StorageLib.get();
+        StorageV2 storage ds = StorageLibV2.get();
 
         if (ds.stockClassIndex[_id] > 0) {
             revert StockClassAlreadyExists(_id);
@@ -60,5 +60,13 @@ contract DiamondCapTable is Diamond {
 
         ds.stockClassIndex[_id] = ds.stockClasses.length;
         emit StockClassCreated(_id, _class_type, _price_per_share, _initial_share_authorized);
+    }
+
+    function setActivePositionNFT(address _nftAddress) external {
+        LibDiamond.enforceIsContractOwner();
+        StorageV2 storage ds = StorageLibV2.get();
+
+        require(_nftAddress != address(0), "Invalid NFT address");
+        ds.activePositionNFT = _nftAddress;
     }
 }

@@ -15,6 +15,17 @@ struct Storage {
     mapping(bytes16 => uint256) stockClassIndex;
 }
 
+struct StorageV2 {
+    bytes[] transactions;
+    Issuer issuer;
+    Stakeholder[] stakeholders;
+    StockClass[] stockClasses;
+    mapping(bytes16 => uint256) stakeholderIndex;
+    mapping(bytes16 => uint256) stockClassIndex;
+    // Reference to the ActivePositionNFT contract for managing positions
+    address activePositionNFT;
+}
+
 struct Issuer {
     bytes16 id;
     uint256 shares_issued;
