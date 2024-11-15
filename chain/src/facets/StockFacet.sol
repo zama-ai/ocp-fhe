@@ -21,7 +21,6 @@ contract StockFacet {
 
         uint256 stockClassIdx = ds.stockClassIndex[params.stock_class_id] - 1;
         StockClass storage stockClass = ds.stockClasses[stockClassIdx];
-
         require(ds.issuer.shares_issued + params.quantity <= ds.issuer.shares_authorized, "Issuer: Insufficient shares authorized");
         require(stockClass.shares_issued + params.quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
 

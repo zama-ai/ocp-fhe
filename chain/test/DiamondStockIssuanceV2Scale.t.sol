@@ -11,8 +11,8 @@ import "../src/lib/Structs.sol";
 import { Diamond } from "diamond-3-hardhat/Diamond.sol";
 import { DiamondCapTable } from "../src/DiamondCaptableV2.sol";
 
-contract DiamondStockIssuanceTest is Test {
-    uint256 public issuerInitialSharesAuthorized = 1000000;
+contract DiamondStockIssuanceScaleTest is Test {
+    uint256 public issuerInitialSharesAuthorized = 10000000; // Increased for multiple issuances
     bytes16 public issuerId = 0xd3373e0a4dd9430f8a563281f2800e1e;
     address public contractOwner;
 
@@ -26,57 +26,37 @@ contract DiamondStockIssuanceTest is Test {
     event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
 
     function setUp() public {
-        // Set contract owner
         contractOwner = address(this);
-
-        // Deploy Diamond facets
         dcf = new DiamondCutFacet();
         sf = new StockFacetV2();
-
-        // Deploy DiamondCapTable with DiamondCutFacet
         diamond = new DiamondCapTable(contractOwner, address(dcf));
-
-        // Deploy ActivePositionNFT for managing positions
         activePositionNFT = new ActivePositionNFT("Issuer Name", "ISSUE");
 
-        // Link ActivePositionNFT in DiamondCapTable
         DiamondCapTable(payable(address(diamond))).setActivePositionNFT(address(activePositionNFT));
 
-        // Create FacetCut array - only for StockFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
-
-        // Set StockFacet function selector for issueStock
         bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacetV2.issueStock.selector;
-
         cut[0] = IDiamondCut.FacetCut({ facetAddress: address(sf), action: IDiamondCut.FacetCutAction.Add, functionSelectors: stockSelectors });
 
-        // Perform the cuts
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
-
-        // Initialize issuer
         DiamondCapTable(payable(address(diamond))).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
     }
 
-    function createStockClassAndStakeholder(uint256 sharesAuthorized) public returns (bytes16, bytes16) {
-        bytes16 stakeholderId = 0xd3373e0a4dd940000000000000000005;
+    function createStockClass() public returns (bytes16) {
         bytes16 stockClassId = 0xd3373e0a4dd940000000000000000000;
-
-        // Create stakeholder and stock class
-        vm.expectEmit(true, false, false, false, address(diamond));
-        emit StakeholderCreated(stakeholderId);
-        DiamondCapTable(payable(address(diamond))).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
-
-        vm.expectEmit(true, true, false, false, address(diamond));
-        emit StockClassCreated(stockClassId, "COMMON", 100, sharesAuthorized);
-        DiamondCapTable(payable(address(diamond))).createStockClass(stockClassId, "COMMON", 100, sharesAuthorized);
-
-        return (stockClassId, stakeholderId);
+        DiamondCapTable(payable(address(diamond))).createStockClass(stockClassId, "COMMON", 100, issuerInitialSharesAuthorized);
+        return stockClassId;
     }
 
-    function testIssueStock() public {
-        (bytes16 stockClassId, bytes16 stakeholderId) = createStockClassAndStakeholder(100000);
+    function createStakeholder(uint256 index) public returns (bytes16) {
+        // Create a unique stakeholder ID based on the index
+        bytes16 stakeholderId = bytes16(uint128(index + 1));
+        DiamondCapTable(payable(address(diamond))).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
+        return stakeholderId;
+    }
 
+    function issueStockToStakeholder(bytes16 stockClassId, bytes16 stakeholderId, uint256 quantity) public {
         bytes16[] memory stockLegendIds = new bytes16[](0);
         string[] memory comments = new string[](0);
         SecurityLawExemption[] memory exemptions = new SecurityLawExemption[](0);
@@ -86,13 +66,13 @@ contract DiamondStockIssuanceTest is Test {
             stock_plan_id: bytes16(0),
             share_numbers_issued: ShareNumbersIssued(0, 0),
             share_price: 10000000000,
-            quantity: 1000,
+            quantity: quantity,
             vesting_terms_id: bytes16(0),
             cost_basis: 5000000000,
             stock_legend_ids: stockLegendIds,
             issuance_type: "RSA",
             comments: comments,
-            custom_id: "R2-D2",
+            custom_id: "SCALE-TEST",
             stakeholder_id: stakeholderId,
             board_approval_date: "2023-01-01",
             stockholder_approval_date: "2023-01-02",
@@ -100,22 +80,31 @@ contract DiamondStockIssuanceTest is Test {
             security_law_exemptions: exemptions
         });
 
-        // Expect the StockIssued event with exact parameters
-        vm.expectEmit(true, true, false, true, address(diamond));
-        emit StockIssued(stakeholderId, stockClassId, 1000, 10000000000);
-
         StockFacetV2(address(diamond)).issueStock(params);
+    }
 
-        // Check that an NFT was minted for the stakeholder
-        uint256 tokenId = activePositionNFT.getTokenByStakeholder(stakeholderId);
-        assert(tokenId != 0);
+    function testGasScaling() public {
+        bytes16 stockClassId = createStockClass();
+        uint256 numStakeholders = 1000;
+        uint256[] memory gasCosts = new uint256[](numStakeholders);
 
-        // Get position details directly from the public positions mapping
-        (bytes16 posStockClassId, uint256 posQuantity, uint256 posSharePrice, ) = activePositionNFT.positions(tokenId);
+        // Issue stock to multiple stakeholders and track gas
+        for (uint256 i = 0; i < numStakeholders; i++) {
+            bytes16 stakeholderId = createStakeholder(i);
 
-        // Verify the position details
-        assertEq(posQuantity, 1000);
-        assertEq(posSharePrice, 10000000000);
-        assertEq(posStockClassId, stockClassId);
+            uint256 gasBefore = gasleft();
+            issueStockToStakeholder(stockClassId, stakeholderId, 1000);
+            uint256 gasUsed = gasBefore - gasleft();
+
+            gasCosts[i] = gasUsed;
+            console.log("Issuance %d gas used: %d", i + 1, gasUsed);
+        }
+
+        // Optional: Calculate average gas cost
+        uint256 totalGas = 0;
+        for (uint256 i = 0; i < gasCosts.length; i++) {
+            totalGas += gasCosts[i];
+        }
+        console.log("Average gas cost: %d", totalGas / numStakeholders);
     }
 }

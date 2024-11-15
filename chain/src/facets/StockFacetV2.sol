@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { StorageLibV2 } from "../lib/StorageV2.sol";
 import { StorageV2, StockClass } from "../lib/Structs.sol";
 import { IActivePositionNFT } from "../interfaces/IActivePositionNFT.sol";
+import { StockIssuanceParams } from "../lib/Structs.sol";
 
 contract StockFacetV2 {
     event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
@@ -12,12 +13,12 @@ contract StockFacetV2 {
     error StockClassDoesNotExist(bytes16 stockClassId);
     error ActivePositionNFTNotSet();
 
-    function issueStock(bytes16 stakeholderId, bytes16 stockClassId, uint256 quantity, uint256 sharePrice) external {
+    function issueStock(StockIssuanceParams calldata params) external {
         StorageV2 storage ds = StorageLibV2.get();
 
         // Check if stock class exists
-        if (ds.stockClassIndex[stockClassId] == 0) {
-            revert StockClassDoesNotExist(stockClassId);
+        if (ds.stockClassIndex[params.stock_class_id] == 0) {
+            revert StockClassDoesNotExist(params.stock_class_id);
         }
 
         // Ensure ActivePositionNFT contract is set
@@ -27,25 +28,25 @@ contract StockFacetV2 {
         }
 
         // Interact with ActivePositionNFT to mint/update position
-        uint256 tokenId = IActivePositionNFT(nftAddress).getTokenByStakeholder(stakeholderId);
+        uint256 tokenId = IActivePositionNFT(nftAddress).getTokenByStakeholder(params.stakeholder_id);
 
         if (tokenId == 0) {
             // Mint a new NFT if stakeholder doesn't already have one
-            tokenId = generateTokenId(stakeholderId, stockClassId);
+            tokenId = generateTokenId(params.stakeholder_id, params.stock_class_id);
             IActivePositionNFT(nftAddress).mintPosition(
                 msg.sender, // Recipient of the NFT
                 tokenId,
-                stakeholderId,
-                stockClassId,
-                quantity,
-                sharePrice
+                params.stakeholder_id,
+                params.stock_class_id,
+                params.quantity,
+                params.share_price
             );
         } else {
             // Update the existing NFT with new position details
-            IActivePositionNFT(nftAddress).updatePosition(tokenId, quantity, sharePrice);
+            IActivePositionNFT(nftAddress).updatePosition(tokenId, params.quantity, params.share_price);
         }
 
-        emit StockIssued(stakeholderId, stockClassId, quantity, sharePrice);
+        emit StockIssued(params.stakeholder_id, params.stock_class_id, params.quantity, params.share_price);
     }
 
     function generateTokenId(bytes16 stakeholderId, bytes16 stockClassId) internal pure returns (uint256) {
