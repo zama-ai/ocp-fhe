@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std/console.sol";
 import { StorageLib, Storage } from "../Storage.sol";
 import { Issuer, StockClass, Stakeholder, ActivePosition, ShareNumbersIssued, SecurityLawExemption, StockIssuanceParams, StockIssuance } from "../../Structs.sol";
-import { TxHelper, TxType } from "../../TxHelper.sol";
+import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 
 contract StockFacet {
     // Errors
@@ -46,7 +46,7 @@ contract StockFacet {
 
         // Store transaction and emit event
         bytes memory txData = abi.encode(issuance);
-        TxHelper.createTx(TxType.STOCK_ISSUANCE, txData, ds.transactions);
+        TxHelper.createTx(TxType.STOCK_ISSUANCE, txData);
     }
 
     // Helper functions

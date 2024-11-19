@@ -53,7 +53,7 @@ contract DiamondStockIssuanceTest is DiamondTestBase {
         StockIssuance memory issuance = StockIssuance({ id: id, security_id: securityId, object_type: "TX_STOCK_ISSUANCE", params: params });
 
         vm.expectEmit(true, true, false, true, address(diamond));
-        emit TxHelper.TxCreated(s.transactions.length + 1, TxType.STOCK_ISSUANCE, abi.encode(issuance));
+        emit TxHelper.TxCreated(TxType.STOCK_ISSUANCE, abi.encode(issuance));
 
         StockFacet(address(diamond)).issueStock(params);
     }

@@ -7,7 +7,6 @@ struct Storage {
     mapping(bytes16 => mapping(bytes16 => bytes16[])) activeSecurityIdsByStockClass;
     mapping(bytes16 => mapping(bytes16 => ConvertiblePosition)) activeConvertiblePositions;
     mapping(bytes16 => bytes16[]) activeConvertibleSecurityIds;
-    bytes[] transactions;
     Issuer issuer;
     Stakeholder[] stakeholders;
     StockClass[] stockClasses;

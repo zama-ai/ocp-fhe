@@ -31,7 +31,7 @@ contract DiamondConvertibleIssuanceTest is DiamondTestBase {
 
         // Expect the TxCreated event with exact parameters
         vm.expectEmit(true, true, false, true, address(diamond));
-        emit TxHelper.TxCreated(1, TxType.CONVERTIBLE_ISSUANCE, abi.encode(issuance));
+        emit TxHelper.TxCreated(TxType.CONVERTIBLE_ISSUANCE, abi.encode(issuance));
 
         ConvertiblesFacet(address(diamond)).issueConvertible(params);
 

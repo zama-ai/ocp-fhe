@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std/console.sol";
 import { StorageLib, Storage } from "../Storage.sol";
 import { ConvertiblePosition, ConvertibleParams, ConvertibleIssuance } from "../../Structs.sol";
-import { TxHelper, TxType } from "../../TxHelper.sol";
+import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 
 contract ConvertiblesFacet {
     // Errors
@@ -47,7 +47,7 @@ contract ConvertiblesFacet {
 
         // Store transaction
         bytes memory txData = abi.encode(issuance);
-        TxHelper.createTx(TxType.CONVERTIBLE_ISSUANCE, txData, ds.transactions);
+        TxHelper.createTx(TxType.CONVERTIBLE_ISSUANCE, txData);
     }
 
     function _validateParams(ConvertibleParams memory params) internal pure {
