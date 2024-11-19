@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../src/facets/StockFacetV2.sol";
-import "../src/ActivePositionNFT.sol";
+import "../../src/facets/StockFacetV2.sol";
+import "../../src/lib/diamond/ActivePositionNFT.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
-import "../src/lib/Structs.sol";
+import "../../src/lib/Structs.sol";
 import { Diamond } from "diamond-3-hardhat/Diamond.sol";
-import { DiamondCapTable } from "../src/DiamondCaptableV2.sol";
+import { DiamondCapTable } from "../../src/lib/diamond/DiamondCapTableV2.sol";
 
 contract DiamondStockIssuanceScaleTest is Test {
     uint256 public issuerInitialSharesAuthorized = 10000000; // Increased for multiple issuances

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Diamond } from "../lib/diamond-3-hardhat/contracts/Diamond.sol";
-import { DiamondCutFacet } from "../lib/diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
-import { StockFacetV2 } from "./facets/StockFacetV2.sol";
-import { IDiamondCut } from "../lib/diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
-import { LibDiamond } from "../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
-import { DiamondCapTable } from "./DiamondCapTableV2.sol";
+import { Diamond } from "diamond-3-hardhat/Diamond.sol";
+import { DiamondCutFacet } from "diamond-3-hardhat/facets/DiamondCutFacet.sol";
+import { StockFacet } from "../../facets/StockFacet.sol";
+import { IDiamondCut } from "diamond-3-hardhat/interfaces/IDiamondCut.sol";
+import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
+import { DiamondCapTable } from "./DiamondCapTable.sol";
 
 // Create initialization contract
 
@@ -33,7 +33,7 @@ contract DiamondCapTableFactory {
 
         // Deploy facets
         DiamondCutFacet diamondCutFacet = new DiamondCutFacet();
-        StockFacetV2 stockFacet = new StockFacetV2();
+        StockFacet stockFacet = new StockFacet();
         DiamondInit diamondInit = new DiamondInit();
 
         // Create FacetCut array
@@ -50,7 +50,7 @@ contract DiamondCapTableFactory {
 
         // StockFacet
         bytes4[] memory stockSelectors = new bytes4[](1);
-        stockSelectors[0] = StockFacetV2.issueStock.selector;
+        stockSelectors[0] = StockFacet.issueStock.selector;
         cuts[1] = IDiamondCut.FacetCut({
             facetAddress: address(stockFacet),
             action: IDiamondCut.FacetCutAction.Add,
