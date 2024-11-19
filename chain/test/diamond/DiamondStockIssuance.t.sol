@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/lib/diamond/facets/StockFacet.sol";
-import "../../src/lib/diamond/DiamondCapTable.sol";
+import "@diamond/facets/StockFacet.sol";
+import "@diamond/DiamondCapTable.sol";
 import "diamond-3-hardhat/Diamond.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import "../../src/lib/Structs.sol";
+import "@diamond/Storage.sol";
 
 contract DiamondStockIssuanceTest is Test {
     uint256 public issuerInitialSharesAuthorized = 1000000;
@@ -92,9 +93,17 @@ contract DiamondStockIssuanceTest is Test {
             security_law_exemptions: exemptions
         });
 
+        Storage storage s = StorageLib.get();
+        // increae transtion length count and nonce to match the test default is 0
+        bytes16 id = TxHelper.generateDeterministicUniqueID(stakeholderId, s.nonce + 1);
+        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stockClassId, s.nonce + 1);
+
+        StockIssuance memory issuance = StockIssuance({ id: id, security_id: securityId, object_type: "TX_STOCK_ISSUANCE", params: params });
+
         // Expect the StockIssued event with exact parameters
         vm.expectEmit(true, true, false, true, address(diamond));
-        emit StockIssued(stakeholderId, stockClassId, 1000, 10000000000);
+        // transations length is 1 by default
+        emit TxHelper.TxCreated(s.transactions.length + 1, TxType.STOCK_ISSUANCE, abi.encode(issuance));
 
         StockFacet(address(diamond)).issueStock(params);
     }

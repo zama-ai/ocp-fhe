@@ -11,6 +11,7 @@ struct Storage {
     StockClass[] stockClasses;
     mapping(bytes16 => uint256) stakeholderIndex;
     mapping(bytes16 => uint256) stockClassIndex;
+    uint256 nonce;
 }
 
 library StorageLib {

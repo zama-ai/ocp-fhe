@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { console } from "forge-std/console.sol";
 import { StorageLib, Storage } from "../Storage.sol";
 import { Issuer, StockClass, Stakeholder, ActivePosition, ShareNumbersIssued, SecurityLawExemption, StockIssuanceParams, StockIssuance } from "../../Structs.sol";
 import { TxHelper, TxType } from "../../TxHelper.sol";
 
 contract StockFacet {
-    // Events
-    event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
-
     // Errors
     error NoStakeholder(bytes16 stakeholder_id);
     error InvalidStockClass(bytes16 stock_class_id);
 
     function issueStock(StockIssuanceParams calldata params) external {
         Storage storage ds = StorageLib.get();
+        ds.nonce++;
 
         _checkStakeholderIsStored(params.stakeholder_id);
         _checkInvalidStockClass(params.stock_class_id);
@@ -25,7 +24,8 @@ contract StockFacet {
         require(stockClass.shares_issued + params.quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
 
         // Generate security ID
-        bytes16 securityId = bytes16(keccak256(abi.encodePacked(params.stakeholder_id, block.timestamp, block.prevrandao)));
+        bytes16 id = TxHelper.generateDeterministicUniqueID(params.stakeholder_id, ds.nonce); // TODO: Ask Victor why we're passing stock_class_id here?
+        bytes16 securityId = TxHelper.generateDeterministicUniqueID(params.stock_class_id, ds.nonce);
 
         // Update storage
         ds.activePositions[params.stakeholder_id][securityId] = ActivePosition({
@@ -42,18 +42,11 @@ contract StockFacet {
         stockClass.shares_issued += params.quantity;
 
         // Create and store transaction
-        StockIssuance memory issuance = StockIssuance({
-            id: bytes16(keccak256(abi.encodePacked("ISSUANCE", block.timestamp))),
-            object_type: "TX_STOCK_ISSUANCE",
-            security_id: securityId,
-            params: params
-        });
+        StockIssuance memory issuance = StockIssuance({ id: id, object_type: "TX_STOCK_ISSUANCE", security_id: securityId, params: params });
 
         // Store transaction and emit event
         bytes memory txData = abi.encode(issuance);
         TxHelper.createTx(TxType.STOCK_ISSUANCE, txData, ds.transactions);
-
-        emit StockIssued(params.stakeholder_id, params.stock_class_id, params.quantity, params.share_price);
     }
 
     // Helper functions
