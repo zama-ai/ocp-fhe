@@ -7,7 +7,7 @@ import { Diamond } from "diamond-3-hardhat/Diamond.sol";
 import { StorageLibV2 } from "../StorageV2.sol";
 import { StorageV2, Issuer, Stakeholder, StockClass } from "../Structs.sol";
 
-contract DiamondCapTable is Diamond {
+contract DiamondCapTableNFT is Diamond {
     constructor(address _contractOwner, address _diamondCutFacet) Diamond(_contractOwner, _diamondCutFacet) {
         // Initialize any additional CapTable specific state here if needed
     }

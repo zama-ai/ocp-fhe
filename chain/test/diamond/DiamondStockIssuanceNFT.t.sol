@@ -8,17 +8,16 @@ import "../../src/lib/diamond/ActivePositionNFT.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import "../../src/lib/Structs.sol";
-import { Diamond } from "diamond-3-hardhat/Diamond.sol";
-import { DiamondCapTable } from "../../src/lib/diamond/DiamondCapTableV2.sol";
+import { DiamondCapTableNFT } from "../../src/lib/diamond/DiamondCapTableNFT.sol";
 
-contract DiamondStockIssuanceTest is Test {
+contract DiamondStockIssuanceNFTTest is Test {
     uint256 public issuerInitialSharesAuthorized = 1000000;
     bytes16 public issuerId = 0xd3373e0a4dd9430f8a563281f2800e1e;
     address public contractOwner;
 
-    DiamondCutFacet public dcf;
-    StockFacetV2 public sf;
-    Diamond public diamond;
+    DiamondCutFacet public diamondCutFacet;
+    StockFacetV2 public stockFacet;
+    DiamondCapTableNFT public diamond;
     ActivePositionNFT public activePositionNFT;
 
     event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
@@ -30,17 +29,17 @@ contract DiamondStockIssuanceTest is Test {
         contractOwner = address(this);
 
         // Deploy Diamond facets
-        dcf = new DiamondCutFacet();
-        sf = new StockFacetV2();
+        diamondCutFacet = new DiamondCutFacet();
+        stockFacet = new StockFacetV2();
 
         // Deploy DiamondCapTable with DiamondCutFacet
-        diamond = new DiamondCapTable(contractOwner, address(dcf));
+        diamond = new DiamondCapTableNFT(contractOwner, address(diamondCutFacet));
 
         // Deploy ActivePositionNFT for managing positions
         activePositionNFT = new ActivePositionNFT("Issuer Name", "ISSUE");
 
         // Link ActivePositionNFT in DiamondCapTable
-        DiamondCapTable(payable(address(diamond))).setActivePositionNFT(address(activePositionNFT));
+        DiamondCapTableNFT(payable(address(diamond))).setActivePositionNFT(address(activePositionNFT));
 
         // Create FacetCut array - only for StockFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
@@ -49,13 +48,17 @@ contract DiamondStockIssuanceTest is Test {
         bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacetV2.issueStock.selector;
 
-        cut[0] = IDiamondCut.FacetCut({ facetAddress: address(sf), action: IDiamondCut.FacetCutAction.Add, functionSelectors: stockSelectors });
+        cut[0] = IDiamondCut.FacetCut({
+            facetAddress: address(stockFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: stockSelectors
+        });
 
         // Perform the cuts
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
 
         // Initialize issuer
-        DiamondCapTable(payable(address(diamond))).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
+        DiamondCapTableNFT(payable(address(diamond))).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
     }
 
     function createStockClassAndStakeholder(uint256 sharesAuthorized) public returns (bytes16, bytes16) {
@@ -65,11 +68,11 @@ contract DiamondStockIssuanceTest is Test {
         // Create stakeholder and stock class
         vm.expectEmit(true, false, false, false, address(diamond));
         emit StakeholderCreated(stakeholderId);
-        DiamondCapTable(payable(address(diamond))).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
+        DiamondCapTableNFT(payable(address(diamond))).createStakeholder(stakeholderId, "INDIVIDUAL", "EMPLOYEE");
 
         vm.expectEmit(true, true, false, false, address(diamond));
         emit StockClassCreated(stockClassId, "COMMON", 100, sharesAuthorized);
-        DiamondCapTable(payable(address(diamond))).createStockClass(stockClassId, "COMMON", 100, sharesAuthorized);
+        DiamondCapTableNFT(payable(address(diamond))).createStockClass(stockClassId, "COMMON", 100, sharesAuthorized);
 
         return (stockClassId, stakeholderId);
     }

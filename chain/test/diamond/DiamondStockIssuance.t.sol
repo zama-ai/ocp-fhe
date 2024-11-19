@@ -3,9 +3,8 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/lib/diamond/DiamondCapTableFactory.sol";
 import "../../src/facets/StockFacet.sol";
-import { DiamondCapTable } from "../../src/lib/diamond/DiamondCapTable.sol";
+import "../../src/lib/diamond/DiamondCapTable.sol";
 import "diamond-3-hardhat/Diamond.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";

@@ -3,22 +3,20 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/lib/diamond/DiamondCapTableFactory.sol";
+import "../../src/lib/diamond/DiamondCapTable.sol";
 import "../../src/facets/StockFacet.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import "../../src/lib/Structs.sol";
-import { Diamond } from "diamond-3-hardhat/Diamond.sol";
-import { DiamondCapTable } from "../../src/lib/diamond/DiamondCapTable.sol";
 
 contract DiamondStockIssuanceScaleTest is Test {
     uint256 public issuerInitialSharesAuthorized = 10000000;
     bytes16 public issuerId = 0xd3373e0a4dd9430f8a563281f2800e1e;
     address public contractOwner;
 
-    DiamondCutFacet public dcf;
-    StockFacet public sf;
-    Diamond public diamond;
+    DiamondCutFacet public diamondCutFacet;
+    StockFacet public stockFacet;
+    DiamondCapTable public diamond;
 
     event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
     event StakeholderCreated(bytes16 indexed id);
@@ -26,14 +24,18 @@ contract DiamondStockIssuanceScaleTest is Test {
 
     function setUp() public {
         contractOwner = address(this);
-        dcf = new DiamondCutFacet();
-        sf = new StockFacet();
-        diamond = new DiamondCapTable(contractOwner, address(dcf));
+        diamondCutFacet = new DiamondCutFacet();
+        stockFacet = new StockFacet();
+        diamond = new DiamondCapTable(contractOwner, address(diamondCutFacet));
 
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
         bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
-        cut[0] = IDiamondCut.FacetCut({ facetAddress: address(sf), action: IDiamondCut.FacetCutAction.Add, functionSelectors: stockSelectors });
+        cut[0] = IDiamondCut.FacetCut({
+            facetAddress: address(stockFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: stockSelectors
+        });
 
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
         DiamondCapTable(payable(address(diamond))).initializeIssuer(issuerId, issuerInitialSharesAuthorized);
