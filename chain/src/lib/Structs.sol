@@ -201,3 +201,26 @@ struct ActivePositions {
 struct SecIdsStockClass {
     mapping(bytes16 => mapping(bytes16 => bytes16[])) activeSecurityIdsByStockClass;
 }
+
+struct ConvertibleParams {
+    bytes16 stakeholder_id;
+    uint256 investment_amount;
+    string convertible_type; // ["NOTE", "SAFE"]
+    uint256 valuation_cap;
+    uint256 discount_rate; // solidty doesn't accept decimals so we use a uint256 and assume it's a percentage
+}
+
+struct ConvertiblePosition {
+    uint256 investment_amount;
+    uint256 valuation_cap;
+    uint256 discount_rate;
+    string convertible_type; // ["NOTE", "SAFE"]
+    uint40 timestamp;
+}
+
+struct ConvertibleIssuance {
+    bytes16 id;
+    string object_type;
+    bytes16 security_id;
+    ConvertibleParams params;
+}
