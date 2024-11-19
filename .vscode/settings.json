@@ -3,7 +3,7 @@
     "solidity.packageDefaultDependenciesContractsDirectory": "chain/src",
     "solidity.formatter": "prettier",
     "solidity.compileUsingRemoteVersion": "v0.8.20",
-    "solidity.remappings": ["@openzeppelin/=chain/lib/openzeppelin-contracts/"],
+    "solidity.remappings": ["@openzeppelin/=chain/lib/openzeppelin-contracts/", "@diamond/=chain/src/lib/diamond/"],
     "solidity.linter": "solium",
     "solidity.enabledAsYouTypeCompilationErrorCheck": true,
     "editor.formatOnSave": true,
