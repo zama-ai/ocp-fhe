@@ -25,13 +25,6 @@ struct Stakeholder {
     string current_relationship; // ["ADVISOR","BOARD_MEMBER","CONSULTANT","EMPLOYEE","EX_ADVISOR" "EX_CONSULTANT","EX_EMPLOYEE","EXECUTIVE","FOUNDER","INVESTOR","NON_US_EMPLOYEE","OFFICER","OTHER"]
 }
 
-struct ActivePosition {
-    bytes16 stock_class_id;
-    uint256 quantity;
-    uint256 share_price;
-    uint40 timestamp;
-}
-
 struct ShareNumbersIssued {
     uint256 starting_share_number;
     uint256 ending_share_number;
@@ -194,14 +187,6 @@ struct StockTransfer {
     bytes16[] resulting_security_ids;
 }
 
-struct ActivePositions {
-    mapping(bytes16 => mapping(bytes16 => ActivePosition)) activePositions;
-}
-
-struct SecIdsStockClass {
-    mapping(bytes16 => mapping(bytes16 => bytes16[])) activeSecurityIdsByStockClass;
-}
-
 struct ConvertibleParams {
     bytes16 stakeholder_id;
     uint256 investment_amount;
@@ -210,17 +195,62 @@ struct ConvertibleParams {
     uint256 discount_rate; // solidty doesn't accept decimals so we use a uint256 and assume it's a percentage
 }
 
-struct ConvertiblePosition {
-    uint256 investment_amount;
-    uint256 valuation_cap;
-    uint256 discount_rate;
-    string convertible_type; // ["NOTE", "SAFE"]
-    uint40 timestamp;
-}
-
 struct ConvertibleIssuance {
     bytes16 id;
     string object_type;
     bytes16 security_id;
     ConvertibleParams params;
+}
+
+struct StockActivePosition {
+    bytes16 stock_class_id;
+    uint256 quantity;
+    uint256 share_price;
+    uint40 timestamp;
+}
+
+struct StockActivePositions {
+    mapping(bytes16 => bytes16[]) stakeholderToSecurities; // Stakeholder ID -> List of Security IDs
+    mapping(bytes16 => StockActivePosition) securities; // Security ID -> ActivePosition
+}
+
+struct ConvertibleActivePosition {
+    uint256 investment_amount;
+    uint256 valuation_cap; // unsure we want to store this
+    uint256 discount_rate; // unsure we want to store this
+    string convertible_type; // ["NOTE", "SAFE"] // do we even care?
+    uint40 timestamp;
+}
+
+struct ConvertibleActivePositions {
+    mapping(bytes16 => bytes16[]) stakeholderToSecurities; // Stakeholder ID -> List of Security IDs
+    mapping(bytes16 => ConvertibleActivePosition) securities; // Security ID -> ActivePosition
+}
+
+struct EquityCompensationActivePosition {
+    uint256 quantity;
+    uint40 timestamp;
+    bytes16 stock_class_id;
+    bytes16 stock_plan_id;
+}
+
+struct EquityCompensationActivePositions {
+    mapping(bytes16 => bytes16[]) stakeholderToSecurities; // Stakeholder ID -> List of Security IDs
+    mapping(bytes16 => EquityCompensationActivePosition) securities; // Security ID -> ActivePosition
+}
+
+// V1 Mappings, inefficient.
+struct ActivePosition {
+    bytes16 stock_class_id;
+    uint256 quantity;
+    uint256 share_price;
+    uint40 timestamp;
+}
+
+struct ActivePositions {
+    mapping(bytes16 => mapping(bytes16 => ActivePosition)) activePositions;
+}
+
+struct SecIdsStockClass {
+    mapping(bytes16 => mapping(bytes16 => bytes16[])) activeSecurityIdsByStockClass;
 }
