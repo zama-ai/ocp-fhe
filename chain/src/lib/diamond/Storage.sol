@@ -16,7 +16,7 @@ struct Storage {
 }
 
 library StorageLib {
-    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.storage.stock");
+    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.storage");
 
     /// @notice Get the diamond storage
     /// @return ds The diamond storage
