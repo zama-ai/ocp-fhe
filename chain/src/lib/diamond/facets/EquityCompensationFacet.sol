@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../lib/Structs.sol";
+import "../../Structs.sol";
 
 contract EquityCompensationFacet {
     event EquityCompensationIssued(address indexed to, uint256 amount, uint256 vestingPeriod, uint256 timestamp);

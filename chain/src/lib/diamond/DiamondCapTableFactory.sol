@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import { Diamond } from "diamond-3-hardhat/Diamond.sol";
 import { DiamondCutFacet } from "diamond-3-hardhat/facets/DiamondCutFacet.sol";
-import { StockFacet } from "../../facets/StockFacet.sol";
+import { StockFacet } from "./facets/StockFacet.sol";
 import { IDiamondCut } from "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
 // import { DiamondCapTable } from "./DiamondCapTable.sol";

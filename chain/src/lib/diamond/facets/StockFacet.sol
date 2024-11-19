@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { LibDiamond } from "../../lib/diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
-import { StorageLib } from "../lib/Storage.sol";
-import { Issuer, StockClass, Stakeholder, ActivePosition, ShareNumbersIssued, SecurityLawExemption, StockIssuanceParams, Storage } from "../lib/Structs.sol";
+import { StorageLib, Storage } from "../Storage.sol";
+import { Issuer, StockClass, Stakeholder, ActivePosition, ShareNumbersIssued, SecurityLawExemption, StockIssuanceParams, StockIssuance } from "../../Structs.sol";
+import { TxHelper, TxType } from "../../TxHelper.sol";
 
 contract StockFacet {
     // Events
@@ -41,8 +41,21 @@ contract StockFacet {
         ds.issuer.shares_issued += params.quantity;
         stockClass.shares_issued += params.quantity;
 
+        // Create and store transaction
+        StockIssuance memory issuance = StockIssuance({
+            id: bytes16(keccak256(abi.encodePacked("ISSUANCE", block.timestamp))),
+            object_type: "TX_STOCK_ISSUANCE",
+            security_id: securityId,
+            params: params
+        });
+
+        // Store transaction and emit event
+        bytes memory txData = abi.encode(issuance);
+        TxHelper.createTx(TxType.STOCK_ISSUANCE, txData, ds.transactions);
+
         emit StockIssued(params.stakeholder_id, params.stock_class_id, params.quantity, params.share_price);
     }
+
     // Helper functions
     function _checkStakeholderIsStored(bytes16 _id) internal view {
         Storage storage ds = StorageLib.get();

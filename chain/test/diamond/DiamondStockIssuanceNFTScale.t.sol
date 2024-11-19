@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/facets/StockFacetV2.sol";
-import "../../src/lib/diamond/ActivePositionNFT.sol";
+import "@diamond/facets/StockFacetV2.sol";
+import "@diamond/ActivePositionNFT.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
 import "../../src/lib/Structs.sol";

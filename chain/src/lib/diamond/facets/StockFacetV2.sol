@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { StorageLibV2 } from "../lib/StorageV2.sol";
-import { StorageV2, StockClass } from "../lib/Structs.sol";
-import { IActivePositionNFT } from "../interfaces/IActivePositionNFT.sol";
-import { StockIssuanceParams } from "../lib/Structs.sol";
+import { StorageLibV2, StorageV2 } from "../../diamond/StorageV2.sol";
+import { IActivePositionNFT } from "../../../interfaces/IActivePositionNFT.sol";
+import { StockIssuanceParams, StockClass } from "../../Structs.sol";
 
 contract StockFacetV2 {
     event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
