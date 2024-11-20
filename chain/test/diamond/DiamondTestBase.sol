@@ -78,9 +78,10 @@ contract DiamondTestBase is Test {
         convertibleSelectors[0] = ConvertiblesFacet.issueConvertible.selector;
         convertibleSelectors[1] = ConvertiblesFacet.getConvertiblePosition.selector;
 
-        bytes4[] memory equityCompensationSelectors = new bytes4[](2);
+        bytes4[] memory equityCompensationSelectors = new bytes4[](3);
         equityCompensationSelectors[0] = EquityCompensationFacet.issueEquityCompensation.selector;
         equityCompensationSelectors[1] = EquityCompensationFacet.getPosition.selector;
+        equityCompensationSelectors[2] = EquityCompensationFacet.exerciseEquityCompensation.selector;
 
         bytes4[] memory stockPlanSelectors = new bytes4[](2);
         stockPlanSelectors[0] = StockPlanFacet.createStockPlan.selector;
