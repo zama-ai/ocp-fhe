@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { StockActivePositions, ConvertibleActivePositions, EquityCompensationActivePositions, Issuer, StockClass, Stakeholder } from "../Structs.sol";
+import { StockActivePositions, ConvertibleActivePositions, EquityCompensationActivePositions, Issuer, StockClass, Stakeholder } from "./Structs.sol";
 struct Storage {
     Issuer issuer;
-    Stakeholder[] stakeholders;
-    StockClass[] stockClasses;
+    bytes16[] stakeholders;
     mapping(bytes16 => uint256) stakeholderIndex;
+    StockClass[] stockClasses;
     mapping(bytes16 => uint256) stockClassIndex;
     uint256 nonce;
     StockActivePositions stockActivePositions;

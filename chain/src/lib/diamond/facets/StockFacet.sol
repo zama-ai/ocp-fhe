@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
 import { StorageLib, Storage } from "../Storage.sol";
-import { Issuer, StockClass, Stakeholder, ActivePosition, ShareNumbersIssued, SecurityLawExemption, StockIssuanceParams, StockIssuance } from "../../Structs.sol";
+import { Issuer, StockClass, Stakeholder, StockActivePosition } from "../Structs.sol";
 import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 
 contract StockFacet {
@@ -11,41 +11,37 @@ contract StockFacet {
     error NoStakeholder(bytes16 stakeholder_id);
     error InvalidStockClass(bytes16 stock_class_id);
 
-    function issueStock(StockIssuanceParams calldata params) external {
+    function issueStock(bytes16 stock_class_id, uint256 share_price, uint256 quantity, bytes16 stakeholder_id) external {
         Storage storage ds = StorageLib.get();
         ds.nonce++;
 
-        _checkStakeholderIsStored(params.stakeholder_id);
-        _checkInvalidStockClass(params.stock_class_id);
+        _checkStakeholderIsStored(stakeholder_id);
+        _checkInvalidStockClass(stock_class_id);
 
-        uint256 stockClassIdx = ds.stockClassIndex[params.stock_class_id] - 1;
+        uint256 stockClassIdx = ds.stockClassIndex[stock_class_id] - 1;
         StockClass storage stockClass = ds.stockClasses[stockClassIdx];
-        require(ds.issuer.shares_issued + params.quantity <= ds.issuer.shares_authorized, "Issuer: Insufficient shares authorized");
-        require(stockClass.shares_issued + params.quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
+        require(ds.issuer.shares_issued + quantity <= ds.issuer.shares_authorized, "Issuer: Insufficient shares authorized");
+        require(stockClass.shares_issued + quantity <= stockClass.shares_authorized, "StockClass: Insufficient shares authorized");
 
         // Generate security ID
-        bytes16 id = TxHelper.generateDeterministicUniqueID(params.stakeholder_id, ds.nonce); // TODO: Ask Victor why we're passing stock_class_id here?
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(params.stock_class_id, ds.nonce);
+        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
 
         // Update storage
-        ds.activePositions[params.stakeholder_id][securityId] = ActivePosition({
-            stock_class_id: params.stock_class_id,
-            quantity: params.quantity,
-            share_price: params.share_price,
-            timestamp: uint40(block.timestamp)
+        ds.stockActivePositions.securities[securityId] = StockActivePosition({
+            stock_class_id: stock_class_id,
+            quantity: quantity,
+            share_price: share_price
         });
 
-        ds.activeSecurityIdsByStockClass[params.stakeholder_id][params.stock_class_id].push(securityId);
+        // Track security IDs for this stakeholder
+        ds.stockActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
 
         // Update share counts
-        ds.issuer.shares_issued += params.quantity;
-        stockClass.shares_issued += params.quantity;
+        ds.issuer.shares_issued += quantity;
+        stockClass.shares_issued += quantity;
 
-        // Create and store transaction
-        StockIssuance memory issuance = StockIssuance({ id: id, object_type: "TX_STOCK_ISSUANCE", security_id: securityId, params: params });
-
-        // Store transaction and emit event
-        bytes memory txData = abi.encode(issuance);
+        // Store transaction
+        bytes memory txData = abi.encode(stock_class_id, share_price, quantity, stakeholder_id, securityId);
         TxHelper.createTx(TxType.STOCK_ISSUANCE, txData);
     }
 
