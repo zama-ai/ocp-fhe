@@ -16,6 +16,11 @@ struct StockClass {
     uint256 shares_authorized;
 }
 
+struct StockPlan {
+    bytes16[] stock_class_ids;
+    uint256 shares_reserved;
+}
+
 struct StockActivePosition {
     bytes16 stock_class_id;
     uint256 quantity;
