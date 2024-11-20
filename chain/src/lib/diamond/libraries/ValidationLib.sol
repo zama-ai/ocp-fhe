@@ -10,6 +10,8 @@ library ValidationLib {
     error InvalidStockPlan(bytes16 stock_plan_id);
     error InvalidQuantity();
     error InvalidAmount();
+    error InvalidSecurity();
+    error InsufficientShares();
 
     function validateStakeholder(bytes16 stakeholder_id) internal view {
         Storage storage ds = StorageLib.get();

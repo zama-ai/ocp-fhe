@@ -18,10 +18,16 @@ contract ConvertiblesFacet {
         bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
 
         // Create and store position
-        ds.convertibleActivePositions.securities[securityId] = ConvertibleActivePosition({ investment_amount: investment_amount });
+        ds.convertibleActivePositions.securities[securityId] = ConvertibleActivePosition({
+            stakeholder_id: stakeholder_id,
+            investment_amount: investment_amount
+        });
 
-        // Track security IDs
+        // Track security IDs for this stakeholder
         ds.convertibleActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
+
+        // Add reverse mapping
+        ds.convertibleActivePositions.securityToStakeholder[securityId] = stakeholder_id;
 
         // Store transaction
         bytes memory txData = abi.encode(stakeholder_id, investment_amount, securityId);

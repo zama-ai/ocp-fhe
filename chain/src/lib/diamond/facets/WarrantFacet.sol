@@ -18,10 +18,13 @@ contract WarrantFacet {
         bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
 
         // Create and store position
-        ds.warrantActivePositions.securities[securityId] = WarrantActivePosition({ quantity: quantity });
+        ds.warrantActivePositions.securities[securityId] = WarrantActivePosition({ stakeholder_id: stakeholder_id, quantity: quantity });
 
-        // Track security IDs
+        // Track security IDs for this stakeholder
         ds.warrantActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
+
+        // Add reverse mapping
+        ds.warrantActivePositions.securityToStakeholder[securityId] = stakeholder_id;
 
         // Store transaction
         bytes memory txData = abi.encode(stakeholder_id, quantity, securityId);
