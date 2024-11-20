@@ -21,7 +21,7 @@ contract DiamondConvertibleIssuanceTest is DiamondTestBase {
         ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, investment_amount);
 
         // Verify position was created correctly
-        ConvertibleActivePosition memory position = ConvertiblesFacet(address(diamond)).getPosition(securityId);
+        ConvertibleActivePosition memory position = ConvertiblesFacet(address(diamond)).getConvertiblePosition(securityId);
         assertEq(position.investment_amount, investment_amount);
     }
 

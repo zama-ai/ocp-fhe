@@ -39,7 +39,7 @@ contract ConvertiblesFacet {
         }
     }
 
-    function getPosition(bytes16 securityId) external view returns (ConvertibleActivePosition memory) {
+    function getConvertiblePosition(bytes16 securityId) external view returns (ConvertibleActivePosition memory) {
         Storage storage ds = StorageLib.get();
         return ds.convertibleActivePositions.securities[securityId];
     }

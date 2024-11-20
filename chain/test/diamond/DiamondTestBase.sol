@@ -67,7 +67,7 @@ contract DiamondTestBase is Test {
 
         bytes4[] memory convertibleSelectors = new bytes4[](2);
         convertibleSelectors[0] = ConvertiblesFacet.issueConvertible.selector;
-        convertibleSelectors[1] = ConvertiblesFacet.getPosition.selector;
+        convertibleSelectors[1] = ConvertiblesFacet.getConvertiblePosition.selector;
 
         bytes4[] memory equityCompensationSelectors = new bytes4[](2);
         equityCompensationSelectors[0] = EquityCompensationFacet.issueEquityCompensation.selector;
@@ -76,42 +76,48 @@ contract DiamondTestBase is Test {
         bytes4[] memory stockPlanSelectors = new bytes4[](1);
         stockPlanSelectors[0] = StockPlanFacet.createStockPlan.selector;
 
+        // issuer facet
         cut[0] = IDiamondCut.FacetCut({
             facetAddress: address(issuerFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: issuerSelectors
         });
 
+        // stakeholder facet
         cut[1] = IDiamondCut.FacetCut({
             facetAddress: address(stakeholderFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: stakeholderSelectors
         });
 
+        // stock class facet
         cut[2] = IDiamondCut.FacetCut({
             facetAddress: address(stockClassFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: stockClassSelectors
         });
-
+        // stock facet
         cut[3] = IDiamondCut.FacetCut({
             facetAddress: address(stockFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: stockSelectors
         });
 
+        // convertible facet
         cut[4] = IDiamondCut.FacetCut({
             facetAddress: address(convertiblesFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: convertibleSelectors
         });
 
+        // equity facet
         cut[5] = IDiamondCut.FacetCut({
             facetAddress: address(equityCompensationFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: equityCompensationSelectors
         });
 
+        // stock plan facet
         cut[6] = IDiamondCut.FacetCut({
             facetAddress: address(stockPlanFacet),
             action: IDiamondCut.FacetCutAction.Add,
