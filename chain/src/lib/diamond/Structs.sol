@@ -33,11 +33,10 @@ struct StockActivePositions {
 }
 
 struct ConvertibleActivePosition {
-    uint256 investment_amount;
+    uint256 investment_amount; // might want to add what stock class it converts to.
     // uint256 valuation_cap; // unsure we want to store this
     // uint256 discount_rate; // unsure we want to store this
     // string convertible_type; // ["NOTE", "SAFE"] // do we even care?
-    uint40 timestamp;
 }
 
 struct ConvertibleActivePositions {
