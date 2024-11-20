@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
 import { StorageLib, Storage } from "../Storage.sol";
-import { Issuer } from "../../Structs.sol";
+import { Issuer } from "../Structs.sol";
 
 contract IssuerFacet {
     error IssuerAlreadyInitialized();

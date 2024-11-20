@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
 import { StorageLib, Storage } from "../Storage.sol";
-import { Issuer, StockClass, Stakeholder, StockActivePosition } from "../Structs.sol";
+import { Issuer, StockClass, StockActivePosition } from "../Structs.sol";
 import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 
 contract StockFacet {

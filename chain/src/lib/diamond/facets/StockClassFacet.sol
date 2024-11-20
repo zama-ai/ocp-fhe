@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { StorageLib, Storage } from "../Storage.sol";
-import { StockClass } from "../../Structs.sol";
+import { StockClass } from "../Structs.sol";
 
 contract StockClassFacet {
     event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);

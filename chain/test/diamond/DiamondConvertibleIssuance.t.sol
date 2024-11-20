@@ -2,44 +2,39 @@
 pragma solidity ^0.8.0;
 
 import "./DiamondTestBase.sol";
-import "@diamond/Storage.sol";
+import { StorageLib } from "@diamond/Storage.sol";
+import { TxHelper, TxType } from "@diamond/DiamondTxHelper.sol";
+import { ConvertibleActivePosition } from "@diamond/Structs.sol";
 
 contract DiamondConvertibleIssuanceTest is DiamondTestBase {
-    event TxCreated(uint256 index, TxType txType, bytes txData);
-
     function testIssueConvertible() public {
         bytes16 stakeholderId = createStakeholder();
 
-        ConvertibleParams memory params = ConvertibleParams({
-            stakeholder_id: stakeholderId,
-            investment_amount: 1000000000000, // $1M in smallest units
-            convertible_type: "NOTE",
-            valuation_cap: 10000000000000, // $10M cap
-            discount_rate: 20 // 20% discount
-        });
-
         Storage storage s = StorageLib.get();
-        bytes16 id = TxHelper.generateDeterministicUniqueID(stakeholderId, s.nonce + 1);
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(id, s.nonce + 1);
+        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholderId, s.nonce + 1);
 
-        ConvertibleIssuance memory issuance = ConvertibleIssuance({
-            id: id,
-            object_type: "TX_CONVERTIBLE_ISSUANCE",
-            security_id: securityId,
-            params: params
-        });
+        uint256 investment_amount = 1000000000000; // $1M in smallest units
 
-        // Expect the TxCreated event with exact parameters
         vm.expectEmit(true, true, false, true, address(diamond));
-        emit TxHelper.TxCreated(TxType.CONVERTIBLE_ISSUANCE, abi.encode(issuance));
+        emit TxHelper.TxCreated(TxType.CONVERTIBLE_ISSUANCE, abi.encode(stakeholderId, investment_amount, securityId));
 
-        ConvertiblesFacet(address(diamond)).issueConvertible(params);
+        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, investment_amount);
 
-        // Verify the convertible position was created
-        ConvertiblePosition memory position = ConvertiblesFacet(address(diamond)).getPosition(stakeholderId, securityId);
-        assertEq(position.investment_amount, params.investment_amount);
-        assertEq(position.convertible_type, params.convertible_type);
-        assertEq(position.valuation_cap, params.valuation_cap);
-        assertEq(position.discount_rate, params.discount_rate);
+        // Verify position was created correctly
+        ConvertibleActivePosition memory position = ConvertiblesFacet(address(diamond)).getPosition(securityId);
+        assertEq(position.investment_amount, investment_amount);
+    }
+
+    function testFailInvalidStakeholder() public {
+        bytes16 invalidStakeholderId = 0xd3373e0a4dd940000000000000000099;
+        uint256 investment_amount = 1000000000000;
+
+        ConvertiblesFacet(address(diamond)).issueConvertible(invalidStakeholderId, investment_amount);
+    }
+
+    function testFailZeroAmount() public {
+        bytes16 stakeholderId = createStakeholder();
+
+        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, 0);
     }
 }
