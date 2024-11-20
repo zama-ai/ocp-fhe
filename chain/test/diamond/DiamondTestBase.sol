@@ -33,6 +33,10 @@ contract DiamondTestBase is Test {
     event StakeholderCreated(bytes16 indexed id);
     event StockClassCreated(bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized);
     event StockPlanCreated(bytes16 indexed id, uint256 shares_reserved);
+    // TOOD: figure out if should use the facets' events?
+    event IssuerAuthorizedSharesAdjusted(uint256 newSharesAuthorized);
+    event StockClassAuthorizedSharesAdjusted(bytes16 indexed stockClassId, uint256 newSharesAuthorized);
+    event StockPlanSharesReservedAdjusted(bytes16 indexed id, uint256 newSharesReserved);
 
     function setUp() public virtual {
         contractOwner = address(this);
@@ -53,14 +57,16 @@ contract DiamondTestBase is Test {
         // Add facets
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](7);
 
-        bytes4[] memory issuerSelectors = new bytes4[](1);
+        bytes4[] memory issuerSelectors = new bytes4[](2);
         issuerSelectors[0] = IssuerFacet.initializeIssuer.selector;
+        issuerSelectors[1] = IssuerFacet.adjustAuthorizedShares.selector;
 
         bytes4[] memory stakeholderSelectors = new bytes4[](1);
         stakeholderSelectors[0] = StakeholderFacet.createStakeholder.selector;
 
-        bytes4[] memory stockClassSelectors = new bytes4[](1);
+        bytes4[] memory stockClassSelectors = new bytes4[](2);
         stockClassSelectors[0] = StockClassFacet.createStockClass.selector;
+        stockClassSelectors[1] = StockClassFacet.adjustAuthorizedShares.selector;
 
         bytes4[] memory stockSelectors = new bytes4[](1);
         stockSelectors[0] = StockFacet.issueStock.selector;
@@ -73,8 +79,9 @@ contract DiamondTestBase is Test {
         equityCompensationSelectors[0] = EquityCompensationFacet.issueEquityCompensation.selector;
         equityCompensationSelectors[1] = EquityCompensationFacet.getPosition.selector;
 
-        bytes4[] memory stockPlanSelectors = new bytes4[](1);
+        bytes4[] memory stockPlanSelectors = new bytes4[](2);
         stockPlanSelectors[0] = StockPlanFacet.createStockPlan.selector;
+        stockPlanSelectors[1] = StockPlanFacet.adjustStockPlanPool.selector;
 
         // issuer facet
         cut[0] = IDiamondCut.FacetCut({
@@ -137,5 +144,33 @@ contract DiamondTestBase is Test {
         emit StakeholderCreated(stakeholderId);
         StakeholderFacet(payable(address(diamond))).createStakeholder(stakeholderId);
         return stakeholderId;
+    }
+
+    // Helper function to create a stock class for testing
+    function createStockClass() public returns (bytes16) {
+        bytes16 stockClassId = 0xd3373e0a4dd940000000000000000006;
+        string memory classType = "COMMON";
+        uint256 pricePerShare = 1e18;
+        uint256 initialSharesAuthorized = 1000000;
+
+        vm.expectEmit(true, true, true, true, address(diamond));
+        emit StockClassCreated(stockClassId, classType, pricePerShare, initialSharesAuthorized);
+
+        StockClassFacet(payable(address(diamond))).createStockClass(stockClassId, classType, pricePerShare, initialSharesAuthorized);
+
+        return stockClassId;
+    }
+
+    // Helper function to create a stock plan for testing
+    function createStockPlan(bytes16[] memory stockClassIds) public returns (bytes16) {
+        bytes16 stockPlanId = 0xd3373e0a4dd940000000000000000007;
+        uint256 sharesReserved = 100000;
+
+        vm.expectEmit(true, false, false, true, address(diamond));
+        emit StockPlanCreated(stockPlanId, sharesReserved);
+
+        StockPlanFacet(payable(address(diamond))).createStockPlan(stockPlanId, stockClassIds, sharesReserved);
+
+        return stockPlanId;
     }
 }
