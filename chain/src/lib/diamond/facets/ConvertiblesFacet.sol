@@ -22,10 +22,7 @@ contract ConvertiblesFacet {
         bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
 
         // Create and store position
-        ds.convertibleActivePositions.securities[securityId] = ConvertibleActivePosition({
-            investment_amount: investment_amount,
-            timestamp: uint40(block.timestamp)
-        });
+        ds.convertibleActivePositions.securities[securityId] = ConvertibleActivePosition({ investment_amount: investment_amount });
 
         // Track security IDs
         ds.convertibleActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
