@@ -4,37 +4,37 @@ pragma solidity ^0.8.0;
 import "./DiamondTestBase.sol";
 import { StorageLib } from "@diamond/Storage.sol";
 import { TxHelper, TxType } from "@diamond/DiamondTxHelper.sol";
+import { ValidationLib } from "@diamond/libraries/ValidationLib.sol";
 import { ConvertibleActivePosition } from "@diamond/Structs.sol";
 
 contract DiamondConvertibleIssuanceTest is DiamondTestBase {
     function testIssueConvertible() public {
         bytes16 stakeholderId = createStakeholder();
-
-        Storage storage s = StorageLib.get();
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholderId, s.nonce + 1);
-
-        uint256 investment_amount = 1000000000000; // $1M in smallest units
+        uint256 investmentAmount = 1000000;
+        bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
 
         vm.expectEmit(true, true, false, true, address(diamond));
-        emit TxHelper.TxCreated(TxType.CONVERTIBLE_ISSUANCE, abi.encode(stakeholderId, investment_amount, securityId));
+        emit TxHelper.TxCreated(TxType.CONVERTIBLE_ISSUANCE, abi.encode(stakeholderId, investmentAmount, securityId));
 
-        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, investment_amount);
+        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, investmentAmount, securityId);
 
         // Verify position was created correctly
         ConvertibleActivePosition memory position = ConvertiblesFacet(address(diamond)).getConvertiblePosition(securityId);
-        assertEq(position.investment_amount, investment_amount);
+        assertEq(position.investment_amount, investmentAmount);
+        assertEq(position.stakeholder_id, stakeholderId);
     }
 
     function testFailInvalidStakeholder() public {
         bytes16 invalidStakeholderId = 0xd3373e0a4dd940000000000000000099;
-        uint256 investment_amount = 1000000000000;
+        bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
 
-        ConvertiblesFacet(address(diamond)).issueConvertible(invalidStakeholderId, investment_amount);
+        ConvertiblesFacet(address(diamond)).issueConvertible(invalidStakeholderId, 1000000, securityId);
     }
 
     function testFailZeroAmount() public {
         bytes16 stakeholderId = createStakeholder();
+        bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
 
-        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, 0);
+        ConvertiblesFacet(address(diamond)).issueConvertible(stakeholderId, 0, securityId);
     }
 }

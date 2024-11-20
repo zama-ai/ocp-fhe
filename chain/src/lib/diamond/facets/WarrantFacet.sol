@@ -7,27 +7,24 @@ import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 import { ValidationLib } from "../libraries/ValidationLib.sol";
 
 contract WarrantFacet {
-    function issueWarrant(bytes16 stakeholder_id, uint256 quantity) external {
+    function issueWarrant(bytes16 stakeholder_id, uint256 quantity, bytes16 security_id) external {
         Storage storage ds = StorageLib.get();
         ds.nonce++;
 
         ValidationLib.validateStakeholder(stakeholder_id);
         ValidationLib.validateQuantity(quantity);
 
-        // Generate security ID
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
-
         // Create and store position
-        ds.warrantActivePositions.securities[securityId] = WarrantActivePosition({ stakeholder_id: stakeholder_id, quantity: quantity });
+        ds.warrantActivePositions.securities[security_id] = WarrantActivePosition({ stakeholder_id: stakeholder_id, quantity: quantity });
 
         // Track security IDs for this stakeholder
-        ds.warrantActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
+        ds.warrantActivePositions.stakeholderToSecurities[stakeholder_id].push(security_id);
 
         // Add reverse mapping
-        ds.warrantActivePositions.securityToStakeholder[securityId] = stakeholder_id;
+        ds.warrantActivePositions.securityToStakeholder[security_id] = stakeholder_id;
 
         // Store transaction
-        bytes memory txData = abi.encode(stakeholder_id, quantity, securityId);
+        bytes memory txData = abi.encode(stakeholder_id, quantity, security_id);
         TxHelper.createTx(TxType.WARRANT_ISSUANCE, txData);
     }
 

@@ -7,7 +7,13 @@ import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 import { ValidationLib } from "../libraries/ValidationLib.sol";
 
 contract EquityCompensationFacet {
-    function issueEquityCompensation(bytes16 stakeholder_id, bytes16 stock_class_id, bytes16 stock_plan_id, uint256 quantity) external {
+    function issueEquityCompensation(
+        bytes16 stakeholder_id,
+        bytes16 stock_class_id,
+        bytes16 stock_plan_id,
+        uint256 quantity,
+        bytes16 security_id
+    ) external {
         Storage storage ds = StorageLib.get();
         ds.nonce++;
 
@@ -16,11 +22,8 @@ contract EquityCompensationFacet {
         ValidationLib.validateStockPlan(stock_plan_id);
         ValidationLib.validateQuantity(quantity);
 
-        // Generate security ID
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
-
         // Create and store position
-        ds.equityCompensationActivePositions.securities[securityId] = EquityCompensationActivePosition({
+        ds.equityCompensationActivePositions.securities[security_id] = EquityCompensationActivePosition({
             stakeholder_id: stakeholder_id,
             quantity: quantity,
             timestamp: uint40(block.timestamp),
@@ -29,13 +32,13 @@ contract EquityCompensationFacet {
         });
 
         // Track security IDs for this stakeholder
-        ds.equityCompensationActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
+        ds.equityCompensationActivePositions.stakeholderToSecurities[stakeholder_id].push(security_id);
 
         // Add reverse mapping
-        ds.equityCompensationActivePositions.securityToStakeholder[securityId] = stakeholder_id;
+        ds.equityCompensationActivePositions.securityToStakeholder[security_id] = stakeholder_id;
 
         // Store transaction
-        bytes memory txData = abi.encode(stakeholder_id, stock_class_id, stock_plan_id, quantity, securityId);
+        bytes memory txData = abi.encode(stakeholder_id, stock_class_id, stock_plan_id, quantity, security_id);
         TxHelper.createTx(TxType.EQUITY_COMPENSATION_ISSUANCE, txData);
     }
 

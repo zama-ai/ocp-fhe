@@ -7,30 +7,27 @@ import { TxHelper, TxType } from "../DiamondTxHelper.sol";
 import { ValidationLib } from "../libraries/ValidationLib.sol";
 
 contract ConvertiblesFacet {
-    function issueConvertible(bytes16 stakeholder_id, uint256 investment_amount) external {
+    function issueConvertible(bytes16 stakeholder_id, uint256 investment_amount, bytes16 security_id) external {
         Storage storage ds = StorageLib.get();
         ds.nonce++;
 
         ValidationLib.validateStakeholder(stakeholder_id);
         ValidationLib.validateAmount(investment_amount);
 
-        // Generate security ID
-        bytes16 securityId = TxHelper.generateDeterministicUniqueID(stakeholder_id, ds.nonce);
-
         // Create and store position
-        ds.convertibleActivePositions.securities[securityId] = ConvertibleActivePosition({
+        ds.convertibleActivePositions.securities[security_id] = ConvertibleActivePosition({
             stakeholder_id: stakeholder_id,
             investment_amount: investment_amount
         });
 
         // Track security IDs for this stakeholder
-        ds.convertibleActivePositions.stakeholderToSecurities[stakeholder_id].push(securityId);
+        ds.convertibleActivePositions.stakeholderToSecurities[stakeholder_id].push(security_id);
 
         // Add reverse mapping
-        ds.convertibleActivePositions.securityToStakeholder[securityId] = stakeholder_id;
+        ds.convertibleActivePositions.securityToStakeholder[security_id] = stakeholder_id;
 
         // Store transaction
-        bytes memory txData = abi.encode(stakeholder_id, investment_amount, securityId);
+        bytes memory txData = abi.encode(stakeholder_id, investment_amount, security_id);
         TxHelper.createTx(TxType.CONVERTIBLE_ISSUANCE, txData);
     }
 
