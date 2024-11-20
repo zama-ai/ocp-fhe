@@ -55,3 +55,12 @@ struct EquityCompensationActivePositions {
     mapping(bytes16 => bytes16[]) stakeholderToSecurities; // Stakeholder ID -> List of Security IDs
     mapping(bytes16 => EquityCompensationActivePosition) securities; // Security ID -> ActivePosition
 }
+
+struct WarrantActivePosition {
+    uint256 quantity;
+}
+
+struct WarrantActivePositions {
+    mapping(bytes16 => bytes16[]) stakeholderToSecurities; // Stakeholder ID -> List of Security IDs
+    mapping(bytes16 => WarrantActivePosition) securities; // Security ID -> ActivePosition
+}

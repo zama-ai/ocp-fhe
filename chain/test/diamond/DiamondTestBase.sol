@@ -13,6 +13,7 @@ import { EquityCompensationFacet } from "@diamond/facets/EquityCompensationFacet
 import { StockPlanFacet } from "@diamond/facets/StockPlanFacet.sol";
 import "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import "diamond-3-hardhat/interfaces/IDiamondCut.sol";
+import { WarrantFacet } from "@diamond/facets/WarrantFacet.sol";
 
 contract DiamondTestBase is Test {
     uint256 public issuerInitialSharesAuthorized = 1000000;
@@ -28,6 +29,7 @@ contract DiamondTestBase is Test {
     EquityCompensationFacet public equityCompensationFacet;
     StockPlanFacet public stockPlanFacet;
     DiamondCapTable public diamond;
+    WarrantFacet public warrantFacet;
 
     event StockIssued(bytes16 indexed stakeholderId, bytes16 indexed stockClassId, uint256 quantity, uint256 sharePrice);
     event StakeholderCreated(bytes16 indexed id);
@@ -50,12 +52,13 @@ contract DiamondTestBase is Test {
         convertiblesFacet = new ConvertiblesFacet();
         equityCompensationFacet = new EquityCompensationFacet();
         stockPlanFacet = new StockPlanFacet();
+        warrantFacet = new WarrantFacet();
 
         // Deploy Diamond
         diamond = new DiamondCapTable(contractOwner, address(diamondCutFacet));
 
         // Add facets
-        IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](7);
+        IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](8);
 
         bytes4[] memory issuerSelectors = new bytes4[](2);
         issuerSelectors[0] = IssuerFacet.initializeIssuer.selector;
@@ -82,6 +85,10 @@ contract DiamondTestBase is Test {
         bytes4[] memory stockPlanSelectors = new bytes4[](2);
         stockPlanSelectors[0] = StockPlanFacet.createStockPlan.selector;
         stockPlanSelectors[1] = StockPlanFacet.adjustStockPlanPool.selector;
+
+        bytes4[] memory warrantSelectors = new bytes4[](2);
+        warrantSelectors[0] = WarrantFacet.issueWarrant.selector;
+        warrantSelectors[1] = WarrantFacet.getWarrantPosition.selector;
 
         // issuer facet
         cut[0] = IDiamondCut.FacetCut({
@@ -129,6 +136,13 @@ contract DiamondTestBase is Test {
             facetAddress: address(stockPlanFacet),
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: stockPlanSelectors
+        });
+
+        // warrant facet
+        cut[7] = IDiamondCut.FacetCut({
+            facetAddress: address(warrantFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: warrantSelectors
         });
 
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), "");
