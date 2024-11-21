@@ -16,6 +16,7 @@ import StockReissuance from "../objects/transactions/reissuance/StockReissuance.
 import StockRepurchase from "../objects/transactions/repurchase/StockRepurchase.js";
 import StockRetraction from "../objects/transactions/retraction/StockRetraction.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
+import ConvertibleIssuance from "../objects/transactions/issuance/ConvertibleIssuance.js";
 import Fairmint from "../objects/Fairmint.js";
 import { findByIdAndUpdate, findOne, findBySecurityIdAndUpdate } from "./atomic.ts";
 import { createFactory } from "./create.js";
@@ -74,8 +75,12 @@ export const updateVestingTermsById = async (id, updatedData) => {
     return await findByIdAndUpdate(VestingTerms, id, updatedData, { new: true });
 };
 
-export const updateStockIssuanceBySecurityId = async (securityId, updatedData) => {
-    return await findBySecurityIdAndUpdate(StockIssuance, securityId, updatedData, { new: true });
+export const upsertStockIssuanceBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(StockIssuance, securityId, updatedData, { new: true, upsert: true });
+};
+
+export const upsertConvertibleIssuanceBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(ConvertibleIssuance, securityId, updatedData, { new: true, upsert: true });
 };
 
 export const upsertStockIssuanceById = async (id, updatedData) => {
@@ -143,4 +148,16 @@ export const upsertFairmintDataBySecurityId = async (security_id, updatedData = 
         };
     }
     return await findByIdAndUpdate(Fairmint, get(existing, "_id", uuid()), updatedData, { new: true, upsert: true });
+};
+
+export const upsertWarrantIssuanceBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(WarrantIssuance, securityId, updatedData, { new: true, upsert: true });
+};
+
+export const upsertEquityCompensationIssuanceBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(EquityCompensationIssuance, securityId, updatedData, { new: true, upsert: true });
+};
+
+export const upsertEquityCompensationExerciseBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(EquityCompensationExercise, securityId, updatedData, { new: true, upsert: true });
 };
