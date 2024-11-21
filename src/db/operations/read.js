@@ -128,8 +128,8 @@ export const readFairmintDataById = async (id) => {
     return await Fairmint.findById(id);
 };
 
-export const readFairmintDataBySeriesId = async (series_id) => {
-    return await Fairmint.findOne({ series_id });
+export const readFairmintDataBySecurityId = async (securityId) => {
+    return await Fairmint.findOne({ security_id: securityId });
 };
 
 export const getAllStateMachineObjectsById = async (issuerId) => {

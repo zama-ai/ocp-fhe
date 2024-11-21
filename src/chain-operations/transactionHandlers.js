@@ -1,10 +1,9 @@
 import { convertBytes16ToUUID } from "../utils/convertUUID.js";
 import { createHistoricalTransaction } from "../db/operations/create.js";
-import { readFairmintDataBySeriesId, readStakeholderById } from "../db/operations/read.js";
+import { readFairmintDataBySecurityId } from "../db/operations/read.js";
 import {
     updateStakeholderById,
     updateStockClassById,
-    upsertStockIssuanceById,
     upsertStockTransferById,
     upsertStockCancellationById,
     upsertStockRetractionById,
@@ -14,6 +13,7 @@ import {
     upsertStockClassAuthorizedSharesAdjustment,
     upsertIssuerAuthorizedSharesAdjustment,
     updateStockPlanById,
+    updateStockIssuanceBySecurityId,
 } from "../db/operations/update.js";
 import get from "lodash/get";
 import { reflectSeries } from "../fairmint/reflectSeries.js";
@@ -48,92 +48,35 @@ const options = {
 };
 
 export const handleStockIssuance = async (stock, issuerId, timestamp) => {
-    const { id, object_type, security_id, params } = stock;
-    console.log("StockIssuanceCreated Event Emitted!", id);
-
-    const {
-        stock_class_id,
-        stock_plan_id,
-        share_numbers_issued: { starting_share_number, ending_share_number },
-        share_price,
-        quantity,
-        vesting_terms_id,
-        cost_basis,
-        stock_legend_ids,
-        issuance_type,
-        comments,
-        custom_id,
-        stakeholder_id,
-        board_approval_date,
-        stockholder_approval_date,
-        consideration_text,
-        security_law_exemptions,
-    } = params;
+    console.log("StockIssuanceCreated Event Emitted!", stock);
+    const { security_id } = stock;
 
     let series_id = null;
     let historicalDate = null;
 
-    if (comments && comments.length > 0) {
-        comments.forEach((comment) => {
-            if (comment.includes("fairmintData")) {
-                const [key, value] = comment.split("=");
-                if (key === "fairmintData") {
-                    const fairmintData = JSON.parse(value);
-                    series_id = fairmintData.series_id;
-                    historicalDate = fairmintData.date;
-                }
-            }
-        });
-    }
+    // if (comments && comments.length > 0) {
+    //     comments.forEach((comment) => {
+    //         if (comment.includes("fairmintData")) {
+    //             const [key, value] = comment.split("=");
+    //             if (key === "fairmintData") {
+    //                 const fairmintData = JSON.parse(value);
+    //                 series_id = fairmintData.series_id;
+    //                 historicalDate = fairmintData.date;
+    //             }
+    //         }
+    //     });
+    // }
 
-    const fairmintData = await readFairmintDataBySeriesId(series_id);
-    console.log({ security_law_exemptions });
-
-    const sharePriceOCF = {
-        amount: toDecimal(share_price).toString(),
-        currency: "USD",
-    };
+    // Update: get fairmint data by securityId
+    const fairmintData = await readFairmintDataBySecurityId(security_id);
 
     // Type represention of an ISO-8601 date, e.g. 2022-01-28.
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
 
-    const costBasisOCF = { amount: toDecimal(cost_basis).toString(), currency: "USD" };
-    const share_numbers_issuedOCF = [
-        {
-            starting_share_number: toDecimal(starting_share_number).toString(),
-            ending_share_number: toDecimal(ending_share_number).toString(),
-        },
-    ];
-
-    const stakeholder = await readStakeholderById(convertBytes16ToUUID(stakeholder_id));
-
-    if (!stakeholder) {
-        throw Error("Stakeholder does not exist on OCP");
-    }
-
-    const _id = convertBytes16ToUUID(id);
     const _security_id = convertBytes16ToUUID(security_id);
-    const createdStockIssuance = await upsertStockIssuanceById(_id, {
-        _id,
-        object_type,
-        stock_class_id: convertBytes16ToUUID(stock_class_id),
-        stock_plan_id: convertBytes16ToUUID(stock_plan_id),
-        share_numbers_issued: share_numbers_issuedOCF,
-        share_price: sharePriceOCF,
-        quantity: toDecimal(quantity).toString(),
-        vesting_terms_id: convertBytes16ToUUID(vesting_terms_id),
-        cost_basis: costBasisOCF,
-        stock_legend_ids: convertBytes16ToUUID(stock_legend_ids),
-        issuance_type: issuance_type,
-        comments,
-        security_id: _security_id,
+
+    const createdStockIssuance = await updateStockIssuanceBySecurityId(_security_id, {
         date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
-        custom_id,
-        stakeholder_id: stakeholder._id,
-        board_approval_date,
-        stockholder_approval_date,
-        consideration_text,
-        security_law_exemptions,
         // TAP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
@@ -145,7 +88,7 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         transactionType: "StockIssuance",
     });
 
-    const dollarAmount = Number(toDecimal(share_price)) * Number(toDecimal(quantity)); // do we need to store this dollarAmount on Fairmint
+    const dollarAmount = Number(get(createdStockIssuance, "share_price.amount")) * Number(get(createdStockIssuance, "quantity")); // do we need to store this dollarAmount on Fairmint
 
     if (isUUID(series_id) && fairmintData && fairmintData._id) {
         // First, create series (or verify it's created)
@@ -156,8 +99,8 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
             stock_plan_id: get(createdStockIssuance, "stock_plan_id", null),
             series_name: get(fairmintData, "attributes.series_name"),
             series_type: SERIES_TYPE.SHARES,
-            price_per_share: get(sharePriceOCF, "amount", null),
-            date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
+            price_per_share: get(createdStockIssuance, "share_price.amount", null),
+            date: get(createdStockIssuance, "date"),
         });
 
         console.log("series created response ", seriesCreatedResp);
@@ -168,8 +111,8 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
             stakeholder_id: stakeholder._id,
             series_id,
             amount: dollarAmount,
-            number_of_shares: toDecimal(quantity).toString(),
-            date: historicalDate ? historicalDate : chainDate, // priortise historical date if available
+            number_of_shares: get(createdStockIssuance, "quantity").toString(),
+            date: get(createdStockIssuance, "date"),
         });
 
         console.log("stock investment response:", reflectedInvestmentResp);

@@ -30,6 +30,7 @@ import {
     createEquityCompensationIssuance,
     createWarrantIssuance,
     createEquityCompensationExercise,
+    createStockIssuance,
 } from "../db/operations/create.js";
 import StockIssuance from "../db/objects/transactions/issuance/StockIssuance.js";
 import { reflectGrantExercise } from "../fairmint/reflectGrantExercise.js";
@@ -45,7 +46,6 @@ import {
 import { createStockPlanPoolAdjustment } from "../db/operations/create.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
 import { getJoiErrorMessage } from "../chain-operations/utils.js";
-import { upsertFairmintDataBySeriesId } from "../db/operations/update.js";
 import { SERIES_TYPE } from "../fairmint/enums.js";
 import { reflectSeries } from "../fairmint/reflectSeries.js";
 import get from "lodash/get";
@@ -76,6 +76,7 @@ transactions.post("/issuance/stock", async (req, res) => {
         }
 
         await convertAndCreateIssuanceStockOnchain(contract, incomingStockIssuance);
+        await createStockIssuance(incomingStockIssuance);
 
         res.status(200).send({ stockIssuance: incomingStockIssuance });
     } catch (error) {
@@ -121,11 +122,11 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
 
         const stakeholder = await readStakeholderById(incomingStockIssuance.stakeholder_id);
         const stockClass = await readStockClassById(incomingStockIssuance.stock_class_id);
-        incomingStockIssuance.comments = [
-            `old-security-id=${incomingStockIssuance.security_id}`,
-            `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
-            ...(incomingStockIssuance.comments || []),
-        ];
+        // incomingStockIssuance.comments = [
+        // `old-security-id=${incomingStockIssuance.security_id}`,
+        //     `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
+        //     ...(incomingStockIssuance.comments || []),
+        // ];
 
         // check if the stakeholder exists on OCP
         if (!stakeholder || !stakeholder._id) {
@@ -140,7 +141,8 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
 
         await convertAndCreateIssuanceStockOnchain(contract, incomingStockIssuance);
 
-        await upsertFairmintDataBySeriesId(payload.series_id, {
+        await upsertFairmintDataBySecurityId(incomingStockIssuance.security_id, {
+            security_id: incomingStockIssuance.security_id,
             series_id: payload.series_id,
             attributes: {
                 series_name: payload.series_name,

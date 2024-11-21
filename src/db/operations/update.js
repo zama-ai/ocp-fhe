@@ -74,6 +74,10 @@ export const updateVestingTermsById = async (id, updatedData) => {
     return await findByIdAndUpdate(VestingTerms, id, updatedData, { new: true });
 };
 
+export const updateStockIssuanceBySecurityId = async (securityId, updatedData) => {
+    return await findBySecurityIdAndUpdate(StockIssuance, securityId, updatedData, { new: true });
+};
+
 export const upsertStockIssuanceById = async (id, updatedData) => {
     return await findByIdAndUpdate(StockIssuance, id, updatedData, { new: true, upsert: true });
 };
@@ -130,8 +134,8 @@ export const upsertFairmintData = async (id, updatedData = {}) => {
     return await findByIdAndUpdate(Fairmint, get(existing, "_id"), updatedData, { new: true, upsert: true });
 };
 
-export const upsertFairmintDataBySeriesId = async (series_id, updatedData = {}) => {
-    const existing = await findOne(Fairmint, { series_id });
+export const upsertFairmintDataBySecurityId = async (security_id, updatedData = {}) => {
+    const existing = await findOne(Fairmint, { security_id });
     if (existing && existing._id) {
         updatedData.attributes = {
             ...get(existing, "attributes", {}),
