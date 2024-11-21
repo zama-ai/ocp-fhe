@@ -17,7 +17,7 @@ import StockRepurchase from "../objects/transactions/repurchase/StockRepurchase.
 import StockRetraction from "../objects/transactions/retraction/StockRetraction.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
 import Fairmint from "../objects/Fairmint.js";
-import { findByIdAndUpdate, findOne } from "./atomic.ts";
+import { findByIdAndUpdate, findOne, findBySecurityIdAndUpdate } from "./atomic.ts";
 import { createFactory } from "./create.js";
 import get from "lodash/get";
 import { v4 as uuid } from "uuid";

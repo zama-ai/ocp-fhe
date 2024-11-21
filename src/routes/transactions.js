@@ -75,7 +75,13 @@ transactions.post("/issuance/stock", async (req, res) => {
             return res.status(200).send({ stockIssuance: stockExists });
         }
 
-        await convertAndCreateIssuanceStockOnchain(contract, incomingStockIssuance);
+        await convertAndCreateIssuanceStockOnchain(contract, {
+            security_id: incomingStockIssuance.security_id,
+            stock_class_id: incomingStockIssuance.stock_class_id,
+            stakeholder_id: incomingStockIssuance.stakeholder_id,
+            quantity: incomingStockIssuance.quantity,
+            share_price: incomingStockIssuance.share_price,
+        });
         await createStockIssuance(incomingStockIssuance);
 
         res.status(200).send({ stockIssuance: incomingStockIssuance });
@@ -139,7 +145,13 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
 
         await checkStakeholderExistsOnFairmint({ stakeholder_id: stakeholder._id, portal_id: issuerId });
 
-        await convertAndCreateIssuanceStockOnchain(contract, incomingStockIssuance);
+        await convertAndCreateIssuanceStockOnchain(contract, {
+            security_id: incomingStockIssuance.security_id,
+            stock_class_id: incomingStockIssuance.stock_class_id,
+            stakeholder_id: incomingStockIssuance.stakeholder_id,
+            quantity: incomingStockIssuance.quantity,
+            share_price: incomingStockIssuance.share_price,
+        });
 
         await upsertFairmintDataBySecurityId(incomingStockIssuance.security_id, {
             security_id: incomingStockIssuance.security_id,
