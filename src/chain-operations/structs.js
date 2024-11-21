@@ -126,16 +126,11 @@ export const StockAcceptance = {
     type: "tuple",
     baseType: "tuple",
     components: [
-        { type: "bytes16", baseType: "bytes16", name: "id" },
-        { type: "string", baseType: "string", name: "object_type" },
+        { type: "bytes16", baseType: "bytes16", name: "stock_class_id" },
+        { type: "uint256", baseType: "uint256", name: "share_price" },
+        { type: "uint256", baseType: "uint256", name: "quantity" },
+        { type: "bytes16", baseType: "bytes16", name: "stakeholder_id" },
         { type: "bytes16", baseType: "bytes16", name: "security_id" },
-        {
-            type: "string[]",
-            baseType: "array",
-            arrayLength: -1,
-            arrayChildren: { type: "string", baseType: "string" },
-            name: "comments",
-        },
     ],
 };
 
@@ -175,5 +170,47 @@ export const StockClassAuthorizedSharesAdjustment = {
         },
         { type: "string", baseType: "string", name: "board_approval_date" },
         { type: "string", baseType: "string", name: "stockholder_approval_date" },
+    ],
+};
+
+export const ConvertibleIssuance = {
+    type: "tuple",
+    baseType: "tuple",
+    components: [
+        { type: "bytes16", baseType: "bytes16", name: "stakeholder_id" },
+        { type: "uint256", baseType: "uint256", name: "investment_amount" },
+        { type: "bytes16", baseType: "bytes16", name: "security_id" },
+    ],
+};
+
+export const WarrantIssuance = {
+    type: "tuple",
+    baseType: "tuple",
+    components: [
+        { type: "bytes16", baseType: "bytes16", name: "stakeholder_id" },
+        { type: "uint256", baseType: "uint256", name: "quantity" },
+        { type: "bytes16", baseType: "bytes16", name: "security_id" },
+    ],
+};
+
+export const EquityCompensationIssuance = {
+    type: "tuple",
+    baseType: "tuple",
+    components: [
+        { type: "bytes16", baseType: "bytes16", name: "stakeholder_id" },
+        { type: "bytes16", baseType: "bytes16", name: "stock_class_id" },
+        { type: "bytes16", baseType: "bytes16", name: "stock_plan_id" },
+        { type: "uint256", baseType: "uint256", name: "quantity" },
+        { type: "bytes16", baseType: "bytes16", name: "security_id" },
+    ],
+};
+
+export const EquityCompensationExercise = {
+    type: "tuple",
+    baseType: "tuple",
+    components: [
+        { type: "bytes16", baseType: "bytes16", name: "equity_comp_security_id" },
+        { type: "bytes16", baseType: "bytes16", name: "resulting_stock_security_id" },
+        { type: "uint256", baseType: "uint256", name: "quantity" },
     ],
 };
