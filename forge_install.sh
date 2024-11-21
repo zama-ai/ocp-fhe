@@ -21,7 +21,7 @@ forge install mudgen/diamond-3-hardhat --no-commit || exit 1
 
 echo "Generating remappings..."
 forge remappings > remappings.txt || exit 1
-
+echo '@diamond/=src/lib/diamond/' >> remappings.txt
 echo "Building contracts..."
 forge build || exit 1
 
