@@ -5,6 +5,9 @@ import STAKEHOLDER_FACET from "../../chain/out/StakeholderFacet.sol/StakeholderF
 import ISSUER_FACET from "../../chain/out/IssuerFacet.sol/IssuerFacet.json";
 import STOCK_CLASS_FACET from "../../chain/out/StockClassFacet.sol/StockClassFacet.json";
 import STOCK_FACET from "../../chain/out/StockFacet.sol/StockFacet.json";
+import CONVERTIBLE_FACET from "../../chain/out/ConvertiblesFacet.sol/ConvertiblesFacet.json";
+import WARRANT_FACET from "../../chain/out/WarrantFacet.sol/WarrantFacet.json";
+import EQUITY_COMPENSATION_FACET from "../../chain/out/EquityCompensationFacet.sol/EquityCompensationFacet.json";
 import STOCK_PLAN_FACET from "../../chain/out/StockPlanFacet.sol/StockPlanFacet.json";
 import { toScaledBigNumber } from "../utils/convertToFixedPointDecimals.js";
 import { setupEnv } from "../utils/env.js";
@@ -47,6 +50,9 @@ async function deployCapTable(issuerId, initial_shares_authorized) {
         ...STOCK_CLASS_FACET.abi,
         ...STOCK_FACET.abi,
         ...STOCK_PLAN_FACET.abi,
+        ...CONVERTIBLE_FACET.abi,
+        ...WARRANT_FACET.abi,
+        ...EQUITY_COMPENSATION_FACET.abi,
     ];
 
     // Create the diamond contract with combined ABI
