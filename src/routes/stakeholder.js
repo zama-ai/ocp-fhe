@@ -116,7 +116,7 @@ stakeholder.post("/create", async (req, res) => {
             });
         }
 
-        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB);
+        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB.id);
 
         const stakeholder = await createStakeholder(incomingStakeholderForDB);
 
@@ -161,7 +161,7 @@ stakeholder.post("/create-fairmint-reflection", async (req, res) => {
             });
         }
 
-        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB);
+        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB.id);
 
         const stakeholder = await createStakeholder(incomingStakeholderForDB);
 
