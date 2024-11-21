@@ -20,7 +20,11 @@ import { convertAndAdjustIssuerAuthorizedSharesOnChain } from "../controllers/is
 import { convertAndAdjustStockClassAuthorizedSharesOnchain } from "../controllers/stockClassController.js";
 import { convertAndCreateAcceptanceStockOnchain } from "../controllers/transactions/acceptanceController.js";
 import { convertAndCreateCancellationStockOnchain } from "../controllers/transactions/cancellationController.js";
-import { convertAndCreateIssuanceStockOnchain } from "../controllers/transactions/issuanceController.js";
+import {
+    convertAndCreateIssuanceConvertibleOnchain,
+    convertAndCreateIssuanceStockOnchain,
+    convertAndCreateIssuanceWarrantOnchain,
+} from "../controllers/transactions/issuanceController.js";
 import { convertAndCreateReissuanceStockOnchain } from "../controllers/transactions/reissuanceController.js";
 import { convertAndCreateRepurchaseStockOnchain } from "../controllers/transactions/repurchaseController.js";
 import { convertAndCreateRetractionStockOnchain } from "../controllers/transactions/retractionController.js";
@@ -32,8 +36,6 @@ import {
     createEquityCompensationExercise,
     createStockIssuance,
 } from "../db/operations/create.js";
-import StockIssuance from "../db/objects/transactions/issuance/StockIssuance.js";
-import { reflectGrantExercise } from "../fairmint/reflectGrantExercise.js";
 
 import {
     readStockPlanById,
@@ -49,7 +51,6 @@ import { getJoiErrorMessage } from "../chain-operations/utils.js";
 import { SERIES_TYPE } from "../fairmint/enums.js";
 import { reflectSeries } from "../fairmint/reflectSeries.js";
 import get from "lodash/get";
-import { reflectInvestment } from "../fairmint/reflectInvestment.js";
 import { reflectGrant } from "../fairmint/reflectGrant.js";
 import { checkStakeholderExistsOnFairmint } from "../fairmint/checkStakeholder.js";
 
@@ -91,6 +92,7 @@ transactions.post("/issuance/stock", async (req, res) => {
     }
 });
 
+// TODO: change `Stock` to `stock`
 transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
     const { contract } = req;
     const { issuerId } = req.body;
@@ -128,11 +130,6 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
 
         const stakeholder = await readStakeholderById(incomingStockIssuance.stakeholder_id);
         const stockClass = await readStockClassById(incomingStockIssuance.stock_class_id);
-        // incomingStockIssuance.comments = [
-        // `old-security-id=${incomingStockIssuance.security_id}`,
-        //     `fairmintData=${JSON.stringify({ series_id: payload.series_id, date: payload.data.date })}`,
-        //     ...(incomingStockIssuance.comments || []),
-        // ];
 
         // check if the stakeholder exists on OCP
         if (!stakeholder || !stakeholder._id) {
@@ -583,50 +580,43 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
     }
 });
 
-transactions.post("/exercise/equity-compensation-fairmint-reflection", async (req, res) => {
-    const { data, issuerId } = req.body; // issuer id is checked in the middleware
+transactions.post("/exercise/equity-compensation", async (req, res) => {
+    const { contract } = req;
+    const { issuerId, data } = req.body;
 
     try {
+        // ensuring issuer exists
+        await readIssuerById(issuerId);
+
         const incomingEquityCompensationExercise = {
-            id: uuid(), // for OCF Validation, it gets overriden if id exists in data
-            security_id: uuid(), // for OCF Validation, it gets overriden if security_id exists in data
-            date: new Date().toISOString().slice(0, 10), // for OCF Validation, it gets overriden if date exists in data
+            id: uuid(), // for OCF Validation
+            security_id: uuid(), // for OCF Validation
+            date: new Date().toISOString().slice(0, 10), // for OCF Validation
             object_type: "TX_EQUITY_COMPENSATION_EXERCISE",
             ...data,
         };
 
         await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
-        // Query DB for existing exercise with old security_id on StockIssuance
-        const oldSecurityIds = get(incomingEquityCompensationExercise, "resulting_security_ids", []);
-        const newSecurityIds = [];
 
-        for (const oldSecurityId of oldSecurityIds) {
-            console.log(`Checking DB for old-security-id=${oldSecurityId}`);
-            const stockIssuance = await StockIssuance.findOne({ comments: `old-security-id=${oldSecurityId}` });
-            if (!stockIssuance) {
-                return res.status(404).send({ error: `Stock Issuance not found on OCP for old-security-id=${oldSecurityId}` });
-            }
-            newSecurityIds.push(stockIssuance.security_id);
-        }
+        // Create exercise onchain
+        await contract.exerciseEquityCompensation(
+            incomingEquityCompensationExercise.equity_comp_security_id,
+            incomingEquityCompensationExercise.resulting_stock_security_id,
+            incomingEquityCompensationExercise.quantity
+        );
 
-        // replace old security_ids with new security_ids
-        incomingEquityCompensationExercise.resulting_security_ids = newSecurityIds;
-
+        // Save to DB
         const createdExercise = await createEquityCompensationExercise({
             ...incomingEquityCompensationExercise,
             issuer: issuerId,
         });
 
-        // Reflect exercise on fairmint
-        const reflectedExercise = await reflectGrantExercise({
-            security_id: incomingEquityCompensationExercise.security_id,
-            resulting_security_ids: incomingEquityCompensationExercise.resulting_security_ids,
-            issuerId,
-            quantity: incomingEquityCompensationExercise.quantity,
-            date: incomingEquityCompensationExercise.date,
+        // Create historical transaction
+        await createHistoricalTransaction({
+            transaction: createdExercise._id,
+            issuer: issuerId,
+            transactionType: "EquityCompensationExercise",
         });
-
-        console.log("Reflected Exercise Response:", reflectedExercise);
 
         res.status(200).send({ equityCompensationExercise: createdExercise });
     } catch (error) {
@@ -661,6 +651,13 @@ transactions.post("/issuance/convertible", async (req, res) => {
                 convertibleIssuance: convertibleExists,
             });
         }
+
+        // Create convertible onchain
+        await convertAndCreateIssuanceConvertibleOnchain(contract, {
+            security_id: incomingConvertibleIssuance.security_id,
+            stakeholder_id: incomingConvertibleIssuance.stakeholder_id,
+            investment_amount: incomingConvertibleIssuance.investment_amount.amount,
+        });
 
         // save to DB
         const createdIssuance = await createConvertibleIssuance({ ...incomingConvertibleIssuance, issuer: issuerId });
@@ -725,29 +722,25 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
             });
         }
         // save to DB
+
+        await convertAndCreateIssuanceConvertibleOnchain(contract, {
+            security_id: incomingConvertibleIssuance.security_id,
+            stakeholder_id: incomingConvertibleIssuance.stakeholder_id,
+            investment_amount: incomingConvertibleIssuance.investment_amount.amount,
+        });
         const createdIssuance = await createConvertibleIssuance({
             ...incomingConvertibleIssuance,
             issuer: issuerId,
         });
 
-        const seriesCreated = await reflectSeries({
-            issuerId,
+        await upsertFairmintDataBySecurityId(incomingConvertibleIssuance.security_id, {
+            security_id: incomingConvertibleIssuance.security_id,
             series_id: payload.series_id,
-            series_name: payload.series_name,
-            series_type: SERIES_TYPE.FUNDRAISING,
-            date: get(incomingConvertibleIssuance, "date", new Date().toISOString().split("T")[0]),
+            attributes: {
+                series_name: payload.series_name,
+            },
         });
-
-        console.log("series reflected response ", seriesCreated);
-
-        const reflectInvestmentResponse = await reflectInvestment({
-            security_id: get(incomingConvertibleIssuance, "security_id"),
-            issuerId,
-            stakeholder_id: stakeholder._id,
-            series_id: payload.series_id,
-            amount: get(incomingConvertibleIssuance, "investment_amount.amount", 0),
-            date: get(incomingConvertibleIssuance, "date", new Date().toISOString().split("T")[0]),
-        });
+        createConvertibleIssuance();
 
         console.log("Reflected Investment Response:", reflectInvestmentResponse);
         // Note: this will have it's own listener in the future to check with Fairmint Obj and sync with Fairmint accordingly
@@ -760,6 +753,7 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
 });
 
 transactions.post("/issuance/warrant", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
 
     try {
@@ -777,7 +771,14 @@ transactions.post("/issuance/warrant", async (req, res) => {
         console.log("incomingWarrantIssuance", incomingWarrantIssuance);
         await validateInputAgainstOCF(incomingWarrantIssuance, warrantIssuanceSchema);
 
-        // save to DB
+        // Create warrant onchain
+        await convertAndCreateIssuanceWarrantOnchain(contract, {
+            security_id: incomingWarrantIssuance.security_id,
+            stakeholder_id: incomingWarrantIssuance.stakeholder_id,
+            quantity: incomingWarrantIssuance.quantity,
+        });
+
+        // Save to DB
         const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
 
         res.status(200).send({ warrantIssuance: createdIssuance });
@@ -788,6 +789,7 @@ transactions.post("/issuance/warrant", async (req, res) => {
 });
 
 transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
     const schema = Joi.object({
         series_id: Joi.string().uuid().required(),
@@ -805,7 +807,6 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
     }
 
     try {
-        // ensuring issuer exists
         await readIssuerById(issuerId);
 
         const incomingWarrantIssuance = {
@@ -816,47 +817,38 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
             ...data,
         };
 
-        console.log("incomingWarrantIssuance", incomingWarrantIssuance);
         await validateInputAgainstOCF(incomingWarrantIssuance, warrantIssuanceSchema);
 
-        // check if the stakeholder exists
+        // Verify stakeholder exists
         const stakeholder = await readStakeholderById(incomingWarrantIssuance.stakeholder_id);
         if (!stakeholder || !stakeholder._id) {
             return res.status(400).send({ error: "Stakeholder not found on OCP" });
         }
 
-        // check stakeholder exists on fairmint
+        // Check stakeholder exists on fairmint
         await checkStakeholderExistsOnFairmint({
             stakeholder_id: stakeholder._id,
             portal_id: issuerId,
         });
 
-        // save to DB
+        // Create warrant onchain
+        await convertAndCreateIssuanceWarrantOnchain(contract, {
+            security_id: incomingWarrantIssuance.security_id,
+            stakeholder_id: incomingWarrantIssuance.stakeholder_id,
+            quantity: incomingWarrantIssuance.quantity,
+        });
+
+        // Save to DB
         const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
 
-        const seriesCreated = await reflectSeries({
-            issuerId,
-            series_id: payload.series_id,
-            series_name: payload.series_name,
-            series_type: SERIES_TYPE.WARRANT,
-            date: get(incomingWarrantIssuance, "date", new Date().toISOString().split("T")[0]),
-        });
-
-        console.log("series reflected response ", seriesCreated);
-        const { purchase_price } = incomingWarrantIssuance;
-        const dollarAmount = Number(get(purchase_price, "amount", 1));
-
-        const reflectInvestmentResponse = await reflectInvestment({
+        // Save Fairmint data
+        await upsertFairmintDataBySecurityId(incomingWarrantIssuance.security_id, {
             security_id: incomingWarrantIssuance.security_id,
-            issuerId,
-            stakeholder_id: stakeholder._id,
             series_id: payload.series_id,
-            amount: dollarAmount,
-            date: get(incomingWarrantIssuance, "date", new Date().toISOString().split("T")[0]),
+            attributes: {
+                series_name: payload.series_name,
+            },
         });
-
-        console.log("Reflected Investment Response:", reflectInvestmentResponse);
-        // Note: this will have it's own listener in the future to check with Fairmint Obj and sync with Fairmint accordingly
 
         res.status(200).send({ warrantIssuance: createdIssuance });
     } catch (error) {
@@ -864,5 +856,4 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
         res.status(500).send(`${error}`);
     }
 });
-
 export default transactions;
