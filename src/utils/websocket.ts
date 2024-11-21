@@ -1,7 +1,7 @@
-import { Log, AbiCoder, Provider, Block } from "ethers";
+import { Log, AbiCoder, Provider, Block, ethers } from "ethers";
 import getProvider from "../chain-operations/getProvider";
 import get from "lodash/get.js";
-import { txMapper, txTypes } from "../chain-operations/transactionHandlers";
+import { handleStockPlan, txMapper, txTypes } from "../chain-operations/transactionHandlers";
 import { handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
 import Issuer from "../db/objects/Issuer";
 
@@ -10,6 +10,7 @@ const TOPICS = {
     TxCreated: "0x9f88fb156974def70024c0bee5f2fefd94c4f8141b6468bd9e49eb0425639845",
     StakeholderCreated: "0x53df47344d1cdf2ddb4901af5df61e37e14606bb7c8cc004d65c7c83ab3d0693",
     StockClassCreated: "0xc7496d70298fcc793e1d058617af680232585e302f0185b14bba498b247a9c1d",
+    StockPlanCreated: ethers.id("StockPlanCreated(bytes16)"),
     // IssuerCreated: "0xb8cbde9f597f493a1b4d1c4db5fded9cd26293080750a0df6b7e7097f4b680dd", // We don't receive this event because by time an issuer is created and we add it to the listener we have already missed it.
 };
 
@@ -140,6 +141,15 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
                 console.error("Invalid transaction type: ", txType);
                 throw new Error(`Invalid transaction type: "${txType}"`);
             }
+            break;
+        case TOPICS.StockPlanCreated:
+            const stockPlanIdBytes = get(log, "topics.1", null);
+            if (!stockPlanIdBytes) {
+                console.error("No stock plan id found");
+                return;
+            }
+            const [stockPlanIdBytes16] = abiCoder.decode(["bytes16"], stockPlanIdBytes);
+            await handleStockPlan(stockPlanIdBytes16);
             break;
 
         default:

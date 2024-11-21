@@ -13,6 +13,7 @@ import {
     upsertStockAcceptanceById,
     upsertStockClassAuthorizedSharesAdjustment,
     upsertIssuerAuthorizedSharesAdjustment,
+    updateStockPlanById,
 } from "../db/operations/update.js";
 import get from "lodash/get";
 import { reflectSeries } from "../fairmint/reflectSeries.js";
@@ -454,9 +455,17 @@ export const handleIssuerAuthorizedSharesAdjusted = async (issuer, issuerId, tim
     );
 };
 
+export const handleStockPlan = async (id) => {
+    console.log("StockPlanCreated Event Emitted!", id);
+    const incomingStockPlanId = convertBytes16ToUUID(id);
+    const stockPlan = await updateStockPlanById(incomingStockPlanId, { is_onchain_synced: true });
+    console.log("✅ | StockPlan confirmation onchain ", stockPlan);
+};
+
 export const contractFuncs = new Map([
     ["StakeholderCreated", handleStakeholder],
     ["StockClassCreated", handleStockClass],
+    ["StockPlanCreated", handleStockPlan],
 ]);
 
 export const txMapper = {

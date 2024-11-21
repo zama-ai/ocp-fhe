@@ -1,20 +1,20 @@
 import { ethers } from "ethers";
-// import CAP_TABLE from "../../chain/out/CapTable.sol/CapTable.json";
-// import CAP_TABLE_FACTORY from "../../chain/out/CapTableFactory.sol/CapTableFactory.json";
-import CAP_TABLE_FACTORY_DIAMOND from "../../chain/out/DiamondCapTableFactory.sol/DiamondCapTableFactory.json";
-// import { readfactories } from "../db/operations/read.js";
+import CAP_TABLE from "../../chain/out/DiamondCapTable.sol/DiamondCapTable.json";
+import CAP_TABLE_FACTORY from "../../chain/out/DiamondCapTableFactory.sol/DiamondCapTableFactory.json";
+import STAKEHOLDER_FACET from "../../chain/out/StakeholderFacet.sol/StakeholderFacet.json";
+import ISSUER_FACET from "../../chain/out/IssuerFacet.sol/IssuerFacet.json";
+import STOCK_CLASS_FACET from "../../chain/out/StockClassFacet.sol/StockClassFacet.json";
+import STOCK_FACET from "../../chain/out/StockFacet.sol/StockFacet.json";
+import STOCK_PLAN_FACET from "../../chain/out/StockPlanFacet.sol/StockPlanFacet.json";
 import { toScaledBigNumber } from "../utils/convertToFixedPointDecimals.js";
 import { setupEnv } from "../utils/env.js";
-// import getTXLibContracts from "../utils/getLibrariesContracts.js";
 import getProvider from "./getProvider.js";
 
 setupEnv();
 
 async function deployCapTable(issuerId, initial_shares_authorized) {
     const WALLET_PRIVATE_KEY = process.env.PRIVATE_KEY;
-
     const provider = getProvider();
-
     const wallet = new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
     console.log("🗽 | Wallet address: ", wallet.address);
 
@@ -26,30 +26,42 @@ async function deployCapTable(issuerId, initial_shares_authorized) {
         throw new Error(`❌ | Factory address not found`);
     }
 
-    const capTableFactory = new ethers.Contract(factoryAddress, CAP_TABLE_FACTORY_DIAMOND.abi, wallet);
+    const capTableFactory = new ethers.Contract(factoryAddress, CAP_TABLE_FACTORY.abi, wallet);
 
     console.log("Creating a new cap table...");
     const tx = await capTableFactory.createCapTable(issuerId, toScaledBigNumber(initial_shares_authorized));
     await tx.wait();
-    console.log({ tx });
     console.log("Cap table created");
-    const capTableCount = await capTableFactory.getCapTableCount();
 
+    const capTableCount = await capTableFactory.getCapTableCount();
     console.log("📄 | Cap table count: ", capTableCount);
 
-    const latestCapTableProxyContractAddress = await capTableFactory.capTables(capTableCount - BigInt(1));
+    const diamondAddress = await capTableFactory.capTables(capTableCount - BigInt(1));
+    console.log("✅ | Diamond address: ", diamondAddress);
 
-    // const contract = new ethers.Contract(latestCapTableProxyContractAddress, CAP_TABLE.abi, wallet);
+    // Create a combined ABI from all facets
+    const combinedABI = [
+        ...CAP_TABLE.abi,
+        ...STAKEHOLDER_FACET.abi,
+        ...ISSUER_FACET.abi,
+        ...STOCK_CLASS_FACET.abi,
+        ...STOCK_FACET.abi,
+        ...STOCK_PLAN_FACET.abi,
+    ];
 
-    console.log("⏳ | Waiting for contract to be deployed...");
-    // console.log("✅ | Cap table contract address ", latestCapTableProxyContractAddress);
-    // const libraries = getTXLibContracts(latestCapTableProxyContractAddress, wallet);
+    // Create the diamond contract with combined ABI
+    const diamond = new ethers.Contract(diamondAddress, combinedABI, wallet);
 
+    // Return both the diamond contract and individual facet contracts
     return {
-        contract: null,
-        provider,
-        address: latestCapTableProxyContractAddress,
-        libraries: null,
+        contract: diamond, // Main diamond contract with all facets
+        // facets: {
+        //     stakeholder: new ethers.Contract(diamondAddress, STAKEHOLDER_FACET.abi, wallet),
+        //     issuer: new ethers.Contract(diamondAddress, ISSUER_FACET.abi, wallet),
+        //     stockClass: new ethers.Contract(diamondAddress, STOCK_CLASS_FACET.abi, wallet),
+        //     stock: new ethers.Contract(diamondAddress, STOCK_FACET.abi, wallet),
+        // },
+        address: diamondAddress,
         deployHash: tx.hash,
     };
 }

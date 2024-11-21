@@ -56,8 +56,14 @@ export const updateStockLegendTemplateById = async (id, updatedData) => {
     return await findByIdAndUpdate(StockLegendTemplate, id, updatedData, { new: true });
 };
 
-export const updateStockPlanById = async (id, updatedData) => {
-    return await findByIdAndUpdate(StockPlan, id, updatedData, { new: true });
+export const updateStockPlanById = async (id, update) => {
+    const stockPlan = await StockPlan.findByIdAndUpdate(id, { $set: update }, { new: true });
+
+    if (!stockPlan) {
+        throw new Error(`Stock Plan with id ${id} not found`);
+    }
+
+    return stockPlan;
 };
 
 export const updateValuationById = async (id, updatedData) => {

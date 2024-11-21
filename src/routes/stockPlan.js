@@ -5,6 +5,7 @@ import { createStockPlan } from "../db/operations/create.js";
 import { countStockPlans, readIssuerById, readStockPlanById } from "../db/operations/read.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
 import { sumEquityCompensationIssuances } from "../db/operations/read.js";
+import { convertAndReflectStockPlanOnchain } from "../controllers/stockPlanController.js";
 
 const stockPlan = Router();
 
@@ -63,10 +64,10 @@ stockPlan.get("/verify-quantity-remaining/id/:id", async (req, res) => {
 
 /// @dev: stock plan is currently only created offchain
 stockPlan.post("/create", async (req, res) => {
+    const { contract } = req;
     const { data, issuerId } = req.body;
     try {
         await readIssuerById(issuerId);
-        setTag("issuerId", issuerId);
 
         const incomingStockPlanToValidate = {
             id: uuid(),
@@ -84,6 +85,7 @@ stockPlan.post("/create", async (req, res) => {
         if (exists && exists._id) {
             return res.status(200).send({ message: "Stock Plan already created", stockPlan: exists });
         }
+        await convertAndReflectStockPlanOnchain(contract, incomingStockPlanForDB);
         const stockPlan = await createStockPlan(incomingStockPlanForDB);
 
         console.log("✅ | Created Stock Plan in DB: ", stockPlan);
