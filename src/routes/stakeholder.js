@@ -116,9 +116,11 @@ stakeholder.post("/create", async (req, res) => {
             });
         }
 
-        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB.id);
-
+        // Save offchain
         const stakeholder = await createStakeholder(incomingStakeholderForDB);
+
+        // Save onchain
+        await convertAndReflectStakeholderOnchain(contract, incomingStakeholderForDB.id);
 
         console.log("✅ | Stakeholder created offchain:", stakeholder);
 
