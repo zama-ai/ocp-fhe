@@ -8,6 +8,9 @@ import StockPlan from "../objects/StockPlan.js";
 import Valuation from "../objects/Valuation.js";
 import VestingTerms from "../objects/VestingTerms.js";
 import StockAcceptance from "../objects/transactions/acceptance/StockAcceptance.js";
+import WarrantIssuance from "../objects/transactions/issuance/WarrantIssuance.js";
+import EquityCompensationIssuance from "../objects/transactions/issuance/EquityCompensationIssuance.js";
+import EquityCompensationExercise from "../objects/transactions/exercise/EquityCompensationExercise.js";
 import IssuerAuthorizedSharesAdjustment from "../objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
 import StockClassAuthorizedSharesAdjustment from "../objects/transactions/adjustment/StockClassAuthorizedSharesAdjustment.js";
 import StockCancellation from "../objects/transactions/cancellation/StockCancellation.js";
@@ -45,8 +48,8 @@ export const updateIssuerById = async (id, updatedData) => {
     return await findByIdAndUpdate(Issuer, id, updatedData, { new: true });
 };
 
-export const updateStakeholderById = async (id, updatedData) => {
-    return await retryOnMiss(async () => findByIdAndUpdate(Stakeholder, id, updatedData, { new: true }));
+export const upsertStakeholderById = async (id, updatedData) => {
+    return await retryOnMiss(async () => findByIdAndUpdate(Stakeholder, id, updatedData, { new: true, upsert: true }));
 };
 
 export const updateStockClassById = async (id, updatedData) => {
