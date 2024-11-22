@@ -24,10 +24,6 @@ export const readIssuerById = async (id) => {
     return await findById(Issuer, id);
 };
 
-export const readStakeholderByIssuerAssignedId = async (id) => {
-    return await findOne(Stakeholder, { issuer_assigned_id: id });
-};
-
 export const readStakeholderById = async (id) => {
     return await findById(Stakeholder, id);
 };
@@ -122,6 +118,10 @@ export const readFairmintDataById = async (id) => {
 
 export const readFairmintDataBySecurityId = async (securityId) => {
     return await Fairmint.findOne({ security_id: securityId });
+};
+
+export const readFairmintDataByStakeholderId = async (stakeholderId) => {
+    return await Fairmint.findOne({ stakeholder_id: stakeholderId });
 };
 
 export const getAllStateMachineObjectsById = async (issuerId) => {

@@ -1,8 +1,8 @@
 import { convertBytes16ToUUID } from "../utils/convertUUID.js";
 import { createHistoricalTransaction } from "../db/operations/create.js";
-import { readFairmintDataBySecurityId } from "../db/operations/read.js";
+import { readFairmintDataBySecurityId, readFairmintDataByStakeholderId } from "../db/operations/read.js";
 import {
-    updateStakeholderById,
+    upsertStakeholderById,
     updateStockClassById,
     upsertStockTransferById,
     upsertStockCancellationById,
@@ -161,14 +161,13 @@ export const handleStakeholder = async (id) => {
     try {
         console.log("StakeholderCreated Event Emitted!", id);
         const incomingStakeholderId = convertBytes16ToUUID(id);
-        const stakeholder = await updateStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
+        const stakeholder = await upsertStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
 
-        if (!stakeholder) {
-            throw Error("handleStakeholder: Stakeholder does not exist throw Error ");
+        // fiarmint data reflection
+        const fairmintData = await readFairmintDataByStakeholderId(incomingStakeholderId);
+        if (fairmintData && fairmintData._id) {
+            await reflectStakeholder({ stakeholder, issuerId: stakeholder.issuer });
         }
-
-        // TODO: condtionally reflect stakeholder to fairmint
-        await reflectStakeholder({ stakeholder, issuerId: stakeholder.issuer });
     } catch (error) {
         throw Error("Error handing Stakeholder On Chain", error);
     }
@@ -491,9 +490,8 @@ export const handleWarrantIssuance = async (warrant, issuerId, timestamp) => {
     });
 
     if (fairmintData && fairmintData._id) {
-        // Query the warrant issuance to get additional data like purchase_price
-        const warrantIssuance = await readWarrantIssuanceBySecurityId(_security_id);
-        const dollarAmount = Number(get(warrantIssuance, "purchase_price.amount", 1));
+        // Query the warrant issuance to get additional data like purchase_price, if it's reflection data then it will have `purchase_price` field off chain
+        const dollarAmount = Number(get(createdWarrantIssuance, "purchase_price.amount", 1));
         const seriesCreatedResp = await reflectSeries({
             issuerId,
             series_id: fairmintData.series_id,

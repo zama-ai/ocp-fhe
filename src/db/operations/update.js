@@ -48,6 +48,10 @@ export const updateIssuerById = async (id, updatedData) => {
     return await findByIdAndUpdate(Issuer, id, updatedData, { new: true });
 };
 
+export const updateStakeholderById = async (id, updatedData) => {
+    return await retryOnMiss(async () => findByIdAndUpdate(Stakeholder, id, updatedData, { new: true }));
+};
+
 export const upsertStakeholderById = async (id, updatedData) => {
     return await retryOnMiss(async () => findByIdAndUpdate(Stakeholder, id, updatedData, { new: true, upsert: true }));
 };
@@ -144,6 +148,17 @@ export const upsertFairmintData = async (id, updatedData = {}) => {
 
 export const upsertFairmintDataBySecurityId = async (security_id, updatedData = {}) => {
     const existing = await findOne(Fairmint, { security_id });
+    if (existing && existing._id) {
+        updatedData.attributes = {
+            ...get(existing, "attributes", {}),
+            ...get(updatedData, "attributes", {}),
+        };
+    }
+    return await findByIdAndUpdate(Fairmint, get(existing, "_id", uuid()), updatedData, { new: true, upsert: true });
+};
+
+export const upsertFairmintDataByStakeholderId = async (stakeholder_id, updatedData = {}) => {
+    const existing = await findOne(Fairmint, { stakeholder_id });
     if (existing && existing._id) {
         updatedData.attributes = {
             ...get(existing, "attributes", {}),
