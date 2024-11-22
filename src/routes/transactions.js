@@ -699,6 +699,8 @@ transactions.post("/exercise/equity-compensation-fairmint-reflection", async (re
                 equityCompensationExercise: exerciseExists,
             });
         }
+        // Save Fairmint data
+        await createFairmintData({ security_id: incomingEquityCompensationExercise.security_id });
 
         // Save offchain
         const createdExercise = await createEquityCompensationExercise({ ...incomingEquityCompensationExercise, issuer: issuerId });
