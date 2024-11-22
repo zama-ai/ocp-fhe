@@ -209,6 +209,22 @@ export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
     }
 }
 
-export const readWarrantIssuanceById = async (id) => {
-    return await findById(WarrantIssuance, id);
+export const readWarrantIssuanceBySecurityId = async (securityId) => {
+    return await findOne(WarrantIssuance, { security_id: securityId });
+};
+
+export const readStockIssuanceBySecurityId = async (securityId) => {
+    return await findOne(StockIssuance, { security_id: securityId });
+};
+
+export const readConvertibleIssuanceBySecurityId = async (securityId) => {
+    return await findOne(ConvertibleIssuance, { security_id: securityId });
+};
+
+export const readEquityCompensationIssuanceBySecurityId = async (securityId) => {
+    return await findOne(EquityCompensationIssuance, { security_id: securityId });
+};
+
+export const readEquityCompensationExerciseBySecurityId = async (securityId) => {
+    return await findOne(EquityCompensationExercise, { security_id: securityId });
 };

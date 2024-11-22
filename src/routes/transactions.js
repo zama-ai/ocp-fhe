@@ -39,11 +39,14 @@ import {
 
 import {
     readStockPlanById,
-    readConvertibleIssuanceById,
     readIssuerById,
     readStakeholderById,
     readStockClassById,
-    readStockIssuanceByCustomId,
+    readConvertibleIssuanceBySecurityId,
+    readStockIssuanceBySecurityId,
+    readEquityCompensationIssuanceBySecurityId,
+    readEquityCompensationExerciseBySecurityId,
+    readWarrantIssuanceBySecurityId,
 } from "../db/operations/read.js";
 import { createStockPlanPoolAdjustment } from "../db/operations/create.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
@@ -72,9 +75,12 @@ transactions.post("/issuance/stock", async (req, res) => {
         };
         await validateInputAgainstOCF(incomingStockIssuance, stockIssuanceSchema);
 
-        const stockExists = await readStockIssuanceByCustomId(data?.custom_id);
-        if (stockExists._id) {
-            return res.status(200).send({ stockIssuance: stockExists });
+        const stockExists = await readStockIssuanceBySecurityId(incomingStockIssuance.security_id);
+        if (stockExists && stockExists._id) {
+            return res.status(200).send({
+                message: "Stock Issuance Already Exists",
+                stockIssuance: stockExists,
+            });
         }
 
         await convertAndCreateIssuanceStockOnchain(contract, {
@@ -473,6 +479,15 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
             return res.status(404).send({ error: "Stock class not found on OCP" });
         }
 
+        // Check if equity compensation issuance exists
+        const equityExists = await readEquityCompensationIssuanceBySecurityId(incomingEquityCompensationIssuance.security_id);
+        if (equityExists && equityExists._id) {
+            return res.status(200).send({
+                message: "Equity Compensation Issuance Already Exists",
+                equityCompensationIssuance: equityExists,
+            });
+        }
+
         // save to DB
         const createdIssuance = await createEquityCompensationIssuance({ ...incomingEquityCompensationIssuance, issuer: issuerId });
 
@@ -536,6 +551,15 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             portal_id: issuerId,
         });
 
+        // Check if equity compensation exists
+        const equityExists = await readEquityCompensationIssuanceBySecurityId(incomingEquityCompensationIssuance.security_id);
+        if (equityExists && equityExists._id) {
+            return res.status(200).send({
+                message: "Equity Compensation Issuance Already Exists",
+                equityCompensationIssuance: equityExists,
+            });
+        }
+
         // save to DB
         const createdIssuance = await createEquityCompensationIssuance({
             ...incomingEquityCompensationIssuance,
@@ -598,6 +622,15 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
 
         await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
 
+        // Check if exercise exists
+        const exerciseExists = await readEquityCompensationExerciseBySecurityId(incomingEquityCompensationExercise.security_id);
+        if (exerciseExists && exerciseExists._id) {
+            return res.status(200).send({
+                message: "Equity Compensation Exercise Already Exists",
+                equityCompensationExercise: exerciseExists,
+            });
+        }
+
         // Create exercise onchain
         await contract.exerciseEquityCompensation(
             incomingEquityCompensationExercise.equity_comp_security_id,
@@ -637,8 +670,8 @@ transactions.post("/issuance/convertible", async (req, res) => {
         console.log("incomingConvertibleIssuance", incomingConvertibleIssuance);
         await validateInputAgainstOCF(incomingConvertibleIssuance, convertibleIssuanceSchema);
 
-        // check if it exists
-        const convertibleExists = await readConvertibleIssuanceById(incomingConvertibleIssuance?.id);
+        // Check if convertible exists - updated to use securityId
+        const convertibleExists = await readConvertibleIssuanceBySecurityId(incomingConvertibleIssuance.security_id);
         if (convertibleExists && convertibleExists._id) {
             return res.status(200).send({
                 message: "Convertible Issuance Already Exists",
@@ -708,8 +741,8 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
             portal_id: issuerId,
         });
 
-        // check if it exists
-        const convertibleExists = await readConvertibleIssuanceById(incomingConvertibleIssuance?.id);
+        // Check if convertible exists - updated to use securityId
+        const convertibleExists = await readConvertibleIssuanceBySecurityId(incomingConvertibleIssuance.security_id);
         if (convertibleExists && convertibleExists._id) {
             return res.status(200).send({
                 message: "Convertible Issuance Already Exists",
@@ -762,6 +795,15 @@ transactions.post("/issuance/warrant", async (req, res) => {
 
         console.log("incomingWarrantIssuance", incomingWarrantIssuance);
         await validateInputAgainstOCF(incomingWarrantIssuance, warrantIssuanceSchema);
+
+        // Check if warrant exists
+        const warrantExists = await readWarrantIssuanceBySecurityId(incomingWarrantIssuance.security_id);
+        if (warrantExists && warrantExists._id) {
+            return res.status(200).send({
+                message: "Warrant Issuance Already Exists",
+                warrantIssuance: warrantExists,
+            });
+        }
 
         // Create warrant onchain
         await convertAndCreateIssuanceWarrantOnchain(contract, {
@@ -822,6 +864,15 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
             stakeholder_id: stakeholder._id,
             portal_id: issuerId,
         });
+
+        // Check if warrant exists
+        const warrantExists = await readWarrantIssuanceBySecurityId(incomingWarrantIssuance.security_id);
+        if (warrantExists && warrantExists._id) {
+            return res.status(200).send({
+                message: "Warrant Issuance Already Exists",
+                warrantIssuance: warrantExists,
+            });
+        }
 
         // Create warrant onchain
         await convertAndCreateIssuanceWarrantOnchain(contract, {
