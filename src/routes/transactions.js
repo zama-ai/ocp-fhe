@@ -502,6 +502,11 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
                 equityCompensationIssuance: equityExists,
             });
         }
+
+        // Save offchain
+        const createdIssuance = await createEquityCompensationIssuance({ ...incomingEquityCompensationIssuance, issuer: issuerId });
+
+        // Save onchain
         await convertAndCreateIssuanceEquityCompensationOnchain(contract, {
             security_id: incomingEquityCompensationIssuance.security_id,
             stakeholder_id: incomingEquityCompensationIssuance.stakeholder_id,
@@ -509,8 +514,6 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
             stock_plan_id: incomingEquityCompensationIssuance.stock_plan_id,
             quantity: incomingEquityCompensationIssuance.quantity,
         });
-        // save to DB
-        const createdIssuance = await createEquityCompensationIssuance({ ...incomingEquityCompensationIssuance, issuer: issuerId });
 
         res.status(200).send({ equityCompensationIssuance: createdIssuance });
     } catch (error) {
@@ -581,13 +584,6 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             portal_id: issuerId,
         });
 
-        await createFairmintData({
-            security_id: incomingEquityCompensationIssuance.security_id,
-            series_id: payload.series_id,
-            attributes: {
-                series_name: payload.series_name,
-            },
-        });
         // Check if equity compensation exists
         const equityExists = await readEquityCompensationIssuanceBySecurityId(incomingEquityCompensationIssuance.security_id);
         if (equityExists && equityExists._id) {
@@ -597,17 +593,25 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             });
         }
 
+        // Save Fairmint data
+        await createFairmintData({
+            security_id: incomingEquityCompensationIssuance.security_id,
+            series_id: payload.series_id,
+            attributes: {
+                series_name: payload.series_name,
+            },
+        });
+
+        // Save offchain
+        const createdIssuance = await createEquityCompensationIssuance({ ...incomingEquityCompensationIssuance, issuer: issuerId });
+
+        // Save onchain
         await convertAndCreateIssuanceEquityCompensationOnchain(contract, {
             security_id: incomingEquityCompensationIssuance.security_id,
             stakeholder_id: incomingEquityCompensationIssuance.stakeholder_id,
             stock_class_id: incomingEquityCompensationIssuance.stock_class_id,
             stock_plan_id: incomingEquityCompensationIssuance.stock_plan_id,
             quantity: incomingEquityCompensationIssuance.quantity,
-        });
-        // save to DB
-        const createdIssuance = await createEquityCompensationIssuance({
-            ...incomingEquityCompensationIssuance,
-            issuer: issuerId,
         });
 
         res.status(200).send({ equityCompensationIssuance: createdIssuance });
