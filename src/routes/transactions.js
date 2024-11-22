@@ -652,17 +652,62 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
             });
         }
 
-        // Create exercise onchain
+        // Save offchain
+        const createdExercise = await createEquityCompensationExercise({ ...incomingEquityCompensationExercise, issuer: issuerId });
+
+        // Save onchain
         await convertAndCreateEquityCompensationExerciseOnchain(contract, {
             equity_comp_security_id: incomingEquityCompensationExercise.security_id,
             resulting_stock_security_id: incomingEquityCompensationExercise.resulting_security_ids[0],
             quantity: incomingEquityCompensationExercise.quantity,
         });
 
-        // Save to DB
-        const createdExercise = await createEquityCompensationExercise({
-            ...incomingEquityCompensationExercise,
-            issuer: issuerId,
+        res.status(200).send({ equityCompensationExercise: createdExercise });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(`${error}`);
+    }
+});
+
+transactions.post("/exercise/equity-compensation-fairmint-reflection", async (req, res) => {
+    const { contract } = req;
+    const { issuerId, data } = req.body;
+
+    try {
+        // ensuring issuer exists
+        await readIssuerById(issuerId);
+
+        const incomingEquityCompensationExercise = {
+            id: uuid(), // for OCF Validation
+            security_id: uuid(), // for OCF Validation
+            date: new Date().toISOString().slice(0, 10), // for OCF Validation
+            object_type: "TX_EQUITY_COMPENSATION_EXERCISE",
+            ...data,
+        };
+
+        await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
+
+        // Enforce data.resulting_security_ids array has at least one element
+        if (get(incomingEquityCompensationExercise, "resulting_security_ids").length === 0) {
+            return res.status(400).send({ error: "resulting_security_ids array is required and must have at least one element" });
+        }
+        // Check if exercise exists
+        const exerciseExists = await readEquityCompensationExerciseBySecurityId(incomingEquityCompensationExercise.security_id);
+        if (exerciseExists && exerciseExists._id) {
+            return res.status(200).send({
+                message: "Equity Compensation Exercise Already Exists",
+                equityCompensationExercise: exerciseExists,
+            });
+        }
+
+        // Save offchain
+        const createdExercise = await createEquityCompensationExercise({ ...incomingEquityCompensationExercise, issuer: issuerId });
+
+        // Save onchain
+        await convertAndCreateEquityCompensationExerciseOnchain(contract, {
+            equity_comp_security_id: incomingEquityCompensationExercise.security_id,
+            resulting_stock_security_id: incomingEquityCompensationExercise.resulting_security_ids[0],
+            quantity: incomingEquityCompensationExercise.quantity,
         });
 
         res.status(200).send({ equityCompensationExercise: createdExercise });
