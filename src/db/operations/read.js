@@ -90,14 +90,6 @@ export const countVestingTerms = async () => {
     return await countDocuments(VestingTerms);
 };
 
-export const readStockIssuanceByCustomId = async (custom_id) => {
-    return await StockIssuance.find({ custom_id });
-};
-
-export const readConvertibleIssuanceById = async (id) => {
-    return await ConvertibleIssuance.findById(id);
-};
-
 export const getAllIssuerDataById = async (issuerId) => {
     const issuerStakeholders = await find(Stakeholder, { issuer: issuerId });
     const issuerStockClasses = await find(StockClass, { issuer: issuerId });
@@ -219,8 +211,4 @@ export async function sumEquityCompensationIssuances(issuerId, stockPlanId) {
 
 export const readWarrantIssuanceById = async (id) => {
     return await findById(WarrantIssuance, id);
-};
-
-export const readWarrantIssuanceBySecurityId = async (securityId) => {
-    return await findOne(WarrantIssuance, { security_id: securityId });
 };
