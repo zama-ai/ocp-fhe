@@ -634,7 +634,7 @@ export const contractFuncs = new Map([
     ["StockPlanCreated", handleStockPlan],
 ]);
 
-// DANGEROUS DANGEROUS DANGEROUS ASSUMING THESE ARE IN ORDER ACCORIDING to DiamondTxHelper:TxType.sol enum
+// DANGEROUS DANGEROUS DANGEROUS THIS HAS TO BE IN SAME ORDER AS DiamondTxHelper:TxType Enum
 export const txMapper = {
     1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
     2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],

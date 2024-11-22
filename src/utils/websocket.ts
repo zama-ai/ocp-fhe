@@ -1,3 +1,5 @@
+/* eslint-disable no-case-declarations */
+
 import { Log, AbiCoder, Provider, Block, ethers } from "ethers";
 import getProvider from "../chain-operations/getProvider";
 import get from "lodash/get.js";
