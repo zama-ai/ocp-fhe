@@ -824,15 +824,15 @@ transactions.post("/issuance/warrant", async (req, res) => {
             });
         }
 
-        // Create warrant onchain
+        // Save Offchain
+        const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
+
+        // Save Onchain
         await convertAndCreateIssuanceWarrantOnchain(contract, {
             security_id: incomingWarrantIssuance.security_id,
             stakeholder_id: incomingWarrantIssuance.stakeholder_id,
             quantity: incomingWarrantIssuance.quantity,
         });
-
-        // Save to DB
-        const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
 
         res.status(200).send({ warrantIssuance: createdIssuance });
     } catch (error) {
@@ -893,24 +893,23 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
             });
         }
 
-        // Create warrant onchain
-        await convertAndCreateIssuanceWarrantOnchain(contract, {
-            security_id: incomingWarrantIssuance.security_id,
-            stakeholder_id: incomingWarrantIssuance.stakeholder_id,
-            quantity: incomingWarrantIssuance.quantity,
-        });
-
-        // Save to DB
-        const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
-
-        // Save Fairmint data
-        // TODO use createFairmintData instead
+        // Save Fairmint data: TODO use createFairmintData instead
         await upsertFairmintDataBySecurityId(incomingWarrantIssuance.security_id, {
             security_id: incomingWarrantIssuance.security_id,
             series_id: payload.series_id,
             attributes: {
                 series_name: payload.series_name,
             },
+        });
+
+        // Save Offchain
+        const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
+
+        // Save Onchain
+        await convertAndCreateIssuanceWarrantOnchain(contract, {
+            security_id: incomingWarrantIssuance.security_id,
+            stakeholder_id: incomingWarrantIssuance.stakeholder_id,
+            quantity: incomingWarrantIssuance.quantity,
         });
 
         res.status(200).send({ warrantIssuance: createdIssuance });
