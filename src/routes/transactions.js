@@ -53,6 +53,7 @@ import { reflectSeries } from "../fairmint/reflectSeries.js";
 import get from "lodash/get";
 import { reflectGrant } from "../fairmint/reflectGrant.js";
 import { checkStakeholderExistsOnFairmint } from "../fairmint/checkStakeholder.js";
+import { upsertFairmintDataBySecurityId } from "../db/operations/update";
 
 const transactions = Router();
 
@@ -408,7 +409,7 @@ transactions.post("/adjust/stock-class/authorized-shares", async (req, res) => {
 });
 
 transactions.post("/adjust/stock-plan-pool", async (req, res) => {
-    // const { contract } = req;
+    const { contract } = req;
     const { data, issuerId } = req.body;
 
     try {
@@ -566,7 +567,6 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
             termination_exercise_windows: get(incomingEquityCompensationIssuance, "termination_exercise_windows", []),
             vestings: get(incomingEquityCompensationIssuance, "vestings", []),
-            expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
             date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
             vesting_terms_id: get(incomingEquityCompensationIssuance, "vesting_terms_id", null),
         });
@@ -611,13 +611,6 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
             issuer: issuerId,
         });
 
-        // Create historical transaction
-        await createHistoricalTransaction({
-            transaction: createdExercise._id,
-            issuer: issuerId,
-            transactionType: "EquityCompensationExercise",
-        });
-
         res.status(200).send({ equityCompensationExercise: createdExercise });
     } catch (error) {
         console.error(error);
@@ -626,6 +619,7 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
 });
 
 transactions.post("/issuance/convertible", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
 
     try {
@@ -670,6 +664,7 @@ transactions.post("/issuance/convertible", async (req, res) => {
 });
 
 transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
     const schema = Joi.object({
         series_id: Joi.string().uuid().required(),
@@ -741,9 +736,6 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
             },
         });
         createConvertibleIssuance();
-
-        console.log("Reflected Investment Response:", reflectInvestmentResponse);
-        // Note: this will have it's own listener in the future to check with Fairmint Obj and sync with Fairmint accordingly
 
         res.status(200).send({ convertibleIssuance: createdIssuance });
     } catch (error) {
