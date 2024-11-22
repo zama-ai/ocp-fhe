@@ -768,7 +768,6 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
                 series_name: payload.series_name,
             },
         });
-        createConvertibleIssuance();
 
         res.status(200).send({ convertibleIssuance: createdIssuance });
     } catch (error) {
