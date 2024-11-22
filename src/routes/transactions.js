@@ -59,6 +59,7 @@ import get from "lodash/get";
 import { reflectGrant } from "../fairmint/reflectGrant.js";
 import { checkStakeholderExistsOnFairmint } from "../fairmint/checkStakeholder.js";
 import { upsertFairmintDataBySecurityId } from "../db/operations/update";
+import { convertAndCreateEquityCompensationExerciseOnchain } from "../controllers/transactions/exerciseController";
 
 const transactions = Router();
 
@@ -85,6 +86,8 @@ transactions.post("/issuance/stock", async (req, res) => {
             });
         }
 
+        const stockIssuance = await createStockIssuance({ ...incomingStockIssuance, issuer: issuerId });
+
         await convertAndCreateIssuanceStockOnchain(contract, {
             security_id: incomingStockIssuance.security_id,
             stock_class_id: incomingStockIssuance.stock_class_id,
@@ -92,17 +95,15 @@ transactions.post("/issuance/stock", async (req, res) => {
             quantity: incomingStockIssuance.quantity,
             share_price: incomingStockIssuance.share_price,
         });
-        await createStockIssuance(incomingStockIssuance);
 
-        res.status(200).send({ stockIssuance: incomingStockIssuance });
+        res.status(200).send({ stockIssuance });
     } catch (error) {
         console.error(error);
         res.status(500).send(`${error}`);
     }
 });
 
-// TODO: change `Stock` to `stock`
-transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
+transactions.post("/issuance/stock-fairmint-reflection", async (req, res) => {
     const { contract } = req;
     const { issuerId } = req.body;
 
@@ -151,14 +152,6 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
 
         await checkStakeholderExistsOnFairmint({ stakeholder_id: stakeholder._id, portal_id: issuerId });
 
-        await convertAndCreateIssuanceStockOnchain(contract, {
-            security_id: incomingStockIssuance.security_id,
-            stock_class_id: incomingStockIssuance.stock_class_id,
-            stakeholder_id: incomingStockIssuance.stakeholder_id,
-            quantity: incomingStockIssuance.quantity,
-            share_price: incomingStockIssuance.share_price,
-        });
-
         // TODO use createFairmintData instead
         await upsertFairmintDataBySecurityId(incomingStockIssuance.security_id, {
             security_id: incomingStockIssuance.security_id,
@@ -168,7 +161,18 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
             },
         });
 
-        res.status(200).send({ stockIssuance: incomingStockIssuance });
+        // Create the stock issuance in the DB
+        const stockIssuance = await createStockIssuance({ ...incomingStockIssuance, issuer: issuerId });
+
+        await convertAndCreateIssuanceStockOnchain(contract, {
+            security_id: incomingStockIssuance.security_id,
+            stock_class_id: incomingStockIssuance.stock_class_id,
+            stakeholder_id: incomingStockIssuance.stakeholder_id,
+            quantity: incomingStockIssuance.quantity,
+            share_price: incomingStockIssuance.share_price,
+        });
+
+        res.status(200).send({ stockIssuance });
     } catch (error) {
         console.error(error);
         res.status(500).send(`${error}`);
@@ -631,6 +635,10 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
 
         await validateInputAgainstOCF(incomingEquityCompensationExercise, equityCompensationExerciseSchema);
 
+        // Enforce data.resulting_security_ids array has at least one element
+        if (get(incomingEquityCompensationExercise, "resulting_security_ids").length === 0) {
+            return res.status(400).send({ error: "resulting_security_ids array is required and must have at least one element" });
+        }
         // Check if exercise exists
         const exerciseExists = await readEquityCompensationExerciseBySecurityId(incomingEquityCompensationExercise.security_id);
         if (exerciseExists && exerciseExists._id) {
@@ -641,11 +649,11 @@ transactions.post("/exercise/equity-compensation", async (req, res) => {
         }
 
         // Create exercise onchain
-        await contract.exerciseEquityCompensation(
-            incomingEquityCompensationExercise.equity_comp_security_id,
-            incomingEquityCompensationExercise.resulting_stock_security_id,
-            incomingEquityCompensationExercise.quantity
-        );
+        await convertAndCreateEquityCompensationExerciseOnchain(contract, {
+            equity_comp_security_id: incomingEquityCompensationExercise.security_id,
+            resulting_stock_security_id: incomingEquityCompensationExercise.resulting_security_ids[0],
+            quantity: incomingEquityCompensationExercise.quantity,
+        });
 
         // Save to DB
         const createdExercise = await createEquityCompensationExercise({
