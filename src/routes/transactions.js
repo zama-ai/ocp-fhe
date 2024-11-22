@@ -696,15 +696,15 @@ transactions.post("/issuance/convertible", async (req, res) => {
             });
         }
 
+        // save to DB
+        const createdIssuance = await createConvertibleIssuance({ ...incomingConvertibleIssuance, issuer: issuerId });
+
         // Create convertible onchain
         await convertAndCreateIssuanceConvertibleOnchain(contract, {
             security_id: incomingConvertibleIssuance.security_id,
             stakeholder_id: incomingConvertibleIssuance.stakeholder_id,
             investment_amount: incomingConvertibleIssuance.investment_amount.amount,
         });
-
-        // save to DB
-        const createdIssuance = await createConvertibleIssuance({ ...incomingConvertibleIssuance, issuer: issuerId });
 
         res.status(200).send({ convertibleIssuance: createdIssuance });
     } catch (error) {
@@ -766,13 +766,8 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
                 convertibleIssuance: convertibleExists,
             });
         }
-        // save to DB
 
-        await convertAndCreateIssuanceConvertibleOnchain(contract, {
-            security_id: incomingConvertibleIssuance.security_id,
-            stakeholder_id: incomingConvertibleIssuance.stakeholder_id,
-            investment_amount: incomingConvertibleIssuance.investment_amount.amount,
-        });
+        // save offchain
         const createdIssuance = await createConvertibleIssuance({
             ...incomingConvertibleIssuance,
             issuer: issuerId,
@@ -785,6 +780,13 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
             attributes: {
                 series_name: payload.series_name,
             },
+        });
+
+        // save onchain
+        await convertAndCreateIssuanceConvertibleOnchain(contract, {
+            security_id: incomingConvertibleIssuance.security_id,
+            stakeholder_id: incomingConvertibleIssuance.stakeholder_id,
+            investment_amount: incomingConvertibleIssuance.investment_amount.amount,
         });
 
         res.status(200).send({ convertibleIssuance: createdIssuance });
