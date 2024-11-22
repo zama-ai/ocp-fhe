@@ -22,6 +22,7 @@ import { convertAndCreateAcceptanceStockOnchain } from "../controllers/transacti
 import { convertAndCreateCancellationStockOnchain } from "../controllers/transactions/cancellationController.js";
 import {
     convertAndCreateIssuanceConvertibleOnchain,
+    convertAndCreateIssuanceEquityCompensationOnchain,
     convertAndCreateIssuanceStockOnchain,
     convertAndCreateIssuanceWarrantOnchain,
 } from "../controllers/transactions/issuanceController.js";
@@ -35,6 +36,7 @@ import {
     createWarrantIssuance,
     createEquityCompensationExercise,
     createStockIssuance,
+    createFairmintData,
 } from "../db/operations/create.js";
 
 import {
@@ -157,6 +159,7 @@ transactions.post("/issuance/Stock-fairmint-reflection", async (req, res) => {
             share_price: incomingStockIssuance.share_price,
         });
 
+        // TODO use createFairmintData instead
         await upsertFairmintDataBySecurityId(incomingStockIssuance.security_id, {
             security_id: incomingStockIssuance.security_id,
             series_id: payload.series_id,
@@ -453,6 +456,7 @@ transactions.post("/adjust/stock-plan-pool", async (req, res) => {
 });
 
 transactions.post("/issuance/equity-compensation", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
 
     try {
@@ -466,6 +470,13 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
             object_type: "TX_EQUITY_COMPENSATION_ISSUANCE",
             ...data,
         };
+        // Enforce data.stock_class_id and data.stock_plan_id are present
+        if (!get(incomingEquityCompensationIssuance, "stock_class_id")) {
+            return res.status(400).send({ error: "Stock class id is required" });
+        }
+        if (!get(incomingEquityCompensationIssuance, "stock_plan_id")) {
+            return res.status(400).send({ error: "Stock plan id is required" });
+        }
 
         await validateInputAgainstOCF(incomingEquityCompensationIssuance, equityCompensationIssuanceSchema);
 
@@ -487,7 +498,13 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
                 equityCompensationIssuance: equityExists,
             });
         }
-
+        await convertAndCreateIssuanceEquityCompensationOnchain(contract, {
+            security_id: incomingEquityCompensationIssuance.security_id,
+            stakeholder_id: incomingEquityCompensationIssuance.stakeholder_id,
+            stock_class_id: incomingEquityCompensationIssuance.stock_class_id,
+            stock_plan_id: incomingEquityCompensationIssuance.stock_plan_id,
+            quantity: incomingEquityCompensationIssuance.quantity,
+        });
         // save to DB
         const createdIssuance = await createEquityCompensationIssuance({ ...incomingEquityCompensationIssuance, issuer: issuerId });
 
@@ -499,6 +516,7 @@ transactions.post("/issuance/equity-compensation", async (req, res) => {
 });
 
 transactions.post("/issuance/equity-compensation-fairmint-reflection", async (req, res) => {
+    const { contract } = req;
     const { issuerId, data } = req.body;
     const schema = Joi.object({
         issuerId: Joi.string().uuid().required(),
@@ -526,6 +544,14 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             ...data,
         };
 
+        // Enforce data.stock_class_id and data.stock_plan_id are present
+        if (!get(incomingEquityCompensationIssuance, "stock_class_id")) {
+            return res.status(400).send({ error: "Stock class id is required" });
+        }
+        if (!get(incomingEquityCompensationIssuance, "stock_plan_id")) {
+            return res.status(400).send({ error: "Stock plan id is required" });
+        }
+
         await validateInputAgainstOCF(incomingEquityCompensationIssuance, equityCompensationIssuanceSchema);
 
         const stock_class_id = get(incomingEquityCompensationIssuance, "stock_class_id");
@@ -551,6 +577,13 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             portal_id: issuerId,
         });
 
+        await createFairmintData({
+            security_id: incomingEquityCompensationIssuance.security_id,
+            series_id: payload.series_id,
+            attributes: {
+                series_name: payload.series_name,
+            },
+        });
         // Check if equity compensation exists
         const equityExists = await readEquityCompensationIssuanceBySecurityId(incomingEquityCompensationIssuance.security_id);
         if (equityExists && equityExists._id) {
@@ -560,42 +593,18 @@ transactions.post("/issuance/equity-compensation-fairmint-reflection", async (re
             });
         }
 
+        await convertAndCreateIssuanceEquityCompensationOnchain(contract, {
+            security_id: incomingEquityCompensationIssuance.security_id,
+            stakeholder_id: incomingEquityCompensationIssuance.stakeholder_id,
+            stock_class_id: incomingEquityCompensationIssuance.stock_class_id,
+            stock_plan_id: incomingEquityCompensationIssuance.stock_plan_id,
+            quantity: incomingEquityCompensationIssuance.quantity,
+        });
         // save to DB
         const createdIssuance = await createEquityCompensationIssuance({
             ...incomingEquityCompensationIssuance,
             issuer: issuerId,
         });
-
-        const seriesCreated = await reflectSeries({
-            issuerId,
-            series_id: payload.series_id,
-            series_name: payload.series_name,
-            stock_class_id: get(incomingEquityCompensationIssuance, "stock_class_id"),
-            stock_plan_id: get(incomingEquityCompensationIssuance, "stock_plan_id"),
-            series_type: SERIES_TYPE.GRANT,
-            date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
-        });
-
-        console.log("series reflected response ", seriesCreated);
-
-        const reflectGrantResponse = await reflectGrant({
-            security_id: get(incomingEquityCompensationIssuance, "security_id"),
-            issuerId,
-            stakeholder_id: stakeholder._id,
-            series_id: payload.series_id,
-            quantity: get(incomingEquityCompensationIssuance, "quantity", "0"),
-            exercise_price: get(incomingEquityCompensationIssuance, "exercise_price.amount", "0"),
-            compensation_type: get(incomingEquityCompensationIssuance, "compensation_type", ""),
-            option_grant_type: get(incomingEquityCompensationIssuance, "option_grant_type", ""),
-            security_law_exemptions: get(incomingEquityCompensationIssuance, "security_law_exemptions", []),
-            expiration_date: get(incomingEquityCompensationIssuance, "expiration_date", null),
-            termination_exercise_windows: get(incomingEquityCompensationIssuance, "termination_exercise_windows", []),
-            vestings: get(incomingEquityCompensationIssuance, "vestings", []),
-            date: get(incomingEquityCompensationIssuance, "date", new Date().toISOString().split("T")[0]),
-            vesting_terms_id: get(incomingEquityCompensationIssuance, "vesting_terms_id", null),
-        });
-
-        console.log("Reflected Grant Response:", reflectGrantResponse);
 
         res.status(200).send({ equityCompensationIssuance: createdIssuance });
     } catch (error) {
@@ -761,6 +770,7 @@ transactions.post("/issuance/convertible-fairmint-reflection", async (req, res) 
             issuer: issuerId,
         });
 
+        // TODO use createFairmintData instead
         await upsertFairmintDataBySecurityId(incomingConvertibleIssuance.security_id, {
             security_id: incomingConvertibleIssuance.security_id,
             series_id: payload.series_id,
@@ -884,6 +894,7 @@ transactions.post("/issuance/warrant-fairmint-reflection", async (req, res) => {
         const createdIssuance = await createWarrantIssuance({ ...incomingWarrantIssuance, issuer: issuerId });
 
         // Save Fairmint data
+        // TODO use createFairmintData instead
         await upsertFairmintDataBySecurityId(incomingWarrantIssuance.security_id, {
             security_id: incomingWarrantIssuance.security_id,
             series_id: payload.series_id,

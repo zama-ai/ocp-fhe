@@ -527,13 +527,14 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
     const _security_id = convertBytes16ToUUID(security_id);
     const fairmintData = await readFairmintDataBySecurityId(_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
 
     // If we have fairmint data, get historical date
     const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
 
     const createdEquityCompIssuance = await upsertEquityCompensationIssuanceBySecurityId(_security_id, {
         date: dateToUse,
-        stakeholder_id: convertBytes16ToUUID(stakeholder_id),
+        stakeholder_id: _stakeholder_id,
         stock_class_id: convertBytes16ToUUID(stock_class_id),
         stock_plan_id: convertBytes16ToUUID(stock_plan_id),
         quantity: toDecimal(quantity).toString(),
@@ -551,8 +552,10 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
     if (fairmintData && fairmintData._id) {
         const seriesCreatedResp = await reflectSeries({
             issuerId,
-            series_id: fairmintData.series_id,
+            series_id: get(fairmintData, "series_id"),
             series_name: get(fairmintData, "attributes.series_name"),
+            stock_class_id: get(createdEquityCompIssuance, "stock_class_id"),
+            stock_plan_id: get(createdEquityCompIssuance, "stock_plan_id"),
             series_type: SERIES_TYPE.GRANT,
             date: dateToUse,
         });
@@ -560,11 +563,19 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
         console.log("Series created response:", seriesCreatedResp);
 
         const reflectGrantResponse = await reflectGrant({
-            security_id: _security_id,
+            security_id: get(createdEquityCompIssuance, "security_id"),
             issuerId,
-            stakeholder_id: convertBytes16ToUUID(stakeholder_id),
-            series_id: fairmintData.series_id,
-            quantity: toDecimal(quantity).toString(),
+            stakeholder_id: _stakeholder_id,
+            series_id: get(fairmintData, "series_id"),
+            quantity: get(createdEquityCompIssuance, "quantity", "0"),
+            exercise_price: get(createdEquityCompIssuance, "exercise_price.amount", "0"),
+            compensation_type: get(createdEquityCompIssuance, "compensation_type", ""),
+            option_grant_type: get(createdEquityCompIssuance, "option_grant_type", ""),
+            security_law_exemptions: get(createdEquityCompIssuance, "security_law_exemptions", []),
+            expiration_date: get(createdEquityCompIssuance, "expiration_date", null),
+            termination_exercise_windows: get(createdEquityCompIssuance, "termination_exercise_windows", []),
+            vestings: get(createdEquityCompIssuance, "vestings", []),
+            vesting_terms_id: get(createdEquityCompIssuance, "vesting_terms_id", null),
             date: dateToUse,
         });
 
@@ -623,6 +634,7 @@ export const contractFuncs = new Map([
     ["StockPlanCreated", handleStockPlan],
 ]);
 
+// DANGEROUS DANGEROUS DANGEROUS ASSUMING THESE ARE IN ORDER ACCORIDING to DiamondTxHelper:TxType.sol enum
 export const txMapper = {
     1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
     2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],
@@ -634,9 +646,10 @@ export const txMapper = {
     8: [StockRetraction, handleStockRetraction],
     9: [StockTransfer, handleStockTransfer],
     10: [ConvertibleIssuance, handleConvertibleIssuance],
-    11: [WarrantIssuance, handleWarrantIssuance],
-    12: [EquityCompensationIssuance, handleEquityCompensationIssuance],
-    13: [EquityCompensationExercise, handleEquityCompensationExercise],
+    11: [EquityCompensationIssuance, handleEquityCompensationIssuance],
+    // 12: [null, /*TODO: StockPlanPoolAdjustment, handleStockPlanPoolAdjustment*/ null],
+    13: [WarrantIssuance, handleWarrantIssuance],
+    14: [EquityCompensationExercise, handleEquityCompensationExercise],
 };
 // (idx => type name) derived from txMapper
 export const txTypes = Object.fromEntries(
