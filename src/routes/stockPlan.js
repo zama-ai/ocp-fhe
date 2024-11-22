@@ -85,8 +85,11 @@ stockPlan.post("/create", async (req, res) => {
         if (exists && exists._id) {
             return res.status(200).send({ message: "Stock Plan already created", stockPlan: exists });
         }
-        await convertAndReflectStockPlanOnchain(contract, incomingStockPlanForDB);
+        // Save Offchain
         const stockPlan = await createStockPlan(incomingStockPlanForDB);
+
+        // Save Onchain
+        await convertAndReflectStockPlanOnchain(contract, incomingStockPlanForDB);
 
         console.log("✅ | Created Stock Plan in DB: ", stockPlan);
 
