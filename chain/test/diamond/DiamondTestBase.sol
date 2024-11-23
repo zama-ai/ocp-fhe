@@ -169,9 +169,19 @@ contract DiamondTestBase is Test {
     // Common helper functions
     function createStakeholder() public returns (bytes16) {
         bytes16 stakeholderId = 0xd3373e0a4dd940000000000000000005;
+
+        // Debug log before creation
+        console.log("Before creation - index:", StorageLib.get().stakeholderIndex[stakeholderId]);
+
         vm.expectEmit(true, false, false, false, address(diamond));
         emit StakeholderCreated(stakeholderId);
-        StakeholderFacet(payable(address(diamond))).createStakeholder(stakeholderId);
+
+        // Call through the diamond proxy instead of using delegatecall
+        StakeholderFacet(address(diamond)).createStakeholder(stakeholderId);
+
+        // Debug log after creation
+        console.log("After creation - index:", StorageLib.get().stakeholderIndex[stakeholderId]);
+
         return stakeholderId;
     }
 

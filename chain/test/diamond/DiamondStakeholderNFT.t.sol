@@ -27,9 +27,12 @@ contract DiamondStakeholderNFTTest is DiamondTestBase {
         // Link the address
         StakeholderFacet(address(diamond)).linkStakeholderAddress(stakeholderId, stakeholderWallet);
 
-        // Verify the link was created
-        bytes16 storedId = StorageLib.get().addressToStakeholderId[stakeholderWallet];
-        assertEq(storedId, stakeholderId, "Stakeholder ID should be linked to wallet");
+        // Verify the link was created by trying to mint (which requires a valid link)
+        vm.prank(stakeholderWallet);
+        StakeholderNFTFacet(address(diamond)).mint();
+
+        // If we get here without reverting, the link worked
+        assertTrue(true, "Link successful - NFT minted");
     }
 
     function testMintNFT() public {
