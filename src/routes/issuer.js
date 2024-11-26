@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { v4 as uuid } from "uuid";
 
-import issuerSchema from "../../ocf/schema/objects/Issuer.schema.json" assert { type: "json" };
+import issuerSchema from "../../ocf/schema/objects/Issuer.schema.json";
 import deployCapTable from "../chain-operations/deployCapTable.js";
 import { createIssuer } from "../db/operations/create.js";
 import { countIssuers, readIssuerById } from "../db/operations/read.js";
 import { convertUUIDToBytes16 } from "../utils/convertUUID.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
-
+import { addAddressesToWatch } from "../utils/websocket.ts";
 const issuer = Router();
 
 issuer.get("/", async (req, res) => {
@@ -50,14 +50,13 @@ issuer.post("/create", async (req, res) => {
         console.log("⏳ | Issuer to validate", incomingIssuerToValidate);
 
         await validateInputAgainstOCF(incomingIssuerToValidate, issuerSchema);
-
+        const exists = await readIssuerById(incomingIssuerToValidate.id);
+        if (exists && exists._id) {
+            return res.status(200).send({ message: "issuer already exists", issuer: exists });
+        }
         const issuerIdBytes16 = convertUUIDToBytes16(incomingIssuerToValidate.id);
         console.log("💾 | Issuer id in bytes16 ", issuerIdBytes16);
-        const { address, deployHash } = await deployCapTable(
-            issuerIdBytes16,
-            incomingIssuerToValidate.legal_name,
-            incomingIssuerToValidate.initial_shares_authorized
-        );
+        const { address, deployHash } = await deployCapTable(issuerIdBytes16, incomingIssuerToValidate.initial_shares_authorized);
 
         const incomingIssuerForDB = {
             ...incomingIssuerToValidate,
@@ -66,6 +65,7 @@ issuer.post("/create", async (req, res) => {
         };
 
         const issuer = await createIssuer(incomingIssuerForDB);
+        addAddressesToWatch(address);
 
         console.log("✅ | Issuer created offchain:", issuer);
 
@@ -75,5 +75,6 @@ issuer.post("/create", async (req, res) => {
         res.status(500).send(`${error}`);
     }
 });
+
 
 export default issuer;

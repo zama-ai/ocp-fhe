@@ -12,6 +12,10 @@ import EquityCompensationIssuance from "../objects/transactions/issuance/EquityC
 import StockIssuance from "../objects/transactions/issuance/StockIssuance.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
 import { save } from "./atomic.ts";
+import WarrantIssuance from "../objects/transactions/issuance/WarrantIssuance.js";
+import VestingStart from "../objects/transactions/vesting/VestingStart.js";
+import EquityCompensationExercise from "../objects/transactions/exercise/EquityCompensationExercise.js";
+import StockPlanPoolAdjustment from "../objects/transactions/adjustment/StockPlanPoolAdjustment.js";
 
 export const createIssuer = (issuerData) => {
     return save(new Issuer(issuerData));
@@ -57,10 +61,26 @@ export const createConvertibleIssuance = (issuanceData) => {
     return save(new ConvertibleIssuance(issuanceData));
 };
 
+export const createWarrantIssuance = (issuanceData) => {
+    return save(new WarrantIssuance(issuanceData));
+};
+
 export const createStockTransfer = (stockTransferData) => {
     return save(new StockTransfer(stockTransferData));
 };
 
+export const createVestingStart = (vestingStartData) => {
+    return save(new VestingStart(vestingStartData));
+};
+
 export const createFactory = (factoryData) => {
     return save(new Factory(factoryData));
-}
+};
+
+export const createEquityCompensationExercise = (exerciseData) => {
+    return save(new EquityCompensationExercise(exerciseData));
+};
+
+export const createStockPlanPoolAdjustment = (stockPlanPoolAdjustmentData) => {
+    return save(new StockPlanPoolAdjustment(stockPlanPoolAdjustmentData));
+};

@@ -1,10 +1,8 @@
 import { convertBytes16ToUUID } from "../utils/convertUUID.js";
 import { createHistoricalTransaction } from "../db/operations/create.js";
-import { readStakeholderById } from "../db/operations/read.js";
 import {
-    updateStakeholderById,
+    upsertStakeholderById,
     updateStockClassById,
-    upsertStockIssuanceById,
     upsertStockTransferById,
     upsertStockCancellationById,
     upsertStockRetractionById,
@@ -13,10 +11,29 @@ import {
     upsertStockAcceptanceById,
     upsertStockClassAuthorizedSharesAdjustment,
     upsertIssuerAuthorizedSharesAdjustment,
+    updateStockPlanById,
+    upsertStockIssuanceBySecurityId,
+    upsertConvertibleIssuanceBySecurityId,
+    upsertWarrantIssuanceBySecurityId,
+    upsertEquityCompensationIssuanceBySecurityId,
+    upsertEquityCompensationExerciseBySecurityId,
 } from "../db/operations/update.js";
-
 import { toDecimal } from "../utils/convertToFixedPointDecimals.js";
-
+import {
+    IssuerAuthorizedSharesAdjustment,
+    StockAcceptance,
+    StockCancellation,
+    StockClassAuthorizedSharesAdjustment,
+    StockIssuance,
+    StockReissuance,
+    StockRepurchase,
+    StockRetraction,
+    StockTransfer,
+    ConvertibleIssuance,
+    WarrantIssuance,
+    EquityCompensationIssuance,
+    EquityCompensationExercise,
+} from "./structs.js";
 const options = {
     year: "numeric",
     month: "long",
@@ -25,70 +42,25 @@ const options = {
     minute: "2-digit",
     second: "2-digit",
 };
+
 export const handleStockIssuance = async (stock, issuerId, timestamp) => {
-    const { id, object_type, security_id, params } = stock;
-    console.log("StockIssuanceCreated Event Emitted!", id);
-    const {
-        stock_class_id,
-        stock_plan_id,
-        share_numbers_issued: { starting_share_number, ending_share_number },
-        share_price,
-        quantity,
-        vesting_terms_id,
-        cost_basis,
-        stock_legend_ids,
-        issuance_type,
-        comments,
-        custom_id,
-        stakeholder_id,
-        board_approval_date,
-        stockholder_approval_date,
-        consideration_text,
-        security_law_exemptions,
-    } = params;
-    const sharePriceOCF = {
-        amount: toDecimal(share_price).toString(),
-        currency: "USD",
-    };
+    console.log("StockIssuanceCreated Event Emitted!", stock);
+    const { stock_class_id, share_price, quantity, stakeholder_id, security_id } = stock;
 
-    // Type represention of an ISO-8601 date, e.g. 2022-01-28.
-    const dateOCF = new Date(timestamp * 1000).toISOString().split("T")[0];
-    const costBasisOCF = { amount: toDecimal(cost_basis).toString(), currency: "USD" };
-    const share_numbers_issuedOCF = [
-        {
-            starting_share_number: toDecimal(starting_share_number).toString(),
-            ending_share_number: toDecimal(ending_share_number).toString(),
-        },
-    ];
+    const _security_id = convertBytes16ToUUID(security_id);
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
 
-    const stakeholder = await readStakeholderById(convertBytes16ToUUID(stakeholder_id));
-    if (!stakeholder) {
-        throw Error("Stakeholder does not exist");
-    }
-
-    const _id = convertBytes16ToUUID(id);
-    const createdStockIssuance = await upsertStockIssuanceById(_id, {
-        _id,
-        object_type,
+    const createdStockIssuance = await upsertStockIssuanceBySecurityId(_security_id, {
         stock_class_id: convertBytes16ToUUID(stock_class_id),
-        stock_plan_id: convertBytes16ToUUID(stock_plan_id),
-        share_numbers_issued: share_numbers_issuedOCF,
-        share_price: sharePriceOCF,
+        share_price: {
+            amount: toDecimal(share_price).toString(),
+            currency: "USD",
+        },
         quantity: toDecimal(quantity).toString(),
-        vesting_terms_id: convertBytes16ToUUID(vesting_terms_id),
-        cost_basis: costBasisOCF,
-        stock_legend_ids: convertBytes16ToUUID(stock_legend_ids),
-        issuance_type: issuance_type,
-        comments: comments,
-        security_id: convertBytes16ToUUID(security_id),
-        date: dateOCF,
-        custom_id, // Not UUID
-        stakeholder_id: stakeholder._id,
-        board_approval_date,
-        stockholder_approval_date,
-        consideration_text,
-        security_law_exemptions,
-        // TAP Native Fields
+        stakeholder_id: _stakeholder_id,
+        security_id: _security_id,
+        date: chainDate,
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -119,7 +91,7 @@ export const handleStockTransfer = async (stock, issuerId) => {
         consideration_text: stock.consideration_text,
         balance_security_id: convertBytes16ToUUID(stock.balance_security_id),
         resulting_security_ids: convertBytes16ToUUID(stock.resulting_security_ids),
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -137,11 +109,16 @@ export const handleStockTransfer = async (stock, issuerId) => {
         createdStockTransfer
     );
 };
+
 export const handleStakeholder = async (id) => {
-    console.log("StakeholderCreated Event Emitted!", id);
-    const incomingStakeholderId = convertBytes16ToUUID(id);
-    const stakeholder = await updateStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
-    console.log("✅ | Stakeholder confirmation onchain ", stakeholder);
+    try {
+        console.log("StakeholderCreated Event Emitted!", id);
+        const incomingStakeholderId = convertBytes16ToUUID(id);
+        const stakeholder = await upsertStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
+        console.log("✅ | Stakeholder confirmation onchain ", stakeholder);
+    } catch (error) {
+        throw Error("Error handing Stakeholder On Chain", error);
+    }
 };
 
 export const handleStockClass = async (id) => {
@@ -164,7 +141,7 @@ export const handleStockCancellation = async (stock, issuerId, timestamp) => {
         date: dateOCF,
         reason_text: stock.reason_text,
         balance_security_id: convertBytes16ToUUID(stock.balance_security_id),
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -191,7 +168,7 @@ export const handleStockRetraction = async (stock, issuerId, timestamp) => {
         security_id: convertBytes16ToUUID(stock.security_id),
         date: dateOCF,
         reason_text: stock.reason_text,
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -219,7 +196,7 @@ export const handleStockReissuance = async (stock, issuerId, timestamp) => {
         date: dateOCF,
         reason_text: stock.reason_text,
         resulting_security_ids: stock.resulting_security_ids.map((sId) => convertBytes16ToUUID(sId)),
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -257,7 +234,7 @@ export const handleStockRepurchase = async (stock, issuerId, timestamp) => {
         consideration_text: stock.consideration_text,
         balance_security_id: convertBytes16ToUUID(stock.balance_security_id),
 
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -285,7 +262,7 @@ export const handleStockAcceptance = async (stock, issuerId, timestamp) => {
         security_id: convertBytes16ToUUID(stock.security_id),
         date: dateOCF,
 
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -310,15 +287,16 @@ export const handleStockClassAuthorizedSharesAdjusted = async (stock, issuerId, 
 
     const upsert = await upsertStockClassAuthorizedSharesAdjustment(id, {
         _id: id,
+        stock_class_id: convertBytes16ToUUID(stock.stock_class_id),
         object_type: stock.object_type,
         comments: stock.comments,
-        issuer_id: convertBytes16ToUUID(stock.security_id),
+        security_id: convertBytes16ToUUID(stock.security_id),
         date: dateOCF,
-        new_shares_authorized: stock.new_shares_authorized,
+        new_shares_authorized: toDecimal(stock.new_shares_authorized).toString(),
         board_approval_date: stock.board_approval_date,
         stockholder_approval_date: stock.stockholder_approval_date,
 
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -347,11 +325,11 @@ export const handleIssuerAuthorizedSharesAdjusted = async (issuer, issuerId, tim
         comments: issuer.comments,
         issuer_id: convertBytes16ToUUID(issuer.security_id),
         date: dateOCF,
-        new_shares_authorized: issuer.new_shares_authorized,
+        new_shares_authorized: toDecimal(issuer.new_shares_authorized).toString(),
         board_approval_date: issuer.board_approval_date,
         stockholder_approval_date: issuer.stockholder_approval_date,
 
-        // TAP Native Fields
+        // OCP Native Fields
         issuer: issuerId,
         is_onchain_synced: true,
     });
@@ -366,3 +344,160 @@ export const handleIssuerAuthorizedSharesAdjusted = async (issuer, issuerId, tim
         upsert
     );
 };
+
+export const handleStockPlan = async (id, sharesReserved) => {
+    console.log("StockPlanCreated Event Emitted!", id);
+    const incomingStockPlanId = convertBytes16ToUUID(id);
+    const stockPlan = await updateStockPlanById(incomingStockPlanId, {
+        initial_shares_reserved: toDecimal(sharesReserved).toString(),
+        is_onchain_synced: true,
+    });
+    console.log("✅ | StockPlan confirmation onchain ", stockPlan);
+};
+
+export const handleConvertibleIssuance = async (convertible, issuerId, timestamp) => {
+    console.log("ConvertibleIssuanceCreated Event Emitted!", convertible);
+    const { security_id, stakeholder_id, investment_amount } = convertible;
+
+    const _security_id = convertBytes16ToUUID(security_id);
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
+
+    const createdConvertibleIssuance = await upsertConvertibleIssuanceBySecurityId(_security_id, {
+        investment_amount: {
+            amount: toDecimal(investment_amount).toString(),
+            currency: "USD",
+        },
+        stakeholder_id: _stakeholder_id,
+        security_id: _security_id,
+        date: chainDate,
+        issuer: issuerId,
+        is_onchain_synced: true,
+    });
+
+    await createHistoricalTransaction({
+        transaction: createdConvertibleIssuance._id,
+        issuer: issuerId,
+        transactionType: "ConvertibleIssuance",
+    });
+
+    console.log(
+        `✅ | ConvertibleIssuance confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
+        createdConvertibleIssuance
+    );
+};
+
+export const handleWarrantIssuance = async (warrant, issuerId, timestamp) => {
+    console.log("WarrantIssuanceCreated Event Emitted!", warrant);
+    const { stakeholder_id, quantity, security_id } = warrant;
+
+    const _security_id = convertBytes16ToUUID(security_id);
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
+
+    const createdWarrantIssuance = await upsertWarrantIssuanceBySecurityId(_security_id, {
+        date: chainDate,
+        quantity: toDecimal(quantity).toString(),
+        stakeholder_id: _stakeholder_id,
+        security_id: _security_id,
+        issuer: issuerId,
+        is_onchain_synced: true,
+    });
+
+    await createHistoricalTransaction({
+        transaction: createdWarrantIssuance._id,
+        issuer: issuerId,
+        transactionType: "WarrantIssuance",
+    });
+
+    console.log(
+        `✅ | WarrantIssuance confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
+        createdWarrantIssuance
+    );
+};
+
+export const handleEquityCompensationIssuance = async (equity, issuerId, timestamp) => {
+    console.log("EquityCompensationIssuanceCreated Event Emitted!", equity);
+    const { stakeholder_id, stock_class_id, stock_plan_id, quantity, security_id } = equity;
+
+    const _security_id = convertBytes16ToUUID(security_id);
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
+
+    const createdEquityCompIssuance = await upsertEquityCompensationIssuanceBySecurityId(_security_id, {
+        date: chainDate,
+        stakeholder_id: _stakeholder_id,
+        stock_class_id: convertBytes16ToUUID(stock_class_id),
+        stock_plan_id: convertBytes16ToUUID(stock_plan_id),
+        quantity: toDecimal(quantity).toString(),
+        security_id: _security_id,
+        issuer: issuerId,
+        is_onchain_synced: true,
+    });
+
+    await createHistoricalTransaction({
+        transaction: createdEquityCompIssuance._id,
+        issuer: issuerId,
+        transactionType: "EquityCompensationIssuance",
+    });
+};
+
+export const handleEquityCompensationExercise = async (exercise, issuerId, timestamp) => {
+    console.log("EquityCompensationExerciseCreated Event Emitted!", exercise);
+    const { equity_comp_security_id, resulting_stock_security_id, quantity } = exercise;
+
+    const _equity_comp_security_id = convertBytes16ToUUID(equity_comp_security_id);
+    const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
+    const _resulting_stock_security_id = convertBytes16ToUUID(resulting_stock_security_id);
+
+    const createdExercise = await upsertEquityCompensationExerciseBySecurityId(_equity_comp_security_id, {
+        date: chainDate,
+        equity_comp_security_id: _equity_comp_security_id,
+        resulting_security_ids: [_resulting_stock_security_id],
+        quantity: toDecimal(quantity).toString(),
+        issuer: issuerId,
+        is_onchain_synced: true,
+    });
+
+    await createHistoricalTransaction({
+        transaction: createdExercise._id,
+        issuer: issuerId,
+        transactionType: "EquityCompensationExercise",
+    });
+
+    console.log(
+        `✅ | EquityCompensationExercise confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
+        createdExercise
+    );
+};
+
+export const contractFuncs = new Map([
+    ["StakeholderCreated", handleStakeholder],
+    ["StockClassCreated", handleStockClass],
+    ["StockPlanCreated", handleStockPlan],
+]);
+
+// DANGEROUS DANGEROUS DANGEROUS THIS HAS TO BE IN SAME ORDER AS DiamondTxHelper:TxType Enum
+export const txMapper = {
+    1: [IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
+    2: [StockClassAuthorizedSharesAdjustment, handleStockClassAuthorizedSharesAdjusted],
+    3: [StockAcceptance, handleStockAcceptance],
+    4: [StockCancellation, handleStockCancellation],
+    5: [StockIssuance, handleStockIssuance],
+    6: [StockReissuance, handleStockReissuance],
+    7: [StockRepurchase, handleStockRepurchase],
+    8: [StockRetraction, handleStockRetraction],
+    9: [StockTransfer, handleStockTransfer],
+    10: [ConvertibleIssuance, handleConvertibleIssuance],
+    11: [EquityCompensationIssuance, handleEquityCompensationIssuance],
+    // 12: [null, /*TODO: StockPlanPoolAdjustment, handleStockPlanPoolAdjustment*/ null],
+    13: [WarrantIssuance, handleWarrantIssuance],
+    14: [EquityCompensationExercise, handleEquityCompensationExercise],
+};
+// (idx => type name) derived from txMapper
+export const txTypes = Object.fromEntries(
+    // @ts-ignore
+    Object.entries(txMapper).map(([i, [_, f]]) => [i, f.name.replace("handle", "")])
+);
+// (name => handler) derived from txMapper
+export const txFuncs = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [txTypes[i], f]));
