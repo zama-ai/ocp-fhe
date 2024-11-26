@@ -1,12 +1,11 @@
 // Store a global mongo session to allows us to bundle CRUD operations into one transaction
-
-import { Connection, QueryOptions } from "mongoose";
-import { connectDB } from "../config/mongoose.ts";
+import { Connection, QueryOptions, ClientSession } from "mongoose";
+import { connectDB } from "../config/mongoose";
 type TQueryOptions = QueryOptions | null;
 
-let _globalSession = null;
+let _globalSession: ClientSession | null = null;
 
-export const setGlobalSession = (session) => {
+export const setGlobalSession = (session: ClientSession) => {
     if (_globalSession !== null) {
         throw new Error(
             `globalSession is already set! ${_globalSession}. 
@@ -63,40 +62,40 @@ Wrapped mongoose db calls. All mongo interaction should go through a function be
 
 // CREATE
 
-export const save = (model, options?: TQueryOptions) => {
+export const save = (model: any, options?: TQueryOptions) => {
     return model.save(includeSession(options));
 };
 
 // UPDATE
 
-export const findByIdAndUpdate = (model, id, updatedData, options?: TQueryOptions) => {
+export const findByIdAndUpdate = (model: any, id: string, updatedData: any, options?: TQueryOptions) => {
     return model.findByIdAndUpdate(id, updatedData, includeSession(options));
 };
 
-export const findBySecurityIdAndUpdate = (model, securityId, updatedData, options?: TQueryOptions) => {
+export const findBySecurityIdAndUpdate = (model: any, securityId: string, updatedData: any, options?: TQueryOptions) => {
     return model.findOneAndUpdate({ security_id: securityId }, updatedData, includeSession(options));
 };
 
 // DELETE
 
-export const findByIdAndDelete = (model, id, options?: TQueryOptions) => {
+export const findByIdAndDelete = (model: any, id: string, options?: TQueryOptions) => {
     return model.findByIdAndDelete(id, includeSession(options));
 };
 
 // QUERY
 
-export const findById = (model, id, projection?, options?: TQueryOptions) => {
+export const findById = (model: any, id: string, projection?: any, options?: TQueryOptions) => {
     return model.findById(id, projection, includeSession(options));
 };
 
-export const findOne = (model, filter, projection?, options?: TQueryOptions) => {
+export const findOne = (model: any, filter: any, projection?: any, options?: TQueryOptions) => {
     return model.findOne(filter, projection, includeSession(options));
 };
 
-export const find = (model, filter, projection?, options?: TQueryOptions) => {
+export const find = (model: any, filter: any, projection?: any, options?: TQueryOptions) => {
     return model.find(filter, projection, includeSession(options));
 };
 
-export const countDocuments = (model, options?: TQueryOptions) => {
+export const countDocuments = (model: any, options?: TQueryOptions) => {
     return model.countDocuments(includeSession(options));
 };
