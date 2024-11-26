@@ -11,7 +11,6 @@ import ConvertibleIssuance from "../objects/transactions/issuance/ConvertibleIss
 import EquityCompensationIssuance from "../objects/transactions/issuance/EquityCompensationIssuance.js";
 import StockIssuance from "../objects/transactions/issuance/StockIssuance.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
-import Fairmint from "../objects/Fairmint.js";
 import { save } from "./atomic.ts";
 import WarrantIssuance from "../objects/transactions/issuance/WarrantIssuance.js";
 import VestingStart from "../objects/transactions/vesting/VestingStart.js";
@@ -76,10 +75,6 @@ export const createVestingStart = (vestingStartData) => {
 
 export const createFactory = (factoryData) => {
     return save(new Factory(factoryData));
-};
-
-export const createFairmintData = (fairmintData) => {
-    return save(new Fairmint(fairmintData));
 };
 
 export const createEquityCompensationExercise = (exerciseData) => {
