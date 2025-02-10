@@ -4,7 +4,6 @@ import {
     createIssuerAuthorizedSharesAdjustment,
     createStockClassAuthorizedSharesAdjustment,
 } from "../db/operations/create.js";
-import { readFairmintDataBySecurityId, readFairmintDataByStakeholderId } from "../db/operations/read.js";
 import {
     upsertStakeholderById,
     updateStockClassById,
@@ -21,25 +20,13 @@ import {
     upsertWarrantIssuanceById,
     upsertEquityCompensationExerciseById,
 } from "../db/operations/update.js";
-import get from "lodash/get";
-import { reflectSeries } from "../fairmint/reflectSeries.js";
 import { toDecimal } from "../utils/convertToFixedPointDecimals.js";
-import { SERIES_TYPE } from "../fairmint/enums.js";
-import { reflectStakeholder } from "../fairmint/reflectStakeholder.js";
-import { reflectInvestment } from "../fairmint/reflectInvestment.js";
 import * as structs from "./structs.js";
-import { reflectGrant } from "../fairmint/reflectGrant.js";
 import { v4 as uuid } from "uuid";
-import { reflectGrantExercise } from "../fairmint/reflectGrantExercise.js";
 import StockPlanPoolAdjustment from "../db/objects/transactions/adjustment/StockPlanPoolAdjustment.js";
 import StockClassAuthorizedSharesAdjustment from "../db/objects/transactions/adjustment/StockClassAuthorizedSharesAdjustment.js";
 import IssuerAuthorizedSharesAdjustment from "../db/objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
 import StockConsolidation from "../db/objects/transactions/consolidation/index.js";
-
-const isUUID = (value) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
-};
 
 const options = {
     year: "numeric",
@@ -50,30 +37,14 @@ const options = {
     second: "2-digit",
 };
 
-// @dev, this file is where you would create the mapping for the "_mapping" fields.
-
 export const handleStockIssuance = async (stock, issuerId, timestamp) => {
     console.log("StockIssuanceCreated Event Emitted!", stock);
-    const {
-        id,
-        stock_class_id,
-        share_price,
-        quantity,
-        stakeholder_id,
-        security_id,
-        // _stock_legend_ids_mapping,
-        custom_id,
-        // _security_law_exemptions_mapping,
-    } = stock;
+    const { id, stock_class_id, share_price, quantity, stakeholder_id, security_id, custom_id } = stock;
 
     const _id = convertBytes16ToUUID(id);
     const _security_id = convertBytes16ToUUID(security_id);
-    const fairmintData = await readFairmintDataBySecurityId(_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
     const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
-
-    // If we have fairmint data, get historical date
-    const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
 
     const createdStockIssuance = await upsertStockIssuanceById(_id, {
         id: _id,
@@ -85,40 +56,11 @@ export const handleStockIssuance = async (stock, issuerId, timestamp) => {
         quantity: toDecimal(quantity).toString(),
         stakeholder_id: _stakeholder_id,
         security_id: _security_id,
-        date: dateToUse,
+        date: chainDate,
         issuer: issuerId,
         is_onchain_synced: true,
         custom_id,
     });
-
-    if (isUUID(get(fairmintData, "series_id")) && fairmintData && fairmintData._id) {
-        const dollarAmount = Number(get(createdStockIssuance, "share_price.amount")) * Number(get(createdStockIssuance, "quantity"));
-
-        const seriesCreatedResp = await reflectSeries({
-            issuerId,
-            series_id: get(fairmintData, "series_id"),
-            stock_class_id: get(createdStockIssuance, "stock_class_id", null),
-            stock_plan_id: get(createdStockIssuance, "stock_plan_id", null),
-            series_name: get(fairmintData, "attributes.series_name"),
-            series_type: SERIES_TYPE.SHARES,
-            price_per_share: get(createdStockIssuance, "share_price.amount", null),
-            date: dateToUse,
-        });
-
-        console.log("series created response ", seriesCreatedResp);
-
-        const reflectedInvestmentResp = await reflectInvestment({
-            security_id: _security_id,
-            issuerId,
-            stakeholder_id: _stakeholder_id,
-            series_id: get(fairmintData, "series_id"),
-            amount: dollarAmount,
-            number_of_shares: get(createdStockIssuance, "quantity").toString(),
-            date: dateToUse,
-        });
-
-        console.log("stock investment response:", reflectedInvestmentResp);
-    }
 
     console.log(
         `✅ | StockIssuance confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
@@ -155,13 +97,7 @@ export const handleStockTransfer = async (stock, issuerId) => {
 export const handleStakeholder = async (id) => {
     try {
         const incomingStakeholderId = convertBytes16ToUUID(id);
-        const stakeholder = await upsertStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
-
-        // fairmint data reflection
-        const fairmintData = await readFairmintDataByStakeholderId(incomingStakeholderId);
-        if (fairmintData && fairmintData._id) {
-            await reflectStakeholder({ stakeholder, issuerId: stakeholder.issuer });
-        }
+        await upsertStakeholderById(incomingStakeholderId, { is_onchain_synced: true });
     } catch (error) {
         throw Error("Error handing Stakeholder On Chain", error);
     }
@@ -194,7 +130,7 @@ export const handleStockCancellation = async (stock, issuerId, timestamp) => {
 
     await createHistoricalTransaction({
         transaction: createdStockCancellation._id,
-        issuer: createdStockCancellation.issuer,
+        issuer: issuerId,
         transactionType: "StockCancellation",
     });
     console.log(
@@ -422,12 +358,8 @@ export const handleConvertibleIssuance = async (convertible, issuerId, timestamp
     } = convertible;
     const _security_id = convertBytes16ToUUID(security_id);
     const _id = convertBytes16ToUUID(id);
-    const fairmintData = await readFairmintDataBySecurityId(_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
     const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
-
-    // If we have fairmint data, get historical date
-    const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
 
     const createdConvertibleIssuance = await upsertConvertibleIssuanceById(_id, {
         id: _id,
@@ -437,7 +369,7 @@ export const handleConvertibleIssuance = async (convertible, issuerId, timestamp
         },
         stakeholder_id: _stakeholder_id,
         security_id: _security_id,
-        date: dateToUse,
+        date: chainDate,
         issuer: issuerId,
         is_onchain_synced: true,
         convertible_type,
@@ -454,29 +386,6 @@ export const handleConvertibleIssuance = async (convertible, issuerId, timestamp
         hash,
     });
 
-    if (fairmintData && fairmintData._id) {
-        const seriesCreatedResp = await reflectSeries({
-            issuerId,
-            series_id: fairmintData.series_id,
-            series_name: get(fairmintData, "attributes.series_name"),
-            series_type: SERIES_TYPE.FUNDRAISING,
-            date: dateToUse,
-        });
-
-        console.log("Series created response:", seriesCreatedResp);
-
-        const reflectedInvestmentResp = await reflectInvestment({
-            security_id: _security_id,
-            issuerId,
-            stakeholder_id: _stakeholder_id,
-            series_id: fairmintData.series_id,
-            amount: toDecimal(investment_amount).toString(),
-            date: dateToUse,
-        });
-
-        console.log("Convertible investment response:", reflectedInvestmentResp);
-    }
-
     console.log(
         `✅ | ConvertibleIssuance confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
         createdConvertibleIssuance
@@ -490,16 +399,12 @@ export const handleWarrantIssuance = async (warrant, issuerId, timestamp, hash) 
 
     const _security_id = convertBytes16ToUUID(security_id);
     const _id = convertBytes16ToUUID(id);
-    const fairmintData = await readFairmintDataBySecurityId(_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
     const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
 
-    // If we have fairmint data, get historical date
-    const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
-
     const createdWarrantIssuance = await upsertWarrantIssuanceById(_id, {
         _id: _id,
-        date: dateToUse,
+        date: chainDate,
         stakeholder_id: _stakeholder_id,
         quantity: toDecimal(quantity).toString(),
         security_id: _security_id,
@@ -523,31 +428,6 @@ export const handleWarrantIssuance = async (warrant, issuerId, timestamp, hash) 
         transactionType: "WarrantIssuance",
         hash,
     });
-
-    if (fairmintData && fairmintData._id) {
-        // Query the warrant issuance to get additional data like purchase_price, if it's reflection data then it will have `purchase_price` field off chain
-        const dollarAmount = Number(get(createdWarrantIssuance, "purchase_price.amount", 1));
-        const seriesCreatedResp = await reflectSeries({
-            issuerId,
-            series_id: fairmintData.series_id,
-            series_name: get(fairmintData, "attributes.series_name"),
-            series_type: SERIES_TYPE.WARRANT,
-            date: dateToUse,
-        });
-
-        console.log("Series created response:", seriesCreatedResp);
-
-        const reflectedInvestmentResp = await reflectInvestment({
-            security_id: _security_id,
-            issuerId,
-            stakeholder_id: _stakeholder_id,
-            series_id: fairmintData.series_id,
-            amount: dollarAmount,
-            date: dateToUse,
-        });
-
-        console.log("Warrant investment response:", reflectedInvestmentResp);
-    }
 
     console.log(
         `✅ | WarrantIssuance confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
@@ -575,16 +455,12 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
 
     const _id = convertBytes16ToUUID(id);
     const _security_id = convertBytes16ToUUID(security_id);
-    const fairmintData = await readFairmintDataBySecurityId(_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
     const _stakeholder_id = convertBytes16ToUUID(stakeholder_id);
 
-    // If we have fairmint data, get historical date
-    const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
-
     const createdEquityCompIssuance = await upsertEquityCompensationIssuanceById(_id, {
         _id: _id,
-        date: dateToUse,
+        date: chainDate,
         stakeholder_id: _stakeholder_id,
         stock_class_id: convertBytes16ToUUID(stock_class_id),
         stock_plan_id: convertBytes16ToUUID(stock_plan_id),
@@ -597,14 +473,14 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
             exercise_price > 0
                 ? {
                       amount: toDecimal(exercise_price).toString(),
-                      currency: "USD", // Default to USD, can be made configurable if needed
+                      currency: "USD",
                   }
                 : undefined,
         base_price:
             base_price > 0
                 ? {
                       amount: toDecimal(base_price).toString(),
-                      currency: "USD", // Default to USD, can be made configurable if needed
+                      currency: "USD",
                   }
                 : undefined,
         expiration_date,
@@ -619,39 +495,6 @@ export const handleEquityCompensationIssuance = async (equity, issuerId, timesta
         transactionType: "EquityCompensationIssuance",
         hash,
     });
-
-    if (fairmintData && fairmintData._id) {
-        const seriesCreatedResp = await reflectSeries({
-            issuerId,
-            series_id: get(fairmintData, "series_id"),
-            series_name: get(fairmintData, "attributes.series_name"),
-            stock_class_id: get(createdEquityCompIssuance, "stock_class_id"),
-            stock_plan_id: get(createdEquityCompIssuance, "stock_plan_id"),
-            series_type: SERIES_TYPE.GRANT,
-            date: dateToUse,
-        });
-
-        console.log("Series created response:", seriesCreatedResp);
-
-        const reflectGrantResponse = await reflectGrant({
-            security_id: get(createdEquityCompIssuance, "security_id"),
-            issuerId,
-            stakeholder_id: _stakeholder_id,
-            series_id: get(fairmintData, "series_id"),
-            quantity: get(createdEquityCompIssuance, "quantity", "0"),
-            exercise_price: get(createdEquityCompIssuance, "exercise_price.amount", "0"),
-            compensation_type: get(createdEquityCompIssuance, "compensation_type", ""),
-            option_grant_type: get(createdEquityCompIssuance, "option_grant_type", ""),
-            security_law_exemptions: get(createdEquityCompIssuance, "security_law_exemptions", []),
-            expiration_date: get(createdEquityCompIssuance, "expiration_date", null),
-            termination_exercise_windows: get(createdEquityCompIssuance, "termination_exercise_windows", []),
-            vestings: get(createdEquityCompIssuance, "vestings", []),
-            vesting_terms_id: get(createdEquityCompIssuance, "vesting_terms_id", null),
-            date: dateToUse,
-        });
-
-        console.log("Grant response:", reflectGrantResponse);
-    }
 };
 
 export const handleEquityCompensationExercise = async (exercise, issuerId, timestamp, hash) => {
@@ -660,16 +503,12 @@ export const handleEquityCompensationExercise = async (exercise, issuerId, times
 
     const _id = convertBytes16ToUUID(id);
     const _equity_comp_security_id = convertBytes16ToUUID(equity_comp_security_id);
-    const fairmintData = await readFairmintDataBySecurityId(_equity_comp_security_id);
     const chainDate = new Date(timestamp * 1000).toISOString().split("T")[0];
     const _resulting_stock_security_id = convertBytes16ToUUID(resulting_stock_security_id);
 
-    // If we have fairmint data, get historical date
-    const dateToUse = fairmintData && fairmintData._id ? get(fairmintData, "date", chainDate) : chainDate;
-
     const createdExercise = await upsertEquityCompensationExerciseById(_id, {
         id: _id,
-        date: dateToUse,
+        date: chainDate,
         equity_comp_security_id: _equity_comp_security_id,
         resulting_security_ids: [_resulting_stock_security_id],
         quantity: toDecimal(quantity).toString(),
@@ -684,25 +523,12 @@ export const handleEquityCompensationExercise = async (exercise, issuerId, times
         hash,
     });
 
-    if (fairmintData && fairmintData._id) {
-        const reflectedExercise = await reflectGrantExercise({
-            security_id: _equity_comp_security_id,
-            resulting_security_ids: [_resulting_stock_security_id],
-            issuerId,
-            quantity: toDecimal(quantity).toString(),
-            date: dateToUse,
-        });
-
-        console.log("Exercise reflected response:", reflectedExercise);
-    }
-
     console.log(
         `✅ | EquityCompensationExercise confirmation onchain with date ${new Date(Date.now()).toLocaleDateString("en-US", options)}`,
         createdExercise
     );
 };
 
-// Note: consolidations are only coming as a helper from transfers
 export const handleStockConsolidation = async (data, issuerId, timestamp) => {
     console.log("StockConsolidation Event Received!");
     const { security_ids, resulting_security_id } = data;
@@ -763,7 +589,6 @@ export const contractFuncs = new Map([
     ["StockClassCreated", handleStockClass],
     ["StockPlanCreated", handleStockPlan],
 ]);
-
 // DANGEROUS DANGEROUS DANGEROUS THIS HAS TO BE IN SAME ORDER AS TxHelper.sol:TxType Enum
 export const txMapper = {
     1: [structs.IssuerAuthorizedSharesAdjustment, handleIssuerAuthorizedSharesAdjusted],
@@ -782,10 +607,9 @@ export const txMapper = {
     14: [structs.EquityCompensationExercise, handleEquityCompensationExercise],
     15: [structs.StockConsolidation, handleStockConsolidation],
 };
+
 // (idx => type name) derived from txMapper
-export const txTypes = Object.fromEntries(
-    // @ts-ignore
-    Object.entries(txMapper).map(([i, [_, f]]) => [i, f.name.replace("handle", "")])
-);
+export const txTypes = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [i, f.name.replace("handle", "")]));
+
 // (name => handler) derived from txMapper
 export const txFuncs = Object.fromEntries(Object.entries(txMapper).map(([i, [_, f]]) => [txTypes[i], f]));
