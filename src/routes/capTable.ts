@@ -1,4 +1,5 @@
-import { Router } from "express";
+// @ts-nocheck
+import { Router, Request, Response } from "express";
 import Issuer from "../db/objects/Issuer";
 import Stakeholder from "../db/objects/Stakeholder";
 import StockClass from "../db/objects/StockClass";
@@ -9,7 +10,7 @@ import { convertUUIDToBytes16 } from "../utils/convertUUID";
 
 export const capTable = Router();
 
-capTable.get("/", async (req, res) => {
+capTable.get("/", async (req: Request, res: Response) => {
     res.send("Hello Cap Table!");
 });
 

@@ -93,8 +93,6 @@ transactions.post("/issuance/stock", async (req, res) => {
             id: incomingStockIssuance.id,
         });
 
-        // TODO: Store Historical Transactions
-
         res.status(200).send({ stockIssuance });
     } catch (error) {
         console.error(error);
