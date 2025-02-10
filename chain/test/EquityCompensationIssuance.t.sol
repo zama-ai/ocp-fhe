@@ -5,7 +5,9 @@ import "./TestBase.sol";
 import { StorageLib } from "@core/Storage.sol";
 import { TxHelper, TxType } from "@libraries/TxHelper.sol";
 import { ValidationLib } from "@libraries/ValidationLib.sol";
-import { EquityCompensationActivePosition } from "@libraries/Structs.sol";
+import { EquityCompensationActivePosition, IssueEquityCompensationParams } from "@libraries/Structs.sol";
+import { AccessControl } from "@libraries/AccessControl.sol";
+import { IEquityCompensationFacet } from "@interfaces/IEquityCompensationFacet.sol";
 
 contract DiamondEquityCompensationIssuanceTest is DiamondTestBase {
     bytes16 stakeholderId;
@@ -14,8 +16,14 @@ contract DiamondEquityCompensationIssuanceTest is DiamondTestBase {
 
     function setUp() public override {
         super.setUp();
+
+        // Grant necessary roles
+        vm.startPrank(contractOwner);
+        IAccessControlFacet(address(capTable)).grantRole(AccessControl.OPERATOR_ROLE, address(this));
+        vm.stopPrank();
+
         stakeholderId = createStakeholder();
-        stockClassId = createStockClass();
+        stockClassId = createStockClass(bytes16(uint128(10)));
 
         // Create array properly
         bytes16[] memory stockClassIds = new bytes16[](1);
@@ -26,44 +34,105 @@ contract DiamondEquityCompensationIssuanceTest is DiamondTestBase {
     function testIssueEquityCompensation() public {
         uint256 quantity = 1000;
         bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
+        bytes16 id = 0xd3373e0a4dd940000000000000000002;
+        IssueEquityCompensationParams memory params = IssueEquityCompensationParams({
+            id: id,
+            stakeholder_id: stakeholderId,
+            stock_class_id: stockClassId,
+            stock_plan_id: stockPlanId,
+            quantity: quantity,
+            security_id: securityId,
+            compensation_type: "ISO",
+            exercise_price: 1e18,
+            base_price: 1e18,
+            expiration_date: "2025-12-31",
+            custom_id: "EQCOMP_001",
+            termination_exercise_windows_mapping: "90_DAYS",
+            security_law_exemptions_mapping: "REG_D"
+        });
 
         vm.expectEmit(true, true, false, true, address(capTable));
-        emit TxHelper.TxCreated(TxType.EQUITY_COMPENSATION_ISSUANCE, abi.encode(stakeholderId, stockClassId, stockPlanId, quantity, securityId));
+        emit TxHelper.TxCreated(TxType.EQUITY_COMPENSATION_ISSUANCE, abi.encode(params));
 
-        EquityCompensationFacet(address(capTable)).issueEquityCompensation(stakeholderId, stockClassId, stockPlanId, quantity, securityId);
+        IEquityCompensationFacet(address(capTable)).issueEquityCompensation(params);
 
         // Verify position was created correctly
-        EquityCompensationActivePosition memory position = EquityCompensationFacet(address(capTable)).getPosition(securityId);
+        EquityCompensationActivePosition memory position =
+            IEquityCompensationFacet(address(capTable)).getPosition(securityId);
         assertEq(position.quantity, quantity);
         assertEq(position.stakeholder_id, stakeholderId);
         assertEq(position.stock_class_id, stockClassId);
         assertEq(position.stock_plan_id, stockPlanId);
     }
 
-    function testFailInvalidStakeholder() public {
+    function test_RevertInvalidStakeholder() public {
         bytes16 invalidStakeholderId = 0xd3373e0a4dd940000000000000000099;
         bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
+        bytes16 id = 0xd3373e0a4dd940000000000000000002;
 
-        EquityCompensationFacet(address(capTable)).issueEquityCompensation(invalidStakeholderId, stockClassId, stockPlanId, 1000, securityId);
+        IssueEquityCompensationParams memory params = IssueEquityCompensationParams({
+            id: id,
+            stakeholder_id: invalidStakeholderId,
+            stock_class_id: stockClassId,
+            stock_plan_id: stockPlanId,
+            quantity: 1000,
+            security_id: securityId,
+            compensation_type: "ISO",
+            exercise_price: 1e18,
+            base_price: 1e18,
+            expiration_date: "2025-12-31",
+            custom_id: "EQCOMP_002",
+            termination_exercise_windows_mapping: "90_DAYS",
+            security_law_exemptions_mapping: "REG_D"
+        });
+        vm.expectRevert(abi.encodeWithSignature("NoStakeholder(bytes16)", invalidStakeholderId));
+        IEquityCompensationFacet(address(capTable)).issueEquityCompensation(params);
     }
 
-    function testFailInvalidStockClass() public {
+    function test_RevertInvalidStockClass() public {
         bytes16 invalidStockClassId = 0xd3373e0a4dd940000000000000000099;
         bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
+        bytes16 id = 0xd3373e0a4dd940000000000000000002;
 
-        EquityCompensationFacet(address(capTable)).issueEquityCompensation(stakeholderId, invalidStockClassId, stockPlanId, 1000, securityId);
+        IssueEquityCompensationParams memory params = IssueEquityCompensationParams({
+            id: id,
+            stakeholder_id: stakeholderId,
+            stock_class_id: invalidStockClassId,
+            stock_plan_id: stockPlanId,
+            quantity: 1000,
+            security_id: securityId,
+            compensation_type: "ISO",
+            exercise_price: 1e18,
+            base_price: 1e18,
+            expiration_date: "2025-12-31",
+            custom_id: "EQCOMP_003",
+            termination_exercise_windows_mapping: "90_DAYS",
+            security_law_exemptions_mapping: "REG_D"
+        });
+        vm.expectRevert(abi.encodeWithSignature("InvalidStockClass(bytes16)", invalidStockClassId));
+        IEquityCompensationFacet(address(capTable)).issueEquityCompensation(params);
     }
 
-    function testFailInvalidStockPlan() public {
-        bytes16 invalidStockPlanId = 0xd3373e0a4dd940000000000000000099;
+    function test_RevertZeroQuantity() public {
         bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
+        bytes16 id = 0xd3373e0a4dd940000000000000000002;
 
-        EquityCompensationFacet(address(capTable)).issueEquityCompensation(stakeholderId, stockClassId, invalidStockPlanId, 1000, securityId);
-    }
-
-    function testFailZeroQuantity() public {
-        bytes16 securityId = 0xd3373e0a4dd940000000000000000001;
-
-        EquityCompensationFacet(address(capTable)).issueEquityCompensation(stakeholderId, stockClassId, stockPlanId, 0, securityId);
+        IssueEquityCompensationParams memory params = IssueEquityCompensationParams({
+            id: id,
+            stakeholder_id: stakeholderId,
+            stock_class_id: stockClassId,
+            stock_plan_id: stockPlanId,
+            quantity: 0,
+            security_id: securityId,
+            compensation_type: "ISO",
+            exercise_price: 1e18,
+            base_price: 1e18,
+            expiration_date: "2025-12-31",
+            custom_id: "EQCOMP_005",
+            termination_exercise_windows_mapping: "90_DAYS",
+            security_law_exemptions_mapping: "REG_D"
+        });
+        vm.expectRevert(abi.encodeWithSignature("InvalidQuantity()"));
+        IEquityCompensationFacet(address(capTable)).issueEquityCompensation(params);
     }
 }

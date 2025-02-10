@@ -1,6 +1,5 @@
 import Factory from "../objects/Factory.js";
 import HistoricalTransaction from "../objects/HistoricalTransaction.js";
-import Fairmint from "../objects/Fairmint.js";
 import Issuer from "../objects/Issuer.js";
 import Stakeholder from "../objects/Stakeholder.js";
 import StockClass from "../objects/StockClass.js";
@@ -112,18 +111,6 @@ export const readfactories = async () => {
     return await find(Factory);
 };
 
-export const readFairmintDataById = async (id) => {
-    return await Fairmint.findById(id);
-};
-
-export const readFairmintDataBySecurityId = async (securityId) => {
-    return await Fairmint.findOne({ security_id: securityId });
-};
-
-export const readFairmintDataByStakeholderId = async (stakeholderId) => {
-    return await Fairmint.findOne({ stakeholder_id: stakeholderId });
-};
-
 export const getAllStateMachineObjectsById = async (issuerId) => {
     const issuer = await readIssuerById(issuerId);
     const stockClasses = await find(StockClass, { issuer: issuerId });
@@ -168,7 +155,7 @@ export const getAllStateMachineObjectsById = async (issuerId) => {
         return typeCompare !== 0 ? typeCompare : new Date(a.createdAt) - new Date(b.createdAt);
     });
 
-    console.log("allTransactions", allTransactions);
+    console.log("All Transactions:", allTransactions.length);
 
     return {
         issuer,
