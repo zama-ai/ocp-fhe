@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import fs from "fs";
 import pathTools from "path";
-import get from "lodash/get";
+import get from "lodash/get.js";
 
 const splitPath = (path) => {
     /* 
@@ -23,7 +23,9 @@ const getEnvFile = (fileName) => {
     let check = pathTools.join(cwd, fileName);
     while (!fs.existsSync(check)) {
         if (rightMost === repoRootDirName) {
-            throw new Error(`Unable to locate .env in ${check}`);
+            // console.error(`Unable to locate .env file in ${check}, falling back`);
+            // Instead of throwing, return null to allow fallback
+            return null;
         }
         // Check our current dir
         check = pathTools.join(dir, fileName);
@@ -47,10 +49,22 @@ export const setupEnv = () => {
         return;
     }
 
-    // Fall back to .env file for local development
-    const fileName = process.env.USE_ENV_FILE || ".env";
-    const path = getEnvFile(fileName);
-    console.log("Loading from env file:", path);
-    config({ path });
+    // Try loading files in order of precedence (least specific to most specific)
+    const NODE_ENV = process.env.NODE_ENV || "development";
+    const envFiles = [
+        ".env", // 1. .env (base defaults)
+        `.env.${NODE_ENV}`, // 2. .env.development, .env.test, .env.production
+        `.env.local`, // 3. .env.local (local overrides)
+        `.env.${NODE_ENV}.local`, // 4. .env.development.local, .env.test.local, .env.production.local (most specific)
+    ];
+
+    for (const fileName of envFiles) {
+        const envPath = getEnvFile(fileName);
+        if (envPath) {
+            console.log(`Loading environment from ${fileName}:`, envPath);
+            config({ path: envPath, override: true }); // override: true means later files take precedence
+        }
+    }
+
     _ALREADY_SETUP = true;
 };

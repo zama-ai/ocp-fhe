@@ -96,6 +96,7 @@ Use the appropriate command to deploy contracts:
 
 -   **Local:**
     ```sh
+    # Clear envvars in .env.local if they exist from a previous deployment
     yarn deploy:local
     ```
 -   **Testnet:**

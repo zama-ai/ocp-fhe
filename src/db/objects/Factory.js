@@ -5,8 +5,8 @@ const FactorySchema = new mongoose.Schema(
     {
         _id: { type: String, default: () => uuid() },
         object_type: { type: String, default: "FACTORY" },
-        implementation_address: String,
-        factory_address: String,
+        implementation_address: { type: String, required: true },
+        factory_address: { type: String, required: true },
         chain_id: { type: Number, required: true },
     },
     { timestamps: true }

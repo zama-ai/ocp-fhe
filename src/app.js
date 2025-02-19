@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/node";
 // Routes
 import mainRoutes from "./routes/index.js";
 import issuerRoutes from "./routes/issuer.js";
+import factoryRoutes from "./routes/factory.ts";
 import stakeholderRoutes from "./routes/stakeholder/index.js";
 import stockClassRoutes from "./routes/stockClass.js";
 import stockLegendRoutes from "./routes/stockLegend.js";
@@ -84,6 +85,7 @@ app.use(json({ limit: "50mb" }));
 app.enable("trust proxy");
 
 app.use("/", mainRoutes);
+app.use("/factory", factoryRoutes);
 app.use("/issuer", chainMiddleware, issuerRoutes);
 app.use("/stakeholder", contractMiddleware, stakeholderRoutes);
 app.use("/stock-class", contractMiddleware, stockClassRoutes);
@@ -125,10 +127,12 @@ const startServer = async () => {
                 acc[contract.chain_id] = (acc[contract.chain_id] || 0) + 1;
                 return acc;
             }, {});
+            console.log("contractsToWatch", contractsToWatch);
             Object.entries(contractsToWatch).forEach(([_ /*id*/, data]) => {
                 console.log(`${data.name.padEnd(32)} -> ${data.address}`);
             });
 
+            console.log("contractsByChain", contractsByChain);
             Object.entries(contractsByChain).forEach(([chainId, count]) => {
                 console.log(`Chain ${chainId}: ${count} contracts`);
             });

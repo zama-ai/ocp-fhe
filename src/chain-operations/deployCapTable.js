@@ -39,6 +39,11 @@ export const getWallet = async (chainId) => {
     assert(chainId, "chainId is not set");
 
     const provider = getProvider(chainId);
+    console.log("🗽 | Wallet address: ", new ethers.Wallet(WALLET_PRIVATE_KEY, provider).address);
+    console.log("Chain ID:", chainId);
+    console.log("Factory address from env:", process.env.FACTORY_ADDRESS);
+    console.log("Provider:", provider);
+
     return new ethers.Wallet(WALLET_PRIVATE_KEY, provider);
 };
 
@@ -48,7 +53,9 @@ async function deployCapTable(issuerId, initial_shares_authorized, chainId) {
     console.log("🗽 | Wallet address: ", wallet.address);
 
     // Find factory for this chain
-    const factory = await findOne(Factory, { version: "DIAMOND", chain_id: chainId });
+    console.log("Looking for factory with chain_id:", chainId, typeof chainId);
+    const factory = await findOne(Factory, { chain_id: chainId });
+    console.log("Found factory:", factory);
     const factoryAddress = factory?.factory_address;
 
     if (!factoryAddress) {
