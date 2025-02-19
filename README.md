@@ -43,6 +43,21 @@ Ensure you have the following installed:
         yarn deploy:local
         ```
 
+    - Set .env.<env> variables using output of deploy script
+
+        ```sh
+        DIAMOND_CUT_FACET=
+        ISSUER_FACET=
+        STAKEHOLDER_FACET=
+        STOCK_CLASS_FACET=
+        STOCK_FACET=
+        CONVERTIBLES_FACET=
+        EQUITY_COMPENSATION_FACET=
+        STOCK_PLAN_FACET=
+        WARRANT_FACET=
+        STAKEHOLDER_NFT_FACET=
+        ```
+
     - **Terminal 3:** Run the backend server
         ```sh
         yarn dev
@@ -52,7 +67,7 @@ Ensure you have the following installed:
 
 This repository supports deploying cap tables to different **EVM chains**.
 
--   Check `/src/chain.js` and configure the required chain keys.
+-   Check `/src/chains.js` and configure the required chain keys.
 -   When making API requests:
     -   **Issuer creation** → Pass `chainId` in the request body.
     -   **Other transactions** (e.g., creating stakeholders, issuing stock) → Pass `issuerId` in the request body.
