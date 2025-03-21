@@ -17,7 +17,7 @@ Ensure you have the following installed:
 
 ## Setup & Running Locally
 
-1. Copy `.env.example` to `.env`. (The example file includes a local database setup for testing, which we recommend.)
+1. Copy `.env.example` to `.env.local`. (The example file includes a local database setup for testing, which we recommend.)
 
 ### Setup
 
@@ -32,33 +32,36 @@ Ensure you have the following installed:
 3. Start services:
 
     - **Terminal 1:** Start Anvil (local blockchain)
-
         ```sh
         anvil
         ```
+      - Take one of the output's "Private Keys" and set your env file's `PRIVATE_KEY`
 
     - **Terminal 2:** Deploy contracts
-
         ```sh
         yarn deploy:local
         ```
+      - Set your env file's variables using output of deploy script
 
-    - Set .env.<env> variables using output of deploy script
+          ```sh
+          DIAMOND_CUT_FACET=
+          ISSUER_FACET=
+          STAKEHOLDER_FACET=
+          STOCK_CLASS_FACET=
+          STOCK_FACET=
+          CONVERTIBLES_FACET=
+          EQUITY_COMPENSATION_FACET=
+          STOCK_PLAN_FACET=
+          WARRANT_FACET=
+          STAKEHOLDER_NFT_FACET=
+          ```
 
+    - **Terminal 3:** Run the mongo instance
         ```sh
-        DIAMOND_CUT_FACET=
-        ISSUER_FACET=
-        STAKEHOLDER_FACET=
-        STOCK_CLASS_FACET=
-        STOCK_FACET=
-        CONVERTIBLES_FACET=
-        EQUITY_COMPENSATION_FACET=
-        STOCK_PLAN_FACET=
-        WARRANT_FACET=
-        STAKEHOLDER_NFT_FACET=
+        docker compose up
         ```
 
-    - **Terminal 3:** Run the backend server
+    - **Terminal 4:** Run the backend server
         ```sh
         yarn dev
         ```

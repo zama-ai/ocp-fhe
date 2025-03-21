@@ -10,7 +10,6 @@ import { console } from "forge-std/console.sol";
 
 contract IssuerFacet {
     error IssuerAlreadyInitialized();
-    error InvalidSharesAuthorized();
 
     event IssuerAuthorizedSharesAdjusted(uint256 newSharesAuthorized);
 

@@ -7,9 +7,6 @@ interface IIssuerFacet {
     /// @notice Thrown when trying to initialize an already initialized issuer
     error IssuerAlreadyInitialized();
 
-    /// @notice Thrown when invalid shares authorized value is provided
-    error InvalidSharesAuthorized();
-
     /// @notice Emitted when issuer's authorized shares are adjusted
     event IssuerAuthorizedSharesAdjusted(uint256 newSharesAuthorized);
 

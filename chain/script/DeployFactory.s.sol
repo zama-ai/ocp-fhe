@@ -20,6 +20,7 @@ import { WarrantFacet } from "@facets/WarrantFacet.sol";
 import { StakeholderNFTFacet } from "@facets/StakeholderNFTFacet.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
 import { AccessControlFacet } from "@facets/AccessControlFacet.sol";
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 library LibDeployment {
     uint256 constant FACET_COUNT = 11; // Number of enum values FacetType
@@ -155,72 +156,50 @@ library LibDeployment {
         revert("Unknown selector");
     }
 
+    function _deployedHandler(string memory envName, address addr) internal returns (address) {
+        console.log(string.concat(envName, "=", Strings.toHexString(addr)));
+        return addr;
+    }
+
     function deployFacet(FacetType facetType) internal returns (address) {
-        address facetAddress;
         if (facetType == FacetType.DiamondLoupe) {
-            facetAddress = address(new DiamondLoupeFacet());
-            console.log("DIAMOND_LOUPE_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("DIAMOND_LOUPE_FACET", address(new DiamondLoupeFacet()));
         }
         if (facetType == FacetType.Issuer) {
-            facetAddress = address(new IssuerFacet());
-            console.log("ISSUER_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("ISSUER_FACET", address(new IssuerFacet()));
         }
         if (facetType == FacetType.Stakeholder) {
-            facetAddress = address(new StakeholderFacet());
-            console.log("STAKEHOLDER_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("STAKEHOLDER_FACET", address(new StakeholderFacet()));
         }
         if (facetType == FacetType.StockClass) {
-            facetAddress = address(new StockClassFacet());
-            console.log("STOCK_CLASS_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("STOCK_CLASS_FACET", address(new StockClassFacet()));
         }
         if (facetType == FacetType.Stock) {
-            facetAddress = address(new StockFacet());
-            console.log("STOCK_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("STOCK_FACET", address(new StockFacet()));
         }
         if (facetType == FacetType.Convertibles) {
-            facetAddress = address(new ConvertiblesFacet());
-            console.log("CONVERTIBLES_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("CONVERTIBLES_FACET", address(new ConvertiblesFacet()));
         }
         if (facetType == FacetType.EquityCompensation) {
-            facetAddress = address(new EquityCompensationFacet());
-            console.log("EQUITY_COMPENSATION_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("EQUITY_COMPENSATION_FACET", address(new EquityCompensationFacet()));
         }
         if (facetType == FacetType.StockPlan) {
-            facetAddress = address(new StockPlanFacet());
-            console.log("STOCK_PLAN_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("STOCK_PLAN_FACET", address(new StockPlanFacet()));
         }
         if (facetType == FacetType.Warrant) {
-            facetAddress = address(new WarrantFacet());
-            console.log("WARRANT_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("WARRANT_FACET", address(new WarrantFacet()));
         }
         if (facetType == FacetType.StakeholderNFT) {
-            facetAddress = address(new StakeholderNFTFacet());
-            console.log("STAKEHOLDER_NFT_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("STAKEHOLDER_NFT_FACET", address(new StakeholderNFTFacet()));
         }
         if (facetType == FacetType.AccessControl) {
-            facetAddress = address(new AccessControlFacet());
-            console.log("ACCESS_CONTROL_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("ACCESS_CONTROL_FACET", address(new AccessControlFacet()));
         }
         if (facetType == FacetType.MockFacet) {
-            facetAddress = address(new MockFacet());
-            console.log("MOCK_FACET=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("MOCK_FACET", address(new MockFacet()));
         }
         if (facetType == FacetType.MockFacetV2) {
-            facetAddress = address(new MockFacetV2());
-            console.log("MOCK_FACET_V2=", facetAddress);
-            return facetAddress;
+            return _deployedHandler("MOCK_FACET_V2", address(new MockFacetV2()));
         }
         revert("Unknown facet type");
     }

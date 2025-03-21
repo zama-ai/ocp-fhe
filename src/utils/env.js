@@ -17,14 +17,12 @@ const splitPath = (path) => {
 
 const getEnvFile = (fileName) => {
     // Find the .env file by iterating up the PWD. However do not go past the repo root!
-    const repoRootDirName = "open-captable-protocol";
     const cwd = process.env.PWD;
     let { dir, rightMost } = splitPath(cwd);
     let check = pathTools.join(cwd, fileName);
     while (!fs.existsSync(check)) {
-        if (rightMost === repoRootDirName) {
-            // console.error(`Unable to locate .env file in ${check}, falling back`);
-            // Instead of throwing, return null to allow fallback
+        if (!rightMost) {
+            // console.error(`Unable to locate ${fileName} file in ${cwd}`);
             return null;
         }
         // Check our current dir
@@ -61,8 +59,9 @@ export const setupEnv = () => {
     for (const fileName of envFiles) {
         const envPath = getEnvFile(fileName);
         if (envPath) {
-            console.log(`Loading environment from ${fileName}:`, envPath);
+            console.log("Loading env file:", envPath);
             config({ path: envPath, override: true }); // override: true means later files take precedence
+            break;
         }
     }
 
