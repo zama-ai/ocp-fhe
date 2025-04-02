@@ -63,10 +63,11 @@ library LibDeployment {
             return FacetCutInfo({ name: "IssuerFacet", selectors: selectors });
         }
         if (facetType == FacetType.Stakeholder) {
-            bytes4[] memory selectors = new bytes4[](3);
+            bytes4[] memory selectors = new bytes4[](4);
             selectors[0] = StakeholderFacet.createStakeholder.selector;
             selectors[1] = StakeholderFacet.getStakeholderPositions.selector;
             selectors[2] = StakeholderFacet.linkStakeholderAddress.selector;
+            selectors[3] = StakeholderFacet.getStakeholderId.selector;
             return FacetCutInfo({ name: "StakeholderFacet", selectors: selectors });
         }
         if (facetType == FacetType.StockClass) {
