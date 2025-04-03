@@ -1,12 +1,12 @@
 /* eslint-disable no-case-declarations */
 
-import { Log, AbiCoder, Block, ethers } from "ethers";
-import getProvider from "../chain-operations/getProvider";
+import { AbiCoder, Block, ethers, Log } from "ethers";
 import get from "lodash/get.js";
-import { handleStockPlan, txMapper, txTypes } from "../chain-operations/transactionHandlers";
-import { handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
+
+import getProvider from "../chain-operations/getProvider";
+import { StakeholderCreated, StockClassCreated, StockPlanCreated, TxCreated } from "../chain-operations/topics";
+import { handleStakeholder, handleStockClass, handleStockPlan, txMapper, txTypes } from "../chain-operations/transactionHandlers";
 import Issuer from "../db/objects/Issuer";
-import { TxCreated, StakeholderCreated, StockClassCreated, StockPlanCreated } from "../chain-operations/topics";
 
 const TOPICS = { TxCreated, StakeholderCreated, StockClassCreated, StockPlanCreated };
 
@@ -94,7 +94,7 @@ export const startListener = async (contracts: { address: string; chain_id: numb
     }
 };
 
-export const reamoveAllListeners = async () => {
+export const removeAllListeners = async () => {
     for (const [chainId, provider] of providers.entries()) {
         console.log(`Removing listeners for chain ${chainId}...`);
         await provider.removeAllListeners();
