@@ -103,7 +103,7 @@ contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
     }
 
     /// @dev Override _grantRole to use diamond storage
-    function _grantRole(bytes32 role, address account) internal virtual override {
+    function _grantRole(bytes32 role, address account) internal virtual override returns (bool) {
         Storage storage ds = StorageLib.get();
         if (!ds.roles[role][account]) {
             ds.roles[role][account] = true;
@@ -120,16 +120,20 @@ contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
                     emit RoleGranted(INVESTOR_ROLE, account, msg.sender);
                 }
             }
+            return true;
         }
+        return false;
     }
 
     /// @dev Override _revokeRole to use diamond storage
-    function _revokeRole(bytes32 role, address account) internal virtual override {
+    function _revokeRole(bytes32 role, address account) internal virtual override returns (bool) {
         Storage storage ds = StorageLib.get();
         if (ds.roles[role][account]) {
             ds.roles[role][account] = false;
             emit RoleRevoked(role, account, msg.sender);
+            return true;
         }
+        return false;
     }
 
     /// @dev Override _setRoleAdmin to use diamond storage
