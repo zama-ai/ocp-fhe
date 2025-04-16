@@ -1,12 +1,11 @@
 import { ethers } from "ethers";
 import CAP_TABLE_FACTORY from "../../chain/out/CapTableFactory.sol/CapTableFactory.json";
-import { facetsABI } from "../utils/errorDecoder.js";
+import { facetsABI, decodeError } from "../utils/errorDecoder.js";
 import { toScaledBigNumber } from "../utils/convertToFixedPointDecimals.js";
 import { setupEnv } from "../utils/env.js";
 import getProvider from "./getProvider.js";
 import Factory, { FACTORY_VERSION } from "../db/objects/Factory.js";
 import assert from "node:assert";
-import { decodeError } from "../utils/errorDecoder";
 
 setupEnv();
 

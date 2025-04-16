@@ -17,11 +17,8 @@ import StockRepurchase from "../objects/transactions/repurchase/StockRepurchase.
 import StockRetraction from "../objects/transactions/retraction/StockRetraction.js";
 import StockTransfer from "../objects/transactions/transfer/StockTransfer.js";
 import ConvertibleIssuance from "../objects/transactions/issuance/ConvertibleIssuance.js";
-import Fairmint from "../objects/Fairmint.js";
 import { findByIdAndUpdate, findOne, findBySecurityIdAndUpdate } from "./atomic.ts";
 import { createFactory } from "./create.js";
-import get from "lodash/get";
-import { v4 as uuid } from "uuid";
 
 export const web3WaitTime = 5000;
 
@@ -124,39 +121,6 @@ export const upsertFactory = async (updatedData) => {
         return await findByIdAndUpdate(Factory, existing._id, updatedData, { new: true });
     }
     return await createFactory(updatedData);
-};
-
-export const upsertFairmintData = async (id, updatedData = {}) => {
-    const existing = await findOne(Fairmint, { _id: id });
-    if (existing && existing._id) {
-        updatedData.attributes = {
-            ...get(existing, "attributes", {}),
-            ...get(updatedData, "attributes", {}),
-        };
-    }
-    return await findByIdAndUpdate(Fairmint, get(existing, "_id"), updatedData, { new: true, upsert: true });
-};
-
-export const upsertFairmintDataBySecurityId = async (security_id, updatedData = {}) => {
-    const existing = await findOne(Fairmint, { security_id });
-    if (existing && existing._id) {
-        updatedData.attributes = {
-            ...get(existing, "attributes", {}),
-            ...get(updatedData, "attributes", {}),
-        };
-    }
-    return await findByIdAndUpdate(Fairmint, get(existing, "_id", uuid()), updatedData, { new: true, upsert: true });
-};
-
-export const upsertFairmintDataByStakeholderId = async (stakeholder_id, updatedData = {}) => {
-    const existing = await findOne(Fairmint, { stakeholder_id });
-    if (existing && existing._id) {
-        updatedData.attributes = {
-            ...get(existing, "attributes", {}),
-            ...get(updatedData, "attributes", {}),
-        };
-    }
-    return await findByIdAndUpdate(Fairmint, get(existing, "_id", uuid()), updatedData, { new: true, upsert: true });
 };
 
 export const upsertWarrantIssuanceBySecurityId = async (securityId, updatedData) => {
