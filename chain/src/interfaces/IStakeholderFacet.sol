@@ -22,9 +22,6 @@ interface IStakeholderFacet {
     /// @notice Thrown when attempting to link an address that's already linked
     error AddressAlreadyLinked(address wallet_address);
 
-    /// @notice Thrown when a wallet doesnt have a stakeholder linked
-    error NoStakeholder();
-
     /// @notice Create a new stakeholder
     /// @dev Only OPERATOR_ROLE can create stakeholders
     /// @param _id The unique identifier for the stakeholder
@@ -35,14 +32,6 @@ interface IStakeholderFacet {
     /// @param stakeholder_id The stakeholder to link the address to
     /// @param wallet_address The address to link
     function linkStakeholderAddress(bytes16 stakeholder_id, address wallet_address) external;
-
-    /// @notice Get the stakeholder ID for a given address
-    /// @param wallet_address The address to get the stakeholder ID for
-    /// @param ensure_exists If true, will revert if the address is not linked to a stakeholder
-    function getStakeholderId(address wallet_address, bool ensure_exists) external view returns (bytes16);
-
-    /// @notice Get stakeholder idx for a stakeholder id
-    function getStakeholderIndex(bytes16 stakeholder_id) external view returns (uint256);
 
     /// @notice Get all positions for a stakeholder
     /// @dev INVESTOR_ROLE can only view their own positions, OPERATOR_ROLE and above can view any

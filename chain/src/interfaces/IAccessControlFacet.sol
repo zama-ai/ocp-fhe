@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IAccessControl } from "openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import { IAccessControlUpgradeable } from
+    "openzeppelin-contracts-upgradeable/contracts/access/IAccessControlUpgradeable.sol";
 
-interface IAccessControlFacet is IAccessControl {
+interface IAccessControlFacet is IAccessControlUpgradeable {
     /// @notice Error definitions from AccessControl
     error AccessControlUnauthorized(address account, bytes32 role);
+    error AccessControlBadConfirmation();
     error AccessControlInvalidTransfer();
 
     /// @notice Initialize the access control system

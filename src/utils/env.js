@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import fs from "fs";
 import pathTools from "path";
-import get from "lodash/get.js";
+import get from "lodash/get";
 
 const splitPath = (path) => {
     /* 
@@ -17,13 +17,13 @@ const splitPath = (path) => {
 
 const getEnvFile = (fileName) => {
     // Find the .env file by iterating up the PWD. However do not go past the repo root!
+    const repoRootDirName = "open-captable-protocol";
     const cwd = process.env.PWD;
     let { dir, rightMost } = splitPath(cwd);
     let check = pathTools.join(cwd, fileName);
     while (!fs.existsSync(check)) {
-        if (!rightMost) {
-            // console.error(`Unable to locate ${fileName} file in ${cwd}`);
-            return null;
+        if (rightMost === repoRootDirName) {
+            throw new Error(`Unable to locate .env in ${check}`);
         }
         // Check our current dir
         check = pathTools.join(dir, fileName);
@@ -47,23 +47,10 @@ export const setupEnv = () => {
         return;
     }
 
-    // Try loading files in order of precedence (least specific to most specific)
-    const NODE_ENV = process.env.NODE_ENV || "development";
-    const envFiles = [
-        ".env", // 1. .env (base defaults)
-        `.env.${NODE_ENV}`, // 2. .env.development, .env.test, .env.production
-        `.env.local`, // 3. .env.local (local overrides)
-        `.env.${NODE_ENV}.local`, // 4. .env.development.local, .env.test.local, .env.production.local (most specific)
-    ];
-
-    for (const fileName of envFiles) {
-        const envPath = getEnvFile(fileName);
-        if (envPath) {
-            console.log("Loading env file:", envPath);
-            config({ path: envPath, override: true }); // override: true means later files take precedence
-            break;
-        }
-    }
-
+    // Fall back to .env file for local development
+    const fileName = process.env.USE_ENV_FILE || ".env";
+    const path = getEnvFile(fileName);
+    console.log("Loading from env file:", path);
+    config({ path });
     _ALREADY_SETUP = true;
 };

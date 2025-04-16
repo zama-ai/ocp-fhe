@@ -88,30 +88,6 @@ contract DiamondStakeholderPositionsTest is DiamondTestBase {
         IEquityCompensationFacet(address(capTable)).issueEquityCompensation(equityParams);
     }
 
-    function testGetStakeholderId(address wallet) public {
-        /* Ensure we can set & get the stakeholderId for a wallet */
-        vm.assume(wallet != address(0));
-        IStakeholderFacet sf = IStakeholderFacet(address(capTable));
-
-        // Raise if ensure=True
-        vm.expectRevert(abi.encodeWithSelector(IStakeholderFacet.NoStakeholder.selector));
-        sf.getStakeholderId(wallet, true);
-
-        // Return bytes16(0) if ensure=False
-        bytes16 id = sf.getStakeholderId(wallet, false);
-        assertEq(id, bytes16(0));
-
-        // Link the address
-        linkStakeholderAddress(stakeholderId, wallet);
-
-        // Ensure it exists
-        id = sf.getStakeholderId(wallet, true);
-        assertNotEq(id, bytes16(0));
-
-        // Ensure it returns a non-0 idx
-        assertGt(sf.getStakeholderIndex(id), 0);
-    }
-
     function testGetStakeholderPositions() public {
         StakeholderPositions memory positions =
             IStakeholderFacet(address(capTable)).getStakeholderPositions(stakeholderId);
