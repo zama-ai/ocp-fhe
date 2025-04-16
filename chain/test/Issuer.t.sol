@@ -16,10 +16,9 @@ import {
 import { IStockFacet } from "@interfaces/IStockFacet.sol";
 import { IConvertiblesFacet } from "@interfaces/IConvertiblesFacet.sol";
 import { IEquityCompensationFacet } from "@interfaces/IEquityCompensationFacet.sol";
-import {ICapTable} from "../src/interfaces/ICapTable.sol";
+import { ICapTable } from "../src/interfaces/ICapTable.sol";
 
 contract IssuerTest is DiamondTestBase {
-
     function test_issuer() public {
         ICapTable ct = ICapTable(address(capTable));
         Issuer memory iss = ct.issuer();
