@@ -107,7 +107,7 @@ export const readAllIssuers = async () => {
     return await find(Issuer);
 };
 
-export const readfactories = async () => {
+export const readFactories = async () => {
     return await find(Factory);
 };
 
