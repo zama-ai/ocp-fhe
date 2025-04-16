@@ -22,7 +22,7 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import readline from "readline";
-import { addAddressesToWatch, reamoveAllListeners } from "../utils/websocket.ts";
+import { addAddressesToWatch, removeAllListeners } from "../utils/websocket.ts";
 import { validateIssuerForMigration } from "./validate.js";
 
 // Load environment variables
@@ -494,7 +494,7 @@ async function main() {
     } finally {
         rl.close();
         await mongoose.disconnect();
-        await reamoveAllListeners();
+        await removeAllListeners();
         console.log(chalk.gray("\nExiting migration process..."));
     }
 }

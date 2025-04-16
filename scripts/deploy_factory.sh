@@ -54,6 +54,7 @@ echo $RPC_URL
 echo $CHAIN_ID
 
 # Deploy contracts
+echo "Deploying with DeployFactory.s.sol on Chain ID: $CHAIN_ID using RPC URL: $RPC_URL"
 DEPLOY_OUTPUT=$(forge script script/DeployFactory.s.sol --broadcast --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID)
 echo "$DEPLOY_OUTPUT"
 

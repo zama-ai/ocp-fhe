@@ -44,15 +44,16 @@
     "dotenv": "^16.3.1",
     "ethers": "^6.7.1",
     "exceljs": "^4.4.0",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "joi": "^17.13.1",
+    "lodash": "^4.17.21",
     "mongoose": "^7.4.2",
     "npx": "^10.2.2",
     "rxjs": "^7.8.1",
     "solc": "^0.8.20",
     "tsx": "^4.7.0",
     "xstate": "^4.38.2",
-    "yauzl": "^2.10.0"
+    "yauzl": "^3.2.0"
   },
   "browserslist": [
     "defaults",
@@ -77,8 +78,8 @@
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1",
     "solhint": "^3.4.1",
-    "ts-jest": "^29.1.1",
     "typescript": "~5.8.2",
+    "ts-jest": "^29.2.6",
     "uuid": "^9.0.0"
   },
   "main": "jest.config.js",
