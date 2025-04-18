@@ -32,10 +32,12 @@ interface IAccessControlFacet is IAccessControl {
 
     /// @notice Role definitions
     /// @return The OPERATOR_ROLE hash
+    // solhint-disable func-name-mixedcase
     function OPERATOR_ROLE() external view returns (bytes32);
 
     /// @notice Role definitions
     /// @return The INVESTOR_ROLE hash
+    // solhint-disable func-name-mixedcase
     function INVESTOR_ROLE() external view returns (bytes32);
 
     /// @notice Returns whether an account has a role

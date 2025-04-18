@@ -18,8 +18,8 @@ interface IStockClassFacet {
     /// @notice Thrown when attempting to operate on a non-existent stock class
     error StockClassNotFound(bytes16 stock_class_id);
 
-    /// @notice Thrown when invalid shares authorized value is provided
-    error InvalidSharesAuthorized();
+    /// @notice Thrown when invalid shares authorized value is provided for a stock class
+    error InvalidStockClassSharesAuthorized();
 
     /// @notice Create a new stock class
     /// @dev Only DEFAULT_ADMIN_ROLE can create stock classes

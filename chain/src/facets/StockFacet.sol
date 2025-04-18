@@ -14,19 +14,9 @@ import {
 import { TxHelper, TxType } from "@libraries/TxHelper.sol";
 import { ValidationLib } from "@libraries/ValidationLib.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
+import { IStockFacet } from "@interfaces/IStockFacet.sol";
 
-contract StockFacet {
-    /// @notice Issue new stock to a stakeholder
-    /// @dev Only OPERATOR_ROLE can issue stock
-    error InvalidSecurityId(bytes16 security_id);
-
-    /// @dev Add these custom errors at the contract level
-    error NoPositionsToConsolidate();
-    error StockClassMismatch(bytes16 expected, bytes16 actual);
-    error ZeroQuantityPosition(bytes16 security_id);
-    error InsufficientSharesForCancellation(bytes16 security_id, uint256 requested, uint256 available);
-    error InvalidCancellationQuantity(bytes16 security_id, uint256 quantity);
-
+contract StockFacet is IStockFacet {
     function issueStock(IssueStockParams calldata params) external {
         Storage storage ds = StorageLib.get();
 

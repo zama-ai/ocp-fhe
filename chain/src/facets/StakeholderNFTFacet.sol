@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-contracts/contracts/utils/Base64.sol";
+import { ERC721 } from "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import { Base64 } from "openzeppelin-contracts/contracts/utils/Base64.sol";
 import { StorageLib, Storage } from "@core/Storage.sol";
 import {
     StakeholderPositions,
@@ -14,13 +14,17 @@ import {
 import { ValidationLib } from "@libraries/ValidationLib.sol";
 import { StakeholderFacet } from "@facets/StakeholderFacet.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
+import { IStakeholderNFTFacet } from "@interfaces/IStakeholderNFTFacet.sol";
 
-contract StakeholderNFTFacet is ERC721 {
-    error NotStakeholder();
-    error AlreadyMinted();
-    error URIQueryForNonexistentToken();
-
+contract StakeholderNFTFacet is ERC721, IStakeholderNFTFacet {
     constructor() ERC721("Stakeholder Position", "STKPOS") { }
+
+    // Internal function to check if a token exists by checking if the stakeholder ID exists
+    function _exists(uint256 tokenId) internal view override returns (bool) {
+        Storage storage ds = StorageLib.get();
+        bytes16 stakeholderId = bytes16(uint128(tokenId));
+        return ds.stakeholderIndex[stakeholderId] != 0;
+    }
 
     /// @notice Mint an NFT representing a stakeholder's position
     /// @dev Only stakeholders with INVESTOR_ROLE can mint their own NFT
@@ -45,12 +49,18 @@ contract StakeholderNFTFacet is ERC721 {
             revert AlreadyMinted();
         }
 
-        _mint(msg.sender, tokenId);
+        _safeMint(msg.sender, tokenId);
     }
 
     /// @notice Get the URI for a token, containing metadata about stakeholder positions
     /// @dev Only OPERATOR_ROLE or the token owner can view the token URI
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        virtual
+        override(ERC721, IStakeholderNFTFacet)
+        returns (string memory)
+    {
         if (!_exists(tokenId)) revert URIQueryForNonexistentToken();
 
         // Allow operators and admins to view any token URI
@@ -71,7 +81,7 @@ contract StakeholderNFTFacet is ERC721 {
                     bytes(
                         abi.encodePacked(
                             '{"name":"Stakeholder Position #',
-                            toString(tokenId),
+                            _toString(tokenId),
                             '","description":"This NFT represents all active positions for this stakeholder.",',
                             '"attributes":',
                             _getAttributesJson(positions),
@@ -105,14 +115,15 @@ contract StakeholderNFTFacet is ERC721 {
         if (positions.length == 0) return '{"trait_type": "Stock Positions", "value": "0"}';
 
         return
-            string(abi.encodePacked('{"trait_type": "Stock Positions", "value": "', toString(positions.length), '"}'));
+            string(abi.encodePacked('{"trait_type": "Stock Positions", "value": "', _toString(positions.length), '"}'));
     }
 
     function _getWarrantPositionsJson(WarrantActivePosition[] memory positions) internal pure returns (string memory) {
         if (positions.length == 0) return '{"trait_type": "Warrant Positions", "value": "0"}';
 
-        return
-            string(abi.encodePacked('{"trait_type": "Warrant Positions", "value": "', toString(positions.length), '"}'));
+        return string(
+            abi.encodePacked('{"trait_type": "Warrant Positions", "value": "', _toString(positions.length), '"}')
+        );
     }
 
     function _getConvertiblePositionsJson(ConvertibleActivePosition[] memory positions)
@@ -123,7 +134,7 @@ contract StakeholderNFTFacet is ERC721 {
         if (positions.length == 0) return '{"trait_type": "Convertible Positions", "value": "0"}';
 
         return string(
-            abi.encodePacked('{"trait_type": "Convertible Positions", "value": "', toString(positions.length), '"}')
+            abi.encodePacked('{"trait_type": "Convertible Positions", "value": "', _toString(positions.length), '"}')
         );
     }
 
@@ -136,12 +147,12 @@ contract StakeholderNFTFacet is ERC721 {
 
         return string(
             abi.encodePacked(
-                '{"trait_type": "Equity Compensation Positions", "value": "', toString(positions.length), '"}'
+                '{"trait_type": "Equity Compensation Positions", "value": "', _toString(positions.length), '"}'
             )
         );
     }
 
-    function toString(uint256 value) internal pure returns (string memory) {
+    function _toString(uint256 value) internal pure returns (string memory) {
         // Convert uint to string
         if (value == 0) {
             return "0";

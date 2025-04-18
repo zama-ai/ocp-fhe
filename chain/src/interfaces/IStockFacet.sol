@@ -6,7 +6,18 @@ import { StockActivePosition, IssueStockParams } from "@libraries/Structs.sol";
 interface IStockFacet {
     /// @notice Issue new stock to a stakeholder
     /// @dev Only OPERATOR_ROLE can issue stock
+    error InvalidSecurityId(bytes16 security_id);
+
+    /// @dev Add these custom errors at the contract level
+    error NoPositionsToConsolidate();
+    error StockClassMismatch(bytes16 expected, bytes16 actual);
+    error ZeroQuantityPosition(bytes16 security_id);
+    error InsufficientSharesForCancellation(bytes16 security_id, uint256 requested, uint256 available);
+    error InvalidCancellationQuantity(bytes16 security_id, uint256 quantity);
+    /// @notice Issue new stock to a stakeholder
+    /// @dev Only OPERATOR_ROLE can issue stock
     /// @param params Parameters for issuing stock including stakeholder ID, stock class ID, quantity, etc.
+
     function issueStock(IssueStockParams calldata params) external;
 
     /// @notice Get details of a stock position
