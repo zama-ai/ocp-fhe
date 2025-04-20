@@ -43,3 +43,4 @@ chain/out
 chain/lib/*
 solana/*
 *.ignore.js
+migration*
