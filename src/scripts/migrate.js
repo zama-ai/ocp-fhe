@@ -1,4 +1,5 @@
 import { Contract } from "ethers";
+import Factory from "../db/objects/Factory.js";
 import { readIssuerById, getAllStateMachineObjectsById, readAllIssuers } from "../db/operations/read.js";
 import { updateIssuerById } from "../db/operations/update.js";
 import { facetsABI } from "../utils/errorDecoder.js";
@@ -380,25 +381,43 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
 const MAX_RETRIES = 3; // Maximum number of retry attempts
 
 async function main() {
+    // Environment confirmation
+    console.log(chalk.blue.bold("\nCurrent Environment Configuration:"));
+    console.log(chalk.blue(`NODE_ENV: ${chalk.yellow(process.env.NODE_ENV || "not set")}`));
+    console.log(chalk.blue(`USE_ENV_FILE: ${chalk.yellow(process.env.USE_ENV_FILE || "not set")}`));
+    console.log(chalk.blue(`FACTORY_ADDRESS: ${chalk.yellow(process.env.FACTORY_ADDRESS || "not set")}`));
+
+    const envConfirmation = await askQuestion(`\nPlease confirm these environment settings are correct (y/n): `);
+
+    if (envConfirmation.toLowerCase() !== "y") {
+        console.log(chalk.yellow("\nMigration aborted. Please set the correct environment variables and try again."));
+        return;
+    }
+
     const gasReport = createGasReport();
 
     try {
         await connectDB();
-
+        const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;
+        const factory = await Factory.findOne({ factory_address: FACTORY_ADDRESS });
+        if (!factory) {
+            throw new Error("Factory not found");
+        }
         const skipIssuers = [];
-        const issuers = (await readAllIssuers())
-            .filter((i) => !skipIssuers.includes(i.legal_name))
-            .filter((i) => {
-                // Check both database and log file status
-                const logFile = path.join(process.cwd(), "migrations", `${i.legal_name}.log.json`);
-                if (fs.existsSync(logFile)) {
-                    const log = JSON.parse(fs.readFileSync(logFile, "utf8"));
-                    return !i.migrated && !log.migrated;
-                }
+        const issuers = (await readAllIssuers()).filter((i) => !i?.factory).filter((i) => !skipIssuers.includes(i.legal_name));
+        // .filter((i) => {
+        //     // Check both database and log file status
+        //     const logFile = path.join(process.cwd(), "migrations", `${i.legal_name}.log.json`);
+        //     if (fs.existsSync(logFile)) {
+        //         const log = JSON.parse(fs.readFileSync(logFile, "utf8"));
+        //         return !i.migrated && !log.migrated;
+        //     }
 
-                return !i.migrated;
-            });
-
+        //     return !i.migrated;
+        // });
+        issuers.forEach((i) => {
+            console.log(`${i.legal_name} - ${i.id}: Factory? ${!!i?.factory}`);
+        });
         console.log(chalk.blue.bold(`Found ${issuers.length} issuers to migrate.\n`));
 
         const initialAnswer = await askQuestion(
@@ -504,32 +523,52 @@ async function main() {
 // Allow script to be run from command line with a specific issuer ID or run all
 if (process.argv[2]) {
     const issuerId = process.argv[2];
-    migrateIssuer(issuerId)
-        .then((result) => {
-            if (result.success) {
-                console.log(chalk.green("Single issuer migration completed successfully"));
-                const reportPath = saveGasReport({
-                    totalGasUsed: result.gasTracker.gasUsed,
-                    issuers: [
-                        {
-                            name: result.issuerName,
-                            gasUsed: result.gasTracker.gasUsed,
-                            transactionCount: result.gasTracker.transactionCount,
-                        },
-                    ],
-                    startTime: new Date().toISOString(),
-                    endTime: new Date().toISOString(),
-                });
-                console.log(chalk.blue(`Gas report saved to: ${reportPath}`));
-            } else {
-                throw result.error;
-            }
+
+    // Environment confirmation
+    console.log(chalk.blue.bold("\nCurrent Environment Configuration:"));
+    console.log(chalk.blue(`NODE_ENV: ${chalk.yellow(process.env.NODE_ENV || "not set")}`));
+    console.log(chalk.blue(`USE_ENV_FILE: ${chalk.yellow(process.env.USE_ENV_FILE || "not set")}`));
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    rl.question(chalk.cyan("\nPlease confirm these environment settings are correct (y/n): "), (answer) => {
+        if (answer.toLowerCase() !== "y") {
+            console.log(chalk.yellow("\nMigration aborted. Please set the correct environment variables and try again."));
+            rl.close();
             process.exit(0);
-        })
-        .catch((error) => {
-            console.error(chalk.red("Migration failed:"), error);
-            process.exit(1);
-        });
+        }
+        rl.close();
+
+        migrateIssuer(issuerId)
+            .then((result) => {
+                if (result.success) {
+                    console.log(chalk.green("Single issuer migration completed successfully"));
+                    const reportPath = saveGasReport({
+                        totalGasUsed: result.gasTracker.gasUsed,
+                        issuers: [
+                            {
+                                name: result.issuerName,
+                                gasUsed: result.gasTracker.gasUsed,
+                                transactionCount: result.gasTracker.transactionCount,
+                            },
+                        ],
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString(),
+                    });
+                    console.log(chalk.blue(`Gas report saved to: ${reportPath}`));
+                } else {
+                    throw result.error;
+                }
+                process.exit(0);
+            })
+            .catch((error) => {
+                console.error(chalk.red("Migration failed:"), error);
+                process.exit(1);
+            });
+    });
 } else {
     // Run migration for all issuers
     main()
