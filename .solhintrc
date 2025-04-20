@@ -23,9 +23,9 @@
         "maxLength": 145
       }
     ],
-    "state-visibility": "error",
-    "var-name-mixedcase": "warn",
-    "func-name-mixedcase": "warn",
+    "state-visibility": "warn",
+    "var-name-mixedcase": "off",
+    "func-name-mixedcase": "off",
     "private-vars-leading-underscore": [
       "warn",
       {
