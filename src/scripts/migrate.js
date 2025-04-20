@@ -7,7 +7,7 @@ import deployCapTable, { getWallet } from "../chain-operations/deployCapTable.js
 import { convertUUIDToBytes16 } from "../utils/convertUUID.js";
 import { convertAndReflectStockClassOnchain } from "../controllers/stockClassController.js";
 import { convertAndReflectStakeholderOnchain } from "../controllers/stakeholderController.js";
-import { convertAndReflectStockPlanOnchain } from "../controllers/stockPlanController.js";
+import { adjustStockPlanPoolOnchain, createStockPlanOnchain } from "../controllers/stockPlanController.js";
 import { convertAndAdjustIssuerAuthorizedSharesOnChain } from "../controllers/issuerController.js";
 import { convertAndAdjustStockClassAuthorizedSharesOnchain } from "../controllers/stockClassController.js";
 import {
@@ -186,7 +186,7 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
             }
 
             console.log(`Deploying Stock Plan: ${stockPlan.id}`);
-            const receipt = await convertAndReflectStockPlanOnchain(contract, stockPlan);
+            const receipt = await createStockPlanOnchain(contract, stockPlan);
             migrationLog.records[stockPlan.id] = true;
             trackGasUsage(receipt, gasTracker);
             await updateMigrationLog(issuer.legal_name, migrationLog, gasTracker);
@@ -242,7 +242,7 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
                         break;
 
                     case "TX_STOCK_PLAN_POOL_ADJUSTMENT":
-                        receipt = await convertAndReflectStockPlanOnchain(contract, tx.stock_plan_id, tx.shares_reserved);
+                        receipt = await adjustStockPlanPoolOnchain(contract, tx);
                         break;
 
                     case "TX_STOCK_ISSUANCE":
