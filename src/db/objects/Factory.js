@@ -26,6 +26,10 @@ const FactorySchema = new mongoose.Schema(
             required: true,
             enum: Object.values(FACTORY_VERSION),
         },
+        notes: {
+            type: String,
+            default: "",
+        },
     },
     { timestamps: true }
 );
