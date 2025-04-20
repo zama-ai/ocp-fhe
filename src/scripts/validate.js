@@ -4,6 +4,7 @@ import { connectDB, disconnectDB } from "../db/config/mongoose.ts";
 import readline from "readline";
 import chalk from "chalk";
 import { captableStats } from "../rxjs/index.js";
+
 /**
  * Validates issuer data for migration, combining RXJS validation with cap table validation
  * @param {Object} issuerData - Complete issuer data to validate
@@ -94,15 +95,8 @@ function validateTransactionByType(tx, referenceSets) {
             references: { stakeholder_id: stakeholderIds },
         },
         TX_WARRANT_ISSUANCE: {
-            required: ["quantity"],
+            required: [],
             references: { stakeholder_id: stakeholderIds },
-            customValidation: (tx) => {
-                const errors = [];
-                if (tx.quantity === 0) {
-                    errors.push(`Transaction ${tx.id} quantity has to be greater than 0`);
-                }
-                return errors;
-            },
         },
         TX_EQUITY_COMPENSATION_EXERCISE: {
             required: ["quantity", "resulting_security_ids"],
@@ -117,9 +111,9 @@ function validateTransactionByType(tx, referenceSets) {
                 }
 
                 // Find the resulting stock issuance transaction
-                const resultingStockIssuances = tx.resulting_security_ids.map((securityId) =>
-                    transactions.find((t) => t.security_id === securityId && t.object_type === "TX_STOCK_ISSUANCE")
-                );
+                const resultingStockIssuances = tx.resulting_security_ids
+                    .map((securityId) => transactions.find((t) => t.security_id === securityId && t.object_type === "TX_STOCK_ISSUANCE"))
+                    .filter(Boolean); // Filter out any undefined values
 
                 if (resultingStockIssuances.length == 0) {
                     errors.push(`Transaction ${tx.id} references non-existent stock issuance with security_id: ${tx.resulting_security_ids[0]}`);
@@ -128,12 +122,40 @@ function validateTransactionByType(tx, referenceSets) {
 
                 // Validate quantities match if there is only one resulting stock issuance
                 if (resultingStockIssuances.length === 1) {
-                    const resultingStockIssuance = resultingStockIssuances[0];
-                    if (tx.quantity !== resultingStockIssuance.quantity) {
+                    const resultingStockIssuanceQuantity = resultingStockIssuances[0].quantity;
+                    if (tx.quantity !== resultingStockIssuanceQuantity) {
                         errors.push(
-                            `${tx.object_type} - ${tx.id} quantity (${tx.quantity}) does not match resulting stock issuance quantity (${resultingStockIssuance.quantity}) resulting_security_id: ${resultingStockIssuance.security_id}`
+                            `${tx.object_type} - ${tx.id} quantity (${tx.quantity}) does not match resulting stock issuance quantity (${resultingStockIssuanceQuantity}) resulting_security_id: ${resultingStockIssuances[0].security_id}`
                         );
                     }
+                }
+
+                return errors;
+            },
+        },
+        TX_STOCK_CANCELLATION: {
+            required: [],
+            references: {},
+            customValidation: (tx, transactions) => {
+                const errors = [];
+                if (tx.quantity === 0) {
+                    errors.push(`Transaction ${tx.id} has 0 quantity`);
+                }
+
+                // Find the resulting stock issuance transaction
+                const originalStockIssuance = transactions.find((t) => t.security_id === tx.security_id && t.object_type === "TX_STOCK_ISSUANCE");
+
+                if (!originalStockIssuance) {
+                    errors.push(`Stock cancellation ${tx.id} references a non-existent stock issuance (security_id: ${tx.security_id})`);
+                    return errors;
+                }
+
+                const remainingShares = originalStockIssuance.quantity - tx.quantity;
+                // Validate quantities match if there is only one resulting stock issuance
+                if (remainingShares < 0) {
+                    errors.push(
+                        `Stock cancellation ${tx.id} attempts to cancel ${tx.quantity} shares but only ${originalStockIssuance.quantity} shares were originally issued (security_id: ${tx.security_id})`
+                    );
                 }
 
                 return errors;
@@ -183,6 +205,7 @@ export async function validateCapTableData(issuerData) {
         securityIds: new Set(transactions.map((t) => t.security_id)),
         transactions,
     };
+    referenceSets.stockPlanIds.add("00000000-0000-0000-0000-000000000000");
 
     // Validate basic objects
     errors.push(
@@ -193,7 +216,7 @@ export async function validateCapTableData(issuerData) {
 
     // Validate stock class shares don't exceed issuer authorized shares
     stockClasses.forEach((stockClass) => {
-        if (stockClass.initial_shares_authorized > issuerData.issuer.initial_shares_authorized) {
+        if (Number(stockClass.initial_shares_authorized) > Number(issuerData.issuer.initial_shares_authorized)) {
             errors.push(
                 `StockClass ${stockClass.id} initial_shares_authorized (${stockClass.initial_shares_authorized}) exceeds issuer initial_shares_authorized (${issuerData.issuer.initial_shares_authorized}) - issuer id: ${issuerData.issuer.id}`
             );
