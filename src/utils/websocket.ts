@@ -92,7 +92,7 @@ export const startListener = async (contracts: { address: string; chain_id: numb
     }
 };
 
-export const reamoveAllListeners = async () => {
+export const removeAllListeners = async () => {
     for (const [chainId, provider] of providers.entries()) {
         console.log(`Removing listeners for chain ${chainId}...`);
         await provider.removeAllListeners();
