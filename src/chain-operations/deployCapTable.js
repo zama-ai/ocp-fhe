@@ -72,6 +72,7 @@ async function deployCapTable(issuerId, initial_shares_authorized, chainId) {
         address: captableAddress,
         deployHash: receipt.hash,
         receipt,
+        factory,
     };
 }
 

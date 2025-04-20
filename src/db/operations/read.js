@@ -103,8 +103,8 @@ export const getAllStakeholdersByIssuerId = async (issuerId) => {
     return await find(Stakeholder, { issuer: issuerId });
 };
 
-export const readAllIssuers = async () => {
-    return await find(Issuer);
+export const readAllIssuers = async (filter) => {
+    return await find(Issuer, filter);
 };
 
 export const readFactories = async () => {

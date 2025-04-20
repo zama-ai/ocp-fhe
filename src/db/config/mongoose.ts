@@ -12,15 +12,20 @@ export const connectDB = async () => {
         authMechanism: "SCRAM-SHA-1" as const,
         retryWrites: false,
     };
+    let mongo: mongoose.Mongoose | null = null;
     try {
         const sanitizedDatabaseURL = (DATABASE_URL as string).replace(/\/\/(.*):(.*)@/, "//$1:***@");
         console.log(" Mongo connecting...", sanitizedDatabaseURL);
-        await mongoose.connect(DATABASE_URL as string, connectOptions);
+        mongo = await mongoose.connect(DATABASE_URL as string, connectOptions);
         console.log("✅ | Mongo connected successfully", sanitizedDatabaseURL);
-        return mongoose.connection;
+        return mongo;
     } catch (error) {
         console.error(error);
         console.error("❌ | Error connecting to Mongo", (error as Error).message);
+        if (mongo) {
+            await mongo.disconnect();
+            console.log("Connection closed");
+        }
         // Exit process with failure
         process.exit(1);
     }
