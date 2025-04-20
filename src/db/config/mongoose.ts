@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ConnectOptions } from "mongoose";
 import { setupEnv } from "../../utils/env";
 
 setupEnv();
@@ -7,7 +7,11 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const DATABASE_OVERRIDE = process.env.DATABASE_OVERRIDE;
 
 export const connectDB = async () => {
-    const connectOptions = DATABASE_OVERRIDE ? { dbName: DATABASE_OVERRIDE } : {};
+    const connectOptions: ConnectOptions = {
+        ...(DATABASE_OVERRIDE ? { dbName: DATABASE_OVERRIDE } : {}),
+        authMechanism: "SCRAM-SHA-1" as const,
+        retryWrites: false,
+    };
     try {
         const sanitizedDatabaseURL = (DATABASE_URL as string).replace(/\/\/(.*):(.*)@/, "//$1:***@");
         console.log(" Mongo connecting...", sanitizedDatabaseURL);
