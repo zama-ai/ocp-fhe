@@ -5,7 +5,7 @@ import { createStockPlan } from "../db/operations/create.js";
 import { countStockPlans, readIssuerById, readStockPlanById } from "../db/operations/read.js";
 import validateInputAgainstOCF from "../utils/validateInputAgainstSchema.js";
 import { sumEquityCompensationIssuances } from "../db/operations/read.js";
-import { convertAndReflectStockPlanOnchain } from "../controllers/stockPlanController.js";
+import { createStockPlanOnchain } from "../controllers/stockPlanController.js";
 
 const stockPlan = Router();
 
@@ -89,7 +89,7 @@ stockPlan.post("/create", async (req, res) => {
         const stockPlan = await createStockPlan(incomingStockPlanForDB);
 
         // Save Onchain
-        await convertAndReflectStockPlanOnchain(contract, incomingStockPlanForDB);
+        await createStockPlanOnchain(contract, incomingStockPlanForDB);
 
         console.log("✅ | Created Stock Plan in DB: ", stockPlan);
 
