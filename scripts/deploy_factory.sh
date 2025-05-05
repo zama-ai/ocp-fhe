@@ -290,7 +290,7 @@ if [ "$ENVIRONMENT" != "local" ]; then
         --watch
 
     # Verify Diamond Loupe Facet
-    forge verify-contract $DIAMOND_LOUPE_FACET src/facets/DiamondLoupeFacet.sol:DiamondLoupeFacet \
+    forge verify-contract $DIAMOND_LOUPE_FACET lib/diamond-3-hardhat/contracts/facets/DiamondLoupeFacet.sol:DiamondLoupeFacet \
         --chain-id $CHAIN_ID \
         --etherscan-api-key $ETHERSCAN_API_KEY
 
