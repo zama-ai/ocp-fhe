@@ -20,7 +20,6 @@ import { WarrantFacet } from "@facets/WarrantFacet.sol";
 import { StakeholderNFTFacet } from "@facets/StakeholderNFTFacet.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
 import { AccessControlFacet } from "@facets/AccessControlFacet.sol";
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 library LibDeployment {
     uint256 constant FACET_COUNT = 11; // Number of enum values FacetType
@@ -57,19 +56,16 @@ library LibDeployment {
             return FacetCutInfo({ name: "DiamondLoupeFacet", selectors: selectors });
         }
         if (facetType == FacetType.Issuer) {
-            bytes4[] memory selectors = new bytes4[](3);
+            bytes4[] memory selectors = new bytes4[](2);
             selectors[0] = IssuerFacet.initializeIssuer.selector;
             selectors[1] = IssuerFacet.adjustIssuerAuthorizedShares.selector;
-            selectors[2] = IssuerFacet.issuer.selector;
             return FacetCutInfo({ name: "IssuerFacet", selectors: selectors });
         }
         if (facetType == FacetType.Stakeholder) {
-            bytes4[] memory selectors = new bytes4[](5);
+            bytes4[] memory selectors = new bytes4[](3);
             selectors[0] = StakeholderFacet.createStakeholder.selector;
             selectors[1] = StakeholderFacet.getStakeholderPositions.selector;
             selectors[2] = StakeholderFacet.linkStakeholderAddress.selector;
-            selectors[3] = StakeholderFacet.getStakeholderId.selector;
-            selectors[4] = StakeholderFacet.getStakeholderIndex.selector;
             return FacetCutInfo({ name: "StakeholderFacet", selectors: selectors });
         }
         if (facetType == FacetType.StockClass) {
@@ -79,7 +75,7 @@ library LibDeployment {
             return FacetCutInfo({ name: "StockClassFacet", selectors: selectors });
         }
         if (facetType == FacetType.Stock) {
-            bytes4[] memory selectors = new bytes4[](4);
+            bytes4[] memory selectors = new bytes4[](5);
             selectors[0] = StockFacet.issueStock.selector;
             selectors[1] = StockFacet.getStockPosition.selector;
             selectors[2] = StockFacet.transferStock.selector;
@@ -159,50 +155,72 @@ library LibDeployment {
         revert("Unknown selector");
     }
 
-    function _deployedHandler(string memory envName, address addr) internal returns (address) {
-        console.log(string.concat(envName, "=", Strings.toHexString(addr)));
-        return addr;
-    }
-
     function deployFacet(FacetType facetType) internal returns (address) {
+        address facetAddress;
         if (facetType == FacetType.DiamondLoupe) {
-            return _deployedHandler("DIAMOND_LOUPE_FACET", address(new DiamondLoupeFacet()));
+            facetAddress = address(new DiamondLoupeFacet());
+            console.log("DIAMOND_LOUPE_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Issuer) {
-            return _deployedHandler("ISSUER_FACET", address(new IssuerFacet()));
+            facetAddress = address(new IssuerFacet());
+            console.log("ISSUER_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Stakeholder) {
-            return _deployedHandler("STAKEHOLDER_FACET", address(new StakeholderFacet()));
+            facetAddress = address(new StakeholderFacet());
+            console.log("STAKEHOLDER_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StockClass) {
-            return _deployedHandler("STOCK_CLASS_FACET", address(new StockClassFacet()));
+            facetAddress = address(new StockClassFacet());
+            console.log("STOCK_CLASS_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Stock) {
-            return _deployedHandler("STOCK_FACET", address(new StockFacet()));
+            facetAddress = address(new StockFacet());
+            console.log("STOCK_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Convertibles) {
-            return _deployedHandler("CONVERTIBLES_FACET", address(new ConvertiblesFacet()));
+            facetAddress = address(new ConvertiblesFacet());
+            console.log("CONVERTIBLES_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.EquityCompensation) {
-            return _deployedHandler("EQUITY_COMPENSATION_FACET", address(new EquityCompensationFacet()));
+            facetAddress = address(new EquityCompensationFacet());
+            console.log("EQUITY_COMPENSATION_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StockPlan) {
-            return _deployedHandler("STOCK_PLAN_FACET", address(new StockPlanFacet()));
+            facetAddress = address(new StockPlanFacet());
+            console.log("STOCK_PLAN_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Warrant) {
-            return _deployedHandler("WARRANT_FACET", address(new WarrantFacet()));
+            facetAddress = address(new WarrantFacet());
+            console.log("WARRANT_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StakeholderNFT) {
-            return _deployedHandler("STAKEHOLDER_NFT_FACET", address(new StakeholderNFTFacet()));
+            facetAddress = address(new StakeholderNFTFacet());
+            console.log("STAKEHOLDER_NFT_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.AccessControl) {
-            return _deployedHandler("ACCESS_CONTROL_FACET", address(new AccessControlFacet()));
+            facetAddress = address(new AccessControlFacet());
+            console.log("ACCESS_CONTROL_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.MockFacet) {
-            return _deployedHandler("MOCK_FACET", address(new MockFacet()));
+            facetAddress = address(new MockFacet());
+            console.log("MOCK_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.MockFacetV2) {
-            return _deployedHandler("MOCK_FACET_V2", address(new MockFacetV2()));
+            facetAddress = address(new MockFacetV2());
+            console.log("MOCK_FACET_V2=", facetAddress);
+            return facetAddress;
         }
         revert("Unknown facet type");
     }
@@ -324,15 +342,15 @@ contract DeployFactoryScript is Script {
         address referenceDiamond = vm.envOr("REFERENCE_DIAMOND", address(0));
         console.log("deployerWallet: ", deployerWallet);
 
-        // Deploy new facets if addresses not in env
+        // If no reference diamond is provided, deploy new facets
         if (referenceDiamond == address(0)) {
-            console.log("Deploying new facets");
+            console.log("\nDeploying new reference diamond and facets...");
             referenceDiamond = LibDeployment.deployInitialFacets(deployerWallet);
         }
 
         console.log("------- New Facet Addresses (Add to .env) -------");
         console.log("REFERENCE_DIAMOND=", referenceDiamond);
-        console.log("-------------------------------------------------");
+        console.log("---------------------------------");
 
         // Deploy factory with facet addresses
         CapTableFactory factory = new CapTableFactory(referenceDiamond);
@@ -372,6 +390,37 @@ contract DeployFactoryScript is Script {
         //     "Factory is admin:", AccessControlFacet(diamond).hasRole(AccessControl.DEFAULT_ADMIN_ROLE, address(factory))
         // );
         vm.stopPrank();
+        vm.stopBroadcast();
+    }
+
+    function createCapTable() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        if (deployerPrivateKey == 0) {
+            revert("Missing PRIVATE_KEY in .env");
+        }
+        // address deployerWallet = vm.addr(deployerPrivateKey);
+        console.log("Creating a new cap table");
+
+        // Get addresses from env
+        address referenceDiamond = vm.envOr("REFERENCE_DIAMOND", address(0));
+        address factoryAddress = vm.envOr("FACTORY_ADDRESS", address(0));
+
+        if (referenceDiamond == address(0)) {
+            revert("Missing REFERENCE_DIAMOND in .env");
+        }
+        if (factoryAddress == address(0)) {
+            revert("Missing FACTORY_ADDRESS in .env");
+        }
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        // Use existing factory
+        CapTableFactory factory = CapTableFactory(factoryAddress);
+        // Pass EIN and initial authorized shares (1 billion with 18 decimals)
+        address capTable = factory.createCapTable("1234567890", 1_000_000_000_000_000_000_000_000_000);
+
+        console.log("\nNew CapTable created at:", capTable);
+
         vm.stopBroadcast();
     }
 }
