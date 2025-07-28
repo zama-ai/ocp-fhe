@@ -27,6 +27,7 @@ contract IssuerFacet is IIssuerFacet {
         ds.issuer = Issuer({ id: id, shares_issued: 0, shares_authorized: initial_shares_authorized });
     }
 
+    /// @notice Getter for the Issuer struct
     function issuer() external view returns (Issuer memory) {
         return StorageLib.get().issuer;
     }

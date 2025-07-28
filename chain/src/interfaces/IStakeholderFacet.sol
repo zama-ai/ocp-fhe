@@ -22,7 +22,7 @@ interface IStakeholderFacet {
     /// @notice Thrown when attempting to link an address that's already linked
     error AddressAlreadyLinked(address wallet_address);
 
-    /// @notice Thrown when a wallet doesnt have a stakeholder linked
+    /// @notice Thrown when no stakeholder exists
     error NoStakeholder();
 
     /// @notice Create a new stakeholder

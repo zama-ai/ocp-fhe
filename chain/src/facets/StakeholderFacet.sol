@@ -10,15 +10,9 @@ import {
     StakeholderPositions
 } from "@libraries/Structs.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
+import { IStakeholderFacet } from "@interfaces/IStakeholderFacet.sol";
 
-contract StakeholderFacet {
-    event StakeholderCreated(bytes16 indexed id);
-    event StakeholderAddressLinked(bytes16 indexed stakeholder_id, address indexed wallet_address);
-
-    error StakeholderAlreadyExists(bytes16 stakeholder_id);
-    error AddressAlreadyLinked(address wallet_address);
-    error NoStakeholder();
-
+contract StakeholderFacet is IStakeholderFacet {
     /// @notice Create a new stakeholder
     /// @dev Only OPERATOR_ROLE can create stakeholders
     function createStakeholder(bytes16 _id) external {
@@ -57,8 +51,8 @@ contract StakeholderFacet {
 
         emit StakeholderAddressLinked(stakeholder_id, wallet_address);
     }
-
     /// @notice Get stakeholder id for a given address
+
     function getStakeholderId(address wallet_address, bool ensure_exists) external view returns (bytes16) {
         Storage storage ds = StorageLib.get();
 

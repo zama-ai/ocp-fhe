@@ -19,7 +19,7 @@ contract CapTableFactory is Ownable {
     // Reference diamond to copy facets from
     address public immutable referenceDiamond;
 
-    constructor(address _referenceDiamond) Ownable(msg.sender) {
+    constructor(address _referenceDiamond) {
         require(_referenceDiamond != address(0), "Invalid referenceDiamond");
         referenceDiamond = _referenceDiamond;
     }

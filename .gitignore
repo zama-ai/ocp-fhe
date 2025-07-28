@@ -26,6 +26,7 @@ yarn-error.log*
 .env.local
 .env.dev
 .env.prod
+.env.*
 
 !.vscode
 
@@ -38,8 +39,11 @@ tsconfig.tsbuildinfo
 
 # Private keys
 *.pem
-.env.*
+
+chain/broadcast
+chain/deployments
 chain/out
 chain/lib/*
 solana/*
 *.ignore.js
+migration*

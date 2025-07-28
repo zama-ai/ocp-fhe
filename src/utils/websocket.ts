@@ -1,24 +1,24 @@
 /* eslint-disable no-case-declarations */
 
-import { AbiCoder, Block, ethers, Log } from "ethers";
-import get from "lodash/get.js";
-
+import { Log, AbiCoder, Block, ethers } from "ethers";
 import getProvider from "../chain-operations/getProvider";
-import { StakeholderCreated, StockClassCreated, StockPlanCreated, TxCreated } from "../chain-operations/topics";
-import { handleStakeholder, handleStockClass, handleStockPlan, txMapper, txTypes } from "../chain-operations/transactionHandlers";
+import get from "lodash/get.js";
+import { handleStockPlan, txMapper, txTypes } from "../chain-operations/transactionHandlers";
+import { handleStakeholder, handleStockClass } from "../chain-operations/transactionHandlers";
 import Issuer from "../db/objects/Issuer";
+import { TxCreated, StakeholderCreated, StockClassCreated, StockPlanCreated } from "../chain-operations/topics";
 
 const TOPICS = { TxCreated, StakeholderCreated, StockClassCreated, StockPlanCreated };
 
 const abiCoder = new AbiCoder();
 
 // Create a map to store providers and their active listeners
-const providers = new Map<number, ethers.Provider>();
-const activeListeners = new Map<number, boolean>();
-const watchedAddressesByChain = new Map<number, Set<string>>();
+const providers = new Map<string, ethers.Provider>();
+const activeListeners = new Map<string, boolean>();
+const watchedAddressesByChain = new Map<string, Set<string>>();
 
 // Function to get or create provider for a chain
-const getChainProvider = (chainId: number): ethers.Provider => {
+const getChainProvider = (chainId: string): ethers.Provider => {
     if (!providers.has(chainId)) {
         providers.set(chainId, getProvider(chainId) as ethers.Provider);
     }
@@ -26,7 +26,7 @@ const getChainProvider = (chainId: number): ethers.Provider => {
 };
 
 // Function to add new addresses to watch for a specific chain
-export const addAddressesToWatch = async (chainId: number, addresses: string | string[]) => {
+export const addAddressesToWatch = async (chainId: string, addresses: string | string[]) => {
     const addressArray = Array.isArray(addresses) ? addresses : [addresses];
 
     if (!watchedAddressesByChain.has(chainId)) {
@@ -41,8 +41,7 @@ export const addAddressesToWatch = async (chainId: number, addresses: string | s
 };
 
 // Function to setup a single chain listener
-const setupChainListener = async (chainId: number, addresses: string[]) => {
-    console.log("Setting up chain listener for chain", chainId, "with addresses", addresses);
+const setupChainListener = async (chainId: string, addresses: string[]) => {
     const provider = getChainProvider(chainId);
 
     if (addresses.length > 0) {
@@ -81,16 +80,15 @@ export const startListener = async (contracts: { address: string; chain_id: numb
 
     // Start one listener per chain
     for (const [chainId, addresses] of Object.entries(contractsByChain)) {
-        const numericChainId = parseInt(chainId);
         // Add addresses to watch list
-        if (!watchedAddressesByChain.has(numericChainId)) {
-            watchedAddressesByChain.set(numericChainId, new Set());
+        if (!watchedAddressesByChain.has(chainId)) {
+            watchedAddressesByChain.set(chainId, new Set());
         }
-        addresses.forEach((addr) => watchedAddressesByChain.get(numericChainId)!.add(addr.toLowerCase()));
+        addresses.forEach((addr) => watchedAddressesByChain.get(chainId)!.add(addr.toLowerCase()));
 
-        const contracts = Array.from(watchedAddressesByChain.get(numericChainId) || []);
+        const contracts = Array.from(watchedAddressesByChain.get(chainId) || []);
         // Setup single listener for this chain
-        await setupChainListener(numericChainId, contracts);
+        await setupChainListener(chainId, contracts);
     }
 };
 
@@ -115,7 +113,7 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
                 return;
             }
             const [stockClassIdBytes16] = abiCoder.decode(["bytes16"], stockClassIdBytes);
-            await handleStockClass(stockClassIdBytes16);
+            await handleStockClass(stockClassIdBytes16, log.transactionHash);
             break;
 
         case TOPICS.StakeholderCreated:
@@ -125,7 +123,7 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
                 return;
             }
             const [stakeholderIdBytes16] = abiCoder.decode(["bytes16"], stakeholderIdBytes);
-            await handleStakeholder(stakeholderIdBytes16);
+            await handleStakeholder(stakeholderIdBytes16, log.transactionHash);
             break;
 
         case TOPICS.TxCreated:
@@ -144,16 +142,19 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
             const txType = txTypes[txTypeIdx];
             // @ts-ignore
             const [structType, handleFunc] = txMapper[txTypeIdx];
-            const decodedData = abiCoder.decode([structType], txData);
+            console.log(" | Struct type", structType);
+            const _structType = Array.isArray(structType) ? structType : [structType];
+            const decodedData = abiCoder.decode(_structType, txData);
 
             const _tx = {
                 type: txType,
                 timestamp: block.timestamp,
-                data: decodedData[0],
+                data: Array.isArray(structType) ? decodedData : decodedData[0], // TODO: Handle multiple structs
             };
 
             if (handleFunc) {
                 console.log("Handling transaction:", txType);
+                console.log(" | Transaction data", _tx.data);
                 await handleFunc(_tx.data, issuerId, _tx.timestamp, log.transactionHash);
                 console.log(" | Transaction handled:", txType);
             } else {
@@ -162,15 +163,19 @@ const handleEventType = async (log: Log, block: Block, deployed_to: string) => {
             }
             break;
         case TOPICS.StockPlanCreated:
+            console.log(" | StockPlanCreated event");
+            console.log(" | topics", log.topics);
             const stockPlanIdBytes = get(log, "topics.1", null);
-            const sharesReservedBytes = get(log, "topics.2", null);
+            const sharesReservedBytes = get(log, "data", null);
             if (!stockPlanIdBytes || !sharesReservedBytes) {
                 console.error("No stock plan id found");
                 return;
             }
             const [stockPlanIdBytes16] = abiCoder.decode(["bytes16"], stockPlanIdBytes);
             const [sharesReserved] = abiCoder.decode(["uint256"], sharesReservedBytes);
-            await handleStockPlan(stockPlanIdBytes16, sharesReserved);
+            console.log(" | stockPlanIdBytes16", stockPlanIdBytes16);
+            console.log(" | sharesReserved", sharesReserved);
+            await handleStockPlan(stockPlanIdBytes16, sharesReserved, log.transactionHash);
             break;
 
         default:
