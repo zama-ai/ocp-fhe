@@ -18,7 +18,7 @@ export const connectDB = async () => {
         console.log(" Mongo connecting...", sanitizedDatabaseURL);
         mongo = await mongoose.connect(DATABASE_URL as string, connectOptions);
         console.log("✅ | Mongo connected successfully", sanitizedDatabaseURL);
-        return mongo;
+        return mongo.connection;
     } catch (error) {
         console.error(error);
         console.error("❌ | Error connecting to Mongo", (error as Error).message);

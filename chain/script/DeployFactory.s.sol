@@ -20,7 +20,6 @@ import { WarrantFacet } from "@facets/WarrantFacet.sol";
 import { StakeholderNFTFacet } from "@facets/StakeholderNFTFacet.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
 import { AccessControlFacet } from "@facets/AccessControlFacet.sol";
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 library LibDeployment {
     uint256 constant FACET_COUNT = 11; // Number of enum values FacetType
@@ -57,19 +56,16 @@ library LibDeployment {
             return FacetCutInfo({ name: "DiamondLoupeFacet", selectors: selectors });
         }
         if (facetType == FacetType.Issuer) {
-            bytes4[] memory selectors = new bytes4[](3);
+            bytes4[] memory selectors = new bytes4[](2);
             selectors[0] = IssuerFacet.initializeIssuer.selector;
             selectors[1] = IssuerFacet.adjustIssuerAuthorizedShares.selector;
-            selectors[2] = IssuerFacet.issuer.selector;
             return FacetCutInfo({ name: "IssuerFacet", selectors: selectors });
         }
         if (facetType == FacetType.Stakeholder) {
-            bytes4[] memory selectors = new bytes4[](5);
+            bytes4[] memory selectors = new bytes4[](3);
             selectors[0] = StakeholderFacet.createStakeholder.selector;
             selectors[1] = StakeholderFacet.getStakeholderPositions.selector;
             selectors[2] = StakeholderFacet.linkStakeholderAddress.selector;
-            selectors[3] = StakeholderFacet.getStakeholderId.selector;
-            selectors[4] = StakeholderFacet.getStakeholderIndex.selector;
             return FacetCutInfo({ name: "StakeholderFacet", selectors: selectors });
         }
         if (facetType == FacetType.StockClass) {
@@ -161,50 +157,72 @@ library LibDeployment {
         revert("Unknown selector");
     }
 
-    function _deployedHandler(string memory envName, address addr) internal returns (address) {
-        console.log(string.concat(envName, "=", Strings.toHexString(addr)));
-        return addr;
-    }
-
     function deployFacet(FacetType facetType) internal returns (address) {
+        address facetAddress;
         if (facetType == FacetType.DiamondLoupe) {
-            return _deployedHandler("DIAMOND_LOUPE_FACET", address(new DiamondLoupeFacet()));
+            facetAddress = address(new DiamondLoupeFacet());
+            console.log("DIAMOND_LOUPE_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Issuer) {
-            return _deployedHandler("ISSUER_FACET", address(new IssuerFacet()));
+            facetAddress = address(new IssuerFacet());
+            console.log("ISSUER_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Stakeholder) {
-            return _deployedHandler("STAKEHOLDER_FACET", address(new StakeholderFacet()));
+            facetAddress = address(new StakeholderFacet());
+            console.log("STAKEHOLDER_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StockClass) {
-            return _deployedHandler("STOCK_CLASS_FACET", address(new StockClassFacet()));
+            facetAddress = address(new StockClassFacet());
+            console.log("STOCK_CLASS_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Stock) {
-            return _deployedHandler("STOCK_FACET", address(new StockFacet()));
+            facetAddress = address(new StockFacet());
+            console.log("STOCK_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Convertibles) {
-            return _deployedHandler("CONVERTIBLES_FACET", address(new ConvertiblesFacet()));
+            facetAddress = address(new ConvertiblesFacet());
+            console.log("CONVERTIBLES_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.EquityCompensation) {
-            return _deployedHandler("EQUITY_COMPENSATION_FACET", address(new EquityCompensationFacet()));
+            facetAddress = address(new EquityCompensationFacet());
+            console.log("EQUITY_COMPENSATION_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StockPlan) {
-            return _deployedHandler("STOCK_PLAN_FACET", address(new StockPlanFacet()));
+            facetAddress = address(new StockPlanFacet());
+            console.log("STOCK_PLAN_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.Warrant) {
-            return _deployedHandler("WARRANT_FACET", address(new WarrantFacet()));
+            facetAddress = address(new WarrantFacet());
+            console.log("WARRANT_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.StakeholderNFT) {
-            return _deployedHandler("STAKEHOLDER_NFT_FACET", address(new StakeholderNFTFacet()));
+            facetAddress = address(new StakeholderNFTFacet());
+            console.log("STAKEHOLDER_NFT_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.AccessControl) {
-            return _deployedHandler("ACCESS_CONTROL_FACET", address(new AccessControlFacet()));
+            facetAddress = address(new AccessControlFacet());
+            console.log("ACCESS_CONTROL_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.MockFacet) {
-            return _deployedHandler("MOCK_FACET", address(new MockFacet()));
+            facetAddress = address(new MockFacet());
+            console.log("MOCK_FACET=", facetAddress);
+            return facetAddress;
         }
         if (facetType == FacetType.MockFacetV2) {
-            return _deployedHandler("MOCK_FACET_V2", address(new MockFacetV2()));
+            facetAddress = address(new MockFacetV2());
+            console.log("MOCK_FACET_V2=", facetAddress);
+            return facetAddress;
         }
         revert("Unknown facet type");
     }
