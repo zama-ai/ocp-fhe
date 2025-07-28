@@ -16,13 +16,25 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
               with:
-                  submodules: recursive
+                  submodules: false # We'll initialize manually
                   fetch-depth: 0
 
-            - name: Verify Submodules
+            - name: Initialize and Update Submodules
               run: |
+                  git submodule init
+                  git submodule update --init --recursive --force
                   git submodule status
-                  ls -la ocf/schema/objects/
+
+            - name: Verify OCF Submodule
+              run: |
+                  echo "Current directory contents:"
+                  ls -la
+                  echo "\nSubmodule status:"
+                  git submodule status
+                  echo "\nTrying to update OCF specifically:"
+                  cd ocf || git submodule add https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF ocf
+                  git submodule update --init --recursive ocf
+                  ls -la ocf/schema/objects/ || echo "OCF schema objects directory still not accessible"
 
             # Install only ESLint dependencies
             - name: Install ESLint Dependencies
