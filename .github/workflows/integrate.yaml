@@ -14,10 +14,15 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
               with:
-                  submodules: true
+                  submodules: recursive
                   fetch-depth: 0
+
+            - name: Verify Submodules
+              run: |
+                  git submodule status
+                  ls -la ocf/schema/objects/
 
             # Install only ESLint dependencies
             - name: Install ESLint Dependencies
