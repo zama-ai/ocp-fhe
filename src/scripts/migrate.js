@@ -1,11 +1,13 @@
 import { Contract } from "ethers";
+import Factory from "../db/objects/Factory.js";
 import { readIssuerById, getAllStateMachineObjectsById, readAllIssuers } from "../db/operations/read.js";
 import { updateIssuerById } from "../db/operations/update.js";
-import deployCapTable, { facetsABI, getWallet } from "../chain-operations/deployCapTable.js";
+import { facetsABI } from "../utils/errorDecoder.js";
+import deployCapTable, { getWallet } from "../chain-operations/deployCapTable.js";
 import { convertUUIDToBytes16 } from "../utils/convertUUID.js";
 import { convertAndReflectStockClassOnchain } from "../controllers/stockClassController.js";
 import { convertAndReflectStakeholderOnchain } from "../controllers/stakeholderController.js";
-import { convertAndReflectStockPlanOnchain } from "../controllers/stockPlanController.js";
+import { adjustStockPlanPoolOnchain, createStockPlanOnchain } from "../controllers/stockPlanController.js";
 import { convertAndAdjustIssuerAuthorizedSharesOnChain } from "../controllers/issuerController.js";
 import { convertAndAdjustStockClassAuthorizedSharesOnchain } from "../controllers/stockClassController.js";
 import {
@@ -24,9 +26,12 @@ import chalk from "chalk";
 import readline from "readline";
 import { addAddressesToWatch, removeAllListeners } from "../utils/websocket.ts";
 import { validateIssuerForMigration } from "./validate.js";
+import { convertAndCreateCancellationStockOnchain } from "../controllers/transactions/cancellationController.js";
 
 // Load environment variables
 dotenv.config();
+
+const ISSUERS_TO_SKIP = ["96887358-568d-44f8-b6d0-73c4f38558f6", "d5cffdf6-790c-477b-bce9-67831e5d834e", "15f5ac1e-2311-4716-abe8-3b943bca8d49"];
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -93,14 +98,16 @@ const waitBetweenTransactions = async () => {
 };
 
 async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transactionCount: 0 }) {
-    await connectDB();
     let migrationLog;
     let issuer;
     try {
+        // Check if issuer should be skipped
+        if (ISSUERS_TO_SKIP.includes(issuerId)) {
+            console.log(chalk.yellow(`Skipping issuer ${issuerId} as it's in the skip list`));
+            return { success: true, gasTracker };
+        }
+
         // Load or create migration log
-
-        // 1. Check if issuer exists in the database
-
         issuer = await readIssuerById(issuerId);
         if (!issuer) {
             throw new Error(`Issuer with ID ${issuerId} not found in database`);
@@ -122,10 +129,19 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
             console.log(`Address before deployment: ${issuer.deployed_to}`);
             console.log(`TX Hash before deployment: ${issuer.tx_hash}`);
 
-            const { address, deployHash, receipt } = await deployCapTable(issuerIdBytes16, issuer.initial_shares_authorized, issuer.chain_id);
+            const { address, deployHash, receipt, factory } = await deployCapTable(
+                issuerIdBytes16,
+                issuer.initial_shares_authorized,
+                issuer.chain_id
+            );
             trackGasUsage(receipt, gasTracker);
 
-            await updateIssuerById(issuerId, { deployed_to: address, tx_hash: deployHash });
+            // Update issuer with deployed address, tx hash, and factory
+            await updateIssuerById(issuerId, {
+                deployed_to: address,
+                tx_hash: deployHash,
+                factory: factory._id,
+            });
 
             console.log(`\nCap table deployed successfully:`);
             console.log(`Contract Address: ${address}`);
@@ -170,7 +186,7 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
             }
 
             console.log(`Deploying Stock Plan: ${stockPlan.id}`);
-            const receipt = await convertAndReflectStockPlanOnchain(contract, stockPlan);
+            const receipt = await createStockPlanOnchain(contract, stockPlan);
             migrationLog.records[stockPlan.id] = true;
             trackGasUsage(receipt, gasTracker);
             await updateMigrationLog(issuer.legal_name, migrationLog, gasTracker);
@@ -226,7 +242,7 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
                         break;
 
                     case "TX_STOCK_PLAN_POOL_ADJUSTMENT":
-                        receipt = await convertAndReflectStockPlanOnchain(contract, tx.stock_plan_id, tx.shares_reserved);
+                        receipt = await adjustStockPlanPoolOnchain(contract, tx);
                         break;
 
                     case "TX_STOCK_ISSUANCE":
@@ -259,6 +275,13 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
                             break;
                         }
                         receipt = await convertAndCreateIssuanceWarrantOnchain(contract, tx);
+                        break;
+                    case "TX_STOCK_CANCELLATION":
+                        if (tx.quantity == 0) {
+                            errors.push(`Transaction ${tx.id} has 0 quantity`);
+                            break;
+                        }
+                        receipt = await convertAndCreateCancellationStockOnchain(contract, tx);
                         break;
 
                     default:
@@ -371,33 +394,49 @@ async function migrateIssuer(issuerId, gasTracker = { gasUsed: BigInt(0), transa
         }
         console.error("Migration failed:", error);
         return { success: false, gasTracker, error };
-    } finally {
-        await mongoose.disconnect();
     }
 }
 
 const MAX_RETRIES = 3; // Maximum number of retry attempts
 
 async function main() {
+    // Environment confirmation
+    console.log(chalk.blue.bold("\nCurrent Environment Configuration:"));
+    console.log(chalk.blue(`NODE_ENV: ${chalk.yellow(process.env.NODE_ENV || "not set")}`));
+    console.log(chalk.blue(`USE_ENV_FILE: ${chalk.yellow(process.env.USE_ENV_FILE || "not set")}`));
+    console.log(chalk.blue(`FACTORY_ADDRESS: ${chalk.yellow(process.env.FACTORY_ADDRESS || "not set")}`));
+
+    const envConfirmation = await askQuestion(`\nPlease confirm these environment settings are correct (y/n): `);
+
+    if (envConfirmation.toLowerCase() !== "y") {
+        console.log(chalk.yellow("\nMigration aborted. Please set the correct environment variables and try again."));
+        return;
+    }
+
     const gasReport = createGasReport();
 
     try {
         await connectDB();
-
+        const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;
+        const factory = await Factory.findOne({ factory_address: FACTORY_ADDRESS });
+        if (!factory) {
+            throw new Error("Factory not found");
+        }
         const skipIssuers = [];
-        const issuers = (await readAllIssuers())
-            .filter((i) => !skipIssuers.includes(i.legal_name))
-            .filter((i) => {
-                // Check both database and log file status
-                const logFile = path.join(process.cwd(), "migrations", `${i.legal_name}.log.json`);
-                if (fs.existsSync(logFile)) {
-                    const log = JSON.parse(fs.readFileSync(logFile, "utf8"));
-                    return !i.migrated && !log.migrated;
-                }
+        const issuers = (await readAllIssuers()).filter((i) => !i?.factory).filter((i) => !skipIssuers.includes(i.legal_name));
+        // .filter((i) => {
+        //     // Check both database and log file status
+        //     const logFile = path.join(process.cwd(), "migrations", `${i.legal_name}.log.json`);
+        //     if (fs.existsSync(logFile)) {
+        //         const log = JSON.parse(fs.readFileSync(logFile, "utf8"));
+        //         return !i.migrated && !log.migrated;
+        //     }
 
-                return !i.migrated;
-            });
-
+        //     return !i.migrated;
+        // });
+        issuers.forEach((i) => {
+            console.log(`${i.legal_name} - ${i.id}: Factory? ${!!i?.factory}`);
+        });
         console.log(chalk.blue.bold(`Found ${issuers.length} issuers to migrate.\n`));
 
         const initialAnswer = await askQuestion(
@@ -503,32 +542,52 @@ async function main() {
 // Allow script to be run from command line with a specific issuer ID or run all
 if (process.argv[2]) {
     const issuerId = process.argv[2];
-    migrateIssuer(issuerId)
-        .then((result) => {
-            if (result.success) {
-                console.log(chalk.green("Single issuer migration completed successfully"));
-                const reportPath = saveGasReport({
-                    totalGasUsed: result.gasTracker.gasUsed,
-                    issuers: [
-                        {
-                            name: result.issuerName,
-                            gasUsed: result.gasTracker.gasUsed,
-                            transactionCount: result.gasTracker.transactionCount,
-                        },
-                    ],
-                    startTime: new Date().toISOString(),
-                    endTime: new Date().toISOString(),
-                });
-                console.log(chalk.blue(`Gas report saved to: ${reportPath}`));
-            } else {
-                throw result.error;
-            }
+
+    // Environment confirmation
+    console.log(chalk.blue.bold("\nCurrent Environment Configuration:"));
+    console.log(chalk.blue(`NODE_ENV: ${chalk.yellow(process.env.NODE_ENV || "not set")}`));
+    console.log(chalk.blue(`USE_ENV_FILE: ${chalk.yellow(process.env.USE_ENV_FILE || "not set")}`));
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    rl.question(chalk.cyan("\nPlease confirm these environment settings are correct (y/n): "), (answer) => {
+        if (answer.toLowerCase() !== "y") {
+            console.log(chalk.yellow("\nMigration aborted. Please set the correct environment variables and try again."));
+            rl.close();
             process.exit(0);
-        })
-        .catch((error) => {
-            console.error(chalk.red("Migration failed:"), error);
-            process.exit(1);
-        });
+        }
+        rl.close();
+
+        migrateIssuer(issuerId)
+            .then((result) => {
+                if (result.success) {
+                    console.log(chalk.green("Single issuer migration completed successfully"));
+                    const reportPath = saveGasReport({
+                        totalGasUsed: result.gasTracker.gasUsed,
+                        issuers: [
+                            {
+                                name: result.issuerName,
+                                gasUsed: result.gasTracker.gasUsed,
+                                transactionCount: result.gasTracker.transactionCount,
+                            },
+                        ],
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString(),
+                    });
+                    console.log(chalk.blue(`Gas report saved to: ${reportPath}`));
+                } else {
+                    throw result.error;
+                }
+                process.exit(0);
+            })
+            .catch((error) => {
+                console.error(chalk.red("Migration failed:"), error);
+                process.exit(1);
+            });
+    });
 } else {
     // Run migration for all issuers
     main()

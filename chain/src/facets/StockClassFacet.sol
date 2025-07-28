@@ -6,17 +6,9 @@ import { StockClass } from "@libraries/Structs.sol";
 import { TxHelper, TxType } from "@libraries/TxHelper.sol";
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
 import { AccessControl } from "@libraries/AccessControl.sol";
+import { IStockClassFacet } from "@interfaces/IStockClassFacet.sol";
 
-contract StockClassFacet {
-    event StockClassCreated(
-        bytes16 indexed id, string indexed classType, uint256 indexed pricePerShare, uint256 initialSharesAuthorized
-    );
-    event StockClassAuthorizedSharesAdjusted(bytes16 indexed stockClassId, uint256 newSharesAuthorized);
-
-    error StockClassAlreadyExists(bytes16 stock_class_id);
-    error StockClassNotFound(bytes16 stock_class_id);
-    error InvalidSharesAuthorized();
-
+contract StockClassFacet is IStockClassFacet {
     /// @notice Create a new stock class
     /// @dev Only DEFAULT_ADMIN_ROLE can create stock classes
     function createStockClass(

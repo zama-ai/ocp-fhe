@@ -80,6 +80,7 @@ library LibDeployment {
             selectors[1] = StockFacet.getStockPosition.selector;
             selectors[2] = StockFacet.transferStock.selector;
             selectors[3] = StockFacet.getStakeholderSecurities.selector;
+            selectors[4] = StockFacet.cancelStock.selector;
             return FacetCutInfo({ name: "StockFacet", selectors: selectors });
         }
         if (facetType == FacetType.Convertibles) {
@@ -152,6 +153,7 @@ library LibDeployment {
         if (selector == AccessControlFacet.grantRole.selector) return FacetType.AccessControl;
         if (selector == MockFacet.getValuePlusOne.selector) return FacetType.MockFacet;
         if (selector == MockFacetV2.getValuePlusTwo.selector) return FacetType.MockFacetV2;
+        if (selector == StockFacet.cancelStock.selector) return FacetType.Stock;
         revert("Unknown selector");
     }
 

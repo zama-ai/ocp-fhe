@@ -11,13 +11,11 @@ interface IStakeholderNFTFacet is IERC721 {
     /// @notice Error thrown when querying URI for non-existent token
     error URIQueryForNonexistentToken();
 
+    /// @notice Get the URI for a token, containing metadata about stakeholder positions
+    /// @dev Only OPERATOR_ROLE or the token owner can view the token URI
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+
     /// @notice Mint an NFT representing a stakeholder's position
     /// @dev Only stakeholders with INVESTOR_ROLE can mint their own NFT
     function mint() external;
-
-    /// @notice Get the URI for a token, containing metadata about stakeholder positions
-    /// @dev Only OPERATOR_ROLE or the token owner can view the token URI
-    /// @param tokenId The ID of the token to get URI for
-    /// @return The token URI containing metadata about stakeholder positions
-    function tokenURI(uint256 tokenId) external view returns (string memory);
 }
