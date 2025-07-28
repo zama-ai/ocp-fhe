@@ -57,19 +57,16 @@ library LibDeployment {
             return FacetCutInfo({ name: "DiamondLoupeFacet", selectors: selectors });
         }
         if (facetType == FacetType.Issuer) {
-            bytes4[] memory selectors = new bytes4[](3);
+            bytes4[] memory selectors = new bytes4[](2);
             selectors[0] = IssuerFacet.initializeIssuer.selector;
             selectors[1] = IssuerFacet.adjustIssuerAuthorizedShares.selector;
-            selectors[2] = IssuerFacet.issuer.selector;
             return FacetCutInfo({ name: "IssuerFacet", selectors: selectors });
         }
         if (facetType == FacetType.Stakeholder) {
-            bytes4[] memory selectors = new bytes4[](5);
+            bytes4[] memory selectors = new bytes4[](3);
             selectors[0] = StakeholderFacet.createStakeholder.selector;
             selectors[1] = StakeholderFacet.getStakeholderPositions.selector;
             selectors[2] = StakeholderFacet.linkStakeholderAddress.selector;
-            selectors[3] = StakeholderFacet.getStakeholderId.selector;
-            selectors[4] = StakeholderFacet.getStakeholderIndex.selector;
             return FacetCutInfo({ name: "StakeholderFacet", selectors: selectors });
         }
         if (facetType == FacetType.StockClass) {
@@ -295,8 +292,12 @@ library LibDeployment {
             functionSelectors: LibDeployment.getFacetCutInfo(FacetType.AccessControl).selectors
         });
 
+        // ------------------- Diamond Cut Facet -------------------
+        address diamondCutFacet = address(new DiamondCutFacet());
+        _deployedHandler("DIAMOND_CUT_FACET", diamondCutFacet);
+
         // Create reference diamond
-        CapTable referenceDiamond = new CapTable(owner, address(new DiamondCutFacet()));
+        CapTable referenceDiamond = new CapTable(owner, diamondCutFacet);
 
         // Perform the cuts
         DiamondCutFacet(address(referenceDiamond)).diamondCut(cuts, address(0), "");

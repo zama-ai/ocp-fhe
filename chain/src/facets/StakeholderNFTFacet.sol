@@ -19,13 +19,6 @@ import { IStakeholderNFTFacet } from "@interfaces/IStakeholderNFTFacet.sol";
 contract StakeholderNFTFacet is ERC721, IStakeholderNFTFacet {
     constructor() ERC721("Stakeholder Position", "STKPOS") { }
 
-    // Internal function to check if a token exists by checking if the stakeholder ID exists
-    function _exists(uint256 tokenId) internal view override returns (bool) {
-        Storage storage ds = StorageLib.get();
-        bytes16 stakeholderId = bytes16(uint128(tokenId));
-        return ds.stakeholderIndex[stakeholderId] != 0;
-    }
-
     /// @notice Mint an NFT representing a stakeholder's position
     /// @dev Only stakeholders with INVESTOR_ROLE can mint their own NFT
     function mint() external {
@@ -49,7 +42,7 @@ contract StakeholderNFTFacet is ERC721, IStakeholderNFTFacet {
             revert AlreadyMinted();
         }
 
-        _safeMint(msg.sender, tokenId);
+        _mint(msg.sender, tokenId);
     }
 
     /// @notice Get the URI for a token, containing metadata about stakeholder positions
