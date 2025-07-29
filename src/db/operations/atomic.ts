@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Store a global mongo session to allows us to bundle CRUD operations into one transaction
 import { Connection, QueryOptions, ClientSession } from "mongoose";
 import { connectDB } from "../config/mongoose";

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import { Storage, StorageLib } from "@core/Storage.sol";
-import { AccessControlUpgradeable } from
-    "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { IAccessControlFacet } from "@interfaces/IAccessControlFacet.sol";
 
 contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
@@ -17,9 +16,8 @@ contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
         Storage storage ds = StorageLib.get();
 
         // Set up admin role for the deployer (factory)
-        ds.roles[DEFAULT_ADMIN_ROLE][msg.sender] = true;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ds.currentAdmin = msg.sender; // Set initial admin
-        emit RoleGranted(DEFAULT_ADMIN_ROLE, msg.sender, msg.sender);
 
         // Set up role admins using helper function
         _setRoleAdmin(OPERATOR_ROLE, DEFAULT_ADMIN_ROLE);
@@ -103,7 +101,7 @@ contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
     }
 
     /// @dev Override _grantRole to use diamond storage
-    function _grantRole(bytes32 role, address account) internal virtual override {
+    function _grantRole(bytes32 role, address account) internal virtual override returns (bool) {
         Storage storage ds = StorageLib.get();
         if (!ds.roles[role][account]) {
             ds.roles[role][account] = true;
@@ -120,16 +118,20 @@ contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
                     emit RoleGranted(INVESTOR_ROLE, account, msg.sender);
                 }
             }
+            return true;
         }
+        return false;
     }
 
     /// @dev Override _revokeRole to use diamond storage
-    function _revokeRole(bytes32 role, address account) internal virtual override {
+    function _revokeRole(bytes32 role, address account) internal virtual override returns (bool) {
         Storage storage ds = StorageLib.get();
         if (ds.roles[role][account]) {
             ds.roles[role][account] = false;
             emit RoleRevoked(role, account, msg.sender);
+            return true;
         }
+        return false;
     }
 
     /// @dev Override _setRoleAdmin to use diamond storage
