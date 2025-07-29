@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0; // it may come from openzeppelin-contracts-upgradeable
+pragma solidity ^0.8.20;
 
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 

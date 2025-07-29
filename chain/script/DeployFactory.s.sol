@@ -158,7 +158,7 @@ library LibDeployment {
         revert("Unknown selector");
     }
 
-    function _deployedHandler(string memory envName, address addr) internal returns (address) {
+    function _deployedHandler(string memory envName, address addr) internal view returns (address) {
         console.log(string.concat(envName, "=", Strings.toHexString(addr)));
         return addr;
     }
