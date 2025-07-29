@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import { ERC721 } from "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import { Base64 } from "openzeppelin-contracts/contracts/utils/Base64.sol";
@@ -84,6 +84,13 @@ contract StakeholderNFTFacet is ERC721, IStakeholderNFTFacet {
                 )
             )
         );
+    }
+
+    /// @dev Returns whether the token exists (has a non-zero owner)
+    /// @param tokenId The token ID to check
+    /// @return bool True if the token exists, false otherwise
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return _ownerOf(tokenId) != address(0);
     }
 
     function _getAttributesJson(StakeholderPositions memory positions) internal pure returns (string memory) {
