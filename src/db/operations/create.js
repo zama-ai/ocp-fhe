@@ -1,5 +1,4 @@
 import Factory from "../objects/Factory.js";
-import HistoricalTransaction from "../objects/HistoricalTransaction.js";
 import Issuer from "../objects/Issuer.js";
 import Stakeholder from "../objects/Stakeholder.js";
 import StockClass from "../objects/StockClass.js";
@@ -18,6 +17,7 @@ import EquityCompensationExercise from "../objects/transactions/exercise/EquityC
 import StockPlanPoolAdjustment from "../objects/transactions/adjustment/StockPlanPoolAdjustment.js";
 import StockClassAuthorizedSharesAdjustment from "../objects/transactions/adjustment/StockClassAuthorizedSharesAdjustment.js";
 import IssuerAuthorizedSharesAdjustment from "../objects/transactions/adjustment/IssuerAuthorizedSharesAdjustment.js";
+import StockCancellation from "../objects/transactions/cancellation/StockCancellation.js";
 
 export const createIssuer = (issuerData) => {
     return save(new Issuer(issuerData));
@@ -45,10 +45,6 @@ export const createValuation = (valuationData) => {
 
 export const createVestingTerms = (vestingTermsData) => {
     return save(new VestingTerms(vestingTermsData));
-};
-
-export const createHistoricalTransaction = (transactionHistoryData) => {
-    return save(new HistoricalTransaction(transactionHistoryData));
 };
 
 export const createStockIssuance = (stockIssuanceData) => {
@@ -81,6 +77,10 @@ export const createFactory = (factoryData) => {
 
 export const createEquityCompensationExercise = (exerciseData) => {
     return save(new EquityCompensationExercise(exerciseData));
+};
+
+export const createStockCancellation = (stockCancellationData) => {
+    return save(new StockCancellation(stockCancellationData));
 };
 
 export const createStockPlanPoolAdjustment = (stockPlanPoolAdjustmentData) => {

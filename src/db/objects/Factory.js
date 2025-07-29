@@ -6,6 +6,12 @@ export const FACTORY_VERSION = {
     LEGACY: "LEGACY",
 };
 
+const CHAIN_ID = {
+    BASE_MAINNET: "8453",
+    BASE_SEPOLIA: "84532",
+    ANVIL: "31337",
+};
+
 const FactorySchema = new mongoose.Schema(
     {
         _id: { type: String, default: () => uuid() },
@@ -15,20 +21,12 @@ const FactorySchema = new mongoose.Schema(
         chain_id: {
             type: String,
             required: true,
-            enum: [
-                "8453", // Base mainnet
-                "84532", // Base Sepolia
-                "31337", // anvil
-            ],
+            enum: Object.values(CHAIN_ID),
         },
         version: {
             type: String,
             required: true,
             enum: Object.values(FACTORY_VERSION),
-        },
-        notes: {
-            type: String,
-            default: "",
         },
     },
     { timestamps: true }
