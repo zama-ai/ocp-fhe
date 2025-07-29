@@ -1,5 +1,4 @@
 import Factory from "../objects/Factory.js";
-import HistoricalTransaction from "../objects/HistoricalTransaction.js";
 import Issuer from "../objects/Issuer.js";
 import Stakeholder from "../objects/Stakeholder.js";
 import StockClass from "../objects/StockClass.js";
@@ -47,16 +46,6 @@ export const readVestingTermsById = async (id) => {
     return await findById(VestingTerms, id);
 };
 
-export const readHistoricalTransactionById = async (txId) => {
-    return await findOne(HistoricalTransaction, { transaction: txId });
-};
-
-// READ Multiple
-export const readHistoricalTransactionByIssuerId = async (issuerId) => {
-    return await find(HistoricalTransaction, { issuer: issuerId }).populate("transaction");
-};
-
-// COUNT
 export const countIssuers = async () => {
     return await countDocuments(Issuer);
 };
