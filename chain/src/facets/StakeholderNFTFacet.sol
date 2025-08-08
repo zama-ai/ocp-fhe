@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { ERC721 } from "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import { Base64 } from "openzeppelin-contracts/contracts/utils/Base64.sol";
-import { StorageLib, Storage } from "@core/Storage.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
 import {
     StakeholderPositions,
     StockActivePosition,
     WarrantActivePosition,
     ConvertibleActivePosition,
     EquityCompensationActivePosition
-} from "@libraries/Structs.sol";
-import { ValidationLib } from "@libraries/ValidationLib.sol";
-import { StakeholderFacet } from "@facets/StakeholderFacet.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { IStakeholderNFTFacet } from "@interfaces/IStakeholderNFTFacet.sol";
+} from "src/libraries/Structs.sol";
+import { ValidationLib } from "src/libraries/ValidationLib.sol";
+import { StakeholderFacet } from "src/facets/StakeholderFacet.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { IStakeholderNFTFacet } from "src/interfaces/IStakeholderNFTFacet.sol";
 
 contract StakeholderNFTFacet is ERC721, IStakeholderNFTFacet {
     constructor() ERC721("Stakeholder Position", "STKPOS") { }

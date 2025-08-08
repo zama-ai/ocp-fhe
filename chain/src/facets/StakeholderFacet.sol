@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StorageLib, Storage } from "@core/Storage.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
 import {
     StockActivePosition,
     WarrantActivePosition,
     ConvertibleActivePosition,
     EquityCompensationActivePosition,
     StakeholderPositions
-} from "@libraries/Structs.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { IStakeholderFacet } from "@interfaces/IStakeholderFacet.sol";
+} from "src/libraries/Structs.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { IStakeholderFacet } from "src/interfaces/IStakeholderFacet.sol";
 
 contract StakeholderFacet is IStakeholderFacet {
     /// @notice Create a new stakeholder

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { ConvertibleActivePosition, IssueConvertibleParams } from "@libraries/Structs.sol";
+import { ConvertibleActivePosition, IssueConvertibleParams } from "src/libraries/Structs.sol";
 
 interface IConvertiblesFacet {
     /// @notice Issue a new convertible security to a stakeholder

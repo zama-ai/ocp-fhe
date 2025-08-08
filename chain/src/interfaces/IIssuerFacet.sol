@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Issuer } from "@libraries/Structs.sol";
+import { Issuer } from "src/libraries/Structs.sol";
 
 interface IIssuerFacet {
     /// @notice Thrown when trying to initialize an already initialized issuer

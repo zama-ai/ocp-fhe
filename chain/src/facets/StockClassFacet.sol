@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StorageLib, Storage } from "@core/Storage.sol";
-import { StockClass } from "@libraries/Structs.sol";
-import { TxHelper, TxType } from "@libraries/TxHelper.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
+import { StockClass } from "src/libraries/Structs.sol";
+import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { IStockClassFacet } from "@interfaces/IStockClassFacet.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { IStockClassFacet } from "src/interfaces/IStockClassFacet.sol";
 
 contract StockClassFacet is IStockClassFacet {
     /// @notice Create a new stock class

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StorageLib, Storage } from "@core/Storage.sol";
-import { StockPlan } from "@libraries/Structs.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
+import { StockPlan } from "src/libraries/Structs.sol";
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
-import { TxHelper, TxType } from "@libraries/TxHelper.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
+import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
 
 contract StockPlanFacet {
     event StockPlanCreated(bytes16 indexed id, uint256 shares_reserved);

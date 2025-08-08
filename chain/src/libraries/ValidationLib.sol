@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StorageLib, Storage } from "@core/Storage.sol";
-import { StockClass } from "@libraries/Structs.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
+import { StockClass } from "src/libraries/Structs.sol";
 
 library ValidationLib {
     error NoStakeholder(bytes16 stakeholder_id);

@@ -9,7 +9,7 @@ import {
     Issuer,
     StockClass,
     StockPlan
-} from "@libraries/Structs.sol";
+} from "src/libraries/Structs.sol";
 
 struct Storage {
     // Access Control storage

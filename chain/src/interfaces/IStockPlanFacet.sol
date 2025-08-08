@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StockPlan } from "@libraries/Structs.sol";
+import { StockPlan } from "src/libraries/Structs.sol";
 
 interface IStockPlanFacet {
     /// @notice Emitted when a new stock plan is created

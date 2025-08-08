@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Storage, StorageLib } from "@core/Storage.sol";
+import { Storage, StorageLib } from "src/core/Storage.sol";
 
 library AccessControl {
     // Role definitions - matching AccessControlFacet

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Storage, StorageLib } from "@core/Storage.sol";
+import { Storage, StorageLib } from "src/core/Storage.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { IAccessControlFacet } from "@interfaces/IAccessControlFacet.sol";
+import { IAccessControlFacet } from "src/interfaces/IAccessControlFacet.sol";
 
 contract AccessControlFacet is AccessControlUpgradeable, IAccessControlFacet {
     // Role definitions

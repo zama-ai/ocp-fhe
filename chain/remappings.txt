@@ -1,13 +1,3 @@
-@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
-diamond-3-hardhat/=lib/diamond-3-hardhat/contracts/
-ds-test/=lib/forge-std/lib/ds-test/src/
-erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/
-forge-std/=lib/forge-std/src/
-halmos-cheatcodes/=lib/openzeppelin-contracts-upgradeable/lib/halmos-cheatcodes/src/
-openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
-openzeppelin-contracts/=lib/openzeppelin-contracts/
-@facets/=src/facets/
-@libraries/=src/libraries/
-@core/=src/core/
-@interfaces/=src/interfaces/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+diamond-3-hardhat/=node_modules/diamond-3-hardhat/contracts/

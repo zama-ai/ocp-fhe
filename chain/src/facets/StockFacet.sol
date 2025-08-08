@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StorageLib, Storage } from "@core/Storage.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
 import {
     StockActivePosition,
     StockClass,
@@ -10,11 +10,11 @@ import {
     StockConsolidationTx,
     StockTransferTx,
     StockCancellationTx
-} from "@libraries/Structs.sol";
-import { TxHelper, TxType } from "@libraries/TxHelper.sol";
-import { ValidationLib } from "@libraries/ValidationLib.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { IStockFacet } from "@interfaces/IStockFacet.sol";
+} from "src/libraries/Structs.sol";
+import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
+import { ValidationLib } from "src/libraries/ValidationLib.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { IStockFacet } from "src/interfaces/IStockFacet.sol";
 
 contract StockFacet is IStockFacet {
     function issueStock(IssueStockParams calldata params) external {

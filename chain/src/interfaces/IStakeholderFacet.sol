@@ -7,7 +7,7 @@ import {
     ConvertibleActivePosition,
     EquityCompensationActivePosition,
     StakeholderPositions
-} from "@libraries/Structs.sol";
+} from "src/libraries/Structs.sol";
 
 interface IStakeholderFacet {
     /// @notice Emitted when a new stakeholder is created

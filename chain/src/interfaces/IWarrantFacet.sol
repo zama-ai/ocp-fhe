@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { WarrantActivePosition, IssueWarrantParams } from "@libraries/Structs.sol";
+import { WarrantActivePosition, IssueWarrantParams } from "src/libraries/Structs.sol";
 
 interface IWarrantFacet {
     /// @notice Issue a new warrant to a stakeholder

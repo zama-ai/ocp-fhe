@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StockActivePosition, IssueStockParams } from "@libraries/Structs.sol";
+import { StockActivePosition, IssueStockParams } from "src/libraries/Structs.sol";
 
 interface IStockFacet {
     /// @notice Issue new stock to a stakeholder

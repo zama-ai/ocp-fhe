@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { EquityCompensationActivePosition, IssueEquityCompensationParams } from "@libraries/Structs.sol";
+import { EquityCompensationActivePosition, IssueEquityCompensationParams } from "src/libraries/Structs.sol";
 
 interface IEquityCompensationFacet {
     /// @notice Issue equity compensation to a stakeholder

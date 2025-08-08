@@ -5,10 +5,10 @@ import { CapTable } from "./CapTable.sol";
 import { IDiamondLoupe } from "diamond-3-hardhat/interfaces/IDiamondLoupe.sol";
 import { DiamondCutFacet } from "diamond-3-hardhat/facets/DiamondCutFacet.sol";
 import { IDiamondCut } from "diamond-3-hardhat/interfaces/IDiamondCut.sol";
-import { IssuerFacet } from "@facets/IssuerFacet.sol";
-import { AccessControlFacet } from "@facets/AccessControlFacet.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { IssuerFacet } from "src/facets/IssuerFacet.sol";
+import { AccessControlFacet } from "src/facets/AccessControlFacet.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DiamondLoupeFacet } from "diamond-3-hardhat/facets/DiamondLoupeFacet.sol";
 
 contract CapTableFactory is Ownable {
@@ -24,7 +24,7 @@ contract CapTableFactory is Ownable {
         referenceDiamond = _referenceDiamond;
     }
 
-    function createCapTable(bytes16 id, uint256 initialSharesAuthorized) external onlyOwner returns (address) {
+    function createCapTable(bytes16 id, uint256 initialSharesAuthorized) external returns (address) {
         require(id != bytes16(0) && initialSharesAuthorized != 0, "Invalid issuer params");
 
         // Get DiamondCutFacet address from reference diamond using loupe

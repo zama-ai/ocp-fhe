@@ -2,12 +2,11 @@
 pragma solidity ^0.8.20;
 
 import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
-import { StorageLib, Storage } from "@core/Storage.sol";
-import { Issuer } from "@libraries/Structs.sol";
-import { TxHelper, TxType } from "@libraries/TxHelper.sol";
-import { AccessControl } from "@libraries/AccessControl.sol";
-import { console } from "forge-std/console.sol";
-import { IIssuerFacet } from "@interfaces/IIssuerFacet.sol";
+import { StorageLib, Storage } from "src/core/Storage.sol";
+import { Issuer } from "src/libraries/Structs.sol";
+import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
+import { AccessControl } from "src/libraries/AccessControl.sol";
+import { IIssuerFacet } from "src/interfaces/IIssuerFacet.sol";
 
 contract IssuerFacet is IIssuerFacet {
     /// @notice Initialize the issuer with initial shares authorized
