@@ -1,4 +1,4 @@
-import "@nomicfoundation/hardhat-foundry";
+
 import "@fhevm/hardhat-plugin";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
@@ -67,15 +67,7 @@ const config: HardhatUserConfig = {
             },
             chainId: 31337,
         },
-        anvil: {
-            accounts: {
-                mnemonic: MNEMONIC,
-                path: "m/44'/60'/0'/0/",
-                count: 10,
-            },
-            chainId: 31337,
-            url: "http://localhost:8545",
-        },
+
         sepolia: {
             accounts: {
                 mnemonic: MNEMONIC,
@@ -86,12 +78,12 @@ const config: HardhatUserConfig = {
             url: `${RPC_URL}`,
         },
     },
-    // paths: {
-    //     artifacts: "./artifacts",
-    //     cache: "./cache",
-    //     sources: "./src",
-    //     tests: "./test",
-    // },
+     paths: {
+         artifacts: "./artifacts",
+         cache: "./cache",
+         sources: "./src",
+         tests: "./test",
+     },
     solidity: {
         version: "0.8.24",
         settings: {

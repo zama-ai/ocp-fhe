@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
-import { Diamond } from "diamond-3-hardhat/Diamond.sol";
+import { LibDiamond } from "diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
+import { Diamond } from "diamond-3-hardhat/contracts/Diamond.sol";
 
 contract CapTable is Diamond {
     constructor(address _owner, address _diamondCutFacet) Diamond(_owner, _diamondCutFacet) { }

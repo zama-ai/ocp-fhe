@@ -8,7 +8,8 @@ import {
     WarrantActivePositions,
     Issuer,
     StockClass,
-    StockPlan
+    StockPlan,
+    PrivateStockActivePositions
 } from "src/libraries/Structs.sol";
 
 struct Storage {
@@ -30,6 +31,12 @@ struct Storage {
     EquityCompensationActivePositions equityCompensationActivePositions;
     WarrantActivePositions warrantActivePositions;
     mapping(address => bytes16) addressToStakeholderId;
+
+
+    // Private stock active positions
+    PrivateStockActivePositions _privateStockActivePositions;
+    // Campaign state
+    uint256 totalPrivateSecuritiesIssued;
 }
 
 library StorageLib {

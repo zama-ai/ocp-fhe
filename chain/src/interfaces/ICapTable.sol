@@ -13,6 +13,7 @@ import { IStockClassFacet } from "./IStockClassFacet.sol";
 import { IStockFacet } from "./IStockFacet.sol";
 import { IStockPlanFacet } from "./IStockPlanFacet.sol";
 import { IWarrantFacet } from "./IWarrantFacet.sol";
+import "./IPrivateStockFacet.sol";
 
 /* Consolidation of interfaces facet internally */
 interface ICapTable is
@@ -24,6 +25,7 @@ interface ICapTable is
     IStakeholderNFTFacet,
     IStockClassFacet,
     IStockFacet,
+    IPrivateStockFacet,
     IStockPlanFacet,
     IWarrantFacet
 { }

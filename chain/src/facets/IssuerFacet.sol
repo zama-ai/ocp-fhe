@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { LibDiamond } from "diamond-3-hardhat/libraries/LibDiamond.sol";
+import { LibDiamond } from "diamond-3-hardhat/contracts/libraries/LibDiamond.sol";
 import { StorageLib, Storage } from "src/core/Storage.sol";
 import { Issuer } from "src/libraries/Structs.sol";
 import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
