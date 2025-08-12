@@ -2,9 +2,15 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import ContextProvider from '@/context';
-import { headers } from 'next/headers';
-import TopBar from '@/components/top-bar';
+import { cookies, headers } from 'next/headers';
 import { Toaster } from '@/components/ui/sonner';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { BreadcrumbNav } from '@/components/breadcrumb-nav';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -27,15 +33,32 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headersObj = await headers();
-  const cookies = headersObj.get('cookie');
+  const cookiesString = headersObj.get('cookie');
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ContextProvider cookies={cookies}>
-          <TopBar />
-          {children}
+        <ContextProvider
+          cookiesString={cookiesString}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cookies={cookieStore as any}
+        >
+          <SidebarProvider defaultOpen={defaultOpen}>
+            <AppSidebar />
+            <SidebarInset>
+              <header className="flex h-16 shrink-0 items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1" />
+                <div className="flex items-center gap-2">
+                  <BreadcrumbNav />
+                </div>
+              </header>
+              <div>{children}</div>
+            </SidebarInset>
+          </SidebarProvider>
           <Toaster />
         </ContextProvider>
       </body>

@@ -6,6 +6,7 @@ import { createAppKit } from '@reown/appkit/react';
 import { sepolia } from '@reown/appkit/networks';
 import React, { type ReactNode } from 'react';
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 // Set up queryClient
 const queryClient = new QueryClient();
@@ -45,23 +46,31 @@ const modal = createAppKit({
 
 function ContextProvider({
   children,
+  cookiesString,
   cookies,
 }: {
   children: ReactNode;
-  cookies: string | null;
+  cookiesString: string | null;
+  cookies: [string, { name: string; value: string }][];
 }) {
   const initialState = cookieToInitialState(
     wagmiAdapter.wagmiConfig as Config,
-    cookies
+    cookiesString
   );
+  const sidebarState =
+    cookies.find(([name]) => name === 'sidebar_state')?.[1].value === 'true';
 
   return (
-    <WagmiProvider
-      config={wagmiAdapter.wagmiConfig as Config}
-      initialState={initialState}
-    >
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
+    <SidebarProvider defaultOpen={sidebarState}>
+      <WagmiProvider
+        config={wagmiAdapter.wagmiConfig as Config}
+        initialState={initialState}
+      >
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </WagmiProvider>
+    </SidebarProvider>
   );
 }
 
