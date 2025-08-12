@@ -12,6 +12,11 @@ import { IPrivateStockFacet } from "src/interfaces/IPrivateStockFacet.sol";
 contract PrivateStockFacet is IPrivateStockFacet {
 
     function issuePrivateStock(IssuePrivateStockParams calldata params, bytes calldata inputProof) external {
+
+        if (!AccessControl.hasAdminRole(msg.sender)) {
+            revert AccessControl.AccessControlUnauthorized(msg.sender, AccessControl.DEFAULT_ADMIN_ROLE);
+        }
+
         Storage storage ds = StorageLib.get();
 
         // Create stock position
