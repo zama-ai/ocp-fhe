@@ -8,8 +8,16 @@ import { PrivateStockActivePosition,IssuePrivateStockParams } from "src/librarie
 import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
 import { AccessControl } from "src/libraries/AccessControl.sol";
 import { IPrivateStockFacet } from "src/interfaces/IPrivateStockFacet.sol";
+import {ZamaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract PrivateStockFacet is IPrivateStockFacet {
+contract PrivateStockFacet is IPrivateStockFacet, Initializable {
+
+
+    function initialize() public initializer {
+        FHE.setCoprocessor(ZamaConfig.getSepoliaConfig());
+        FHE.setDecryptionOracle(ZamaConfig.getSepoliaOracleAddress());
+    }
 
     function issuePrivateStock(IssuePrivateStockParams calldata params, bytes calldata inputProof) external {
 
