@@ -47,21 +47,17 @@ const modal = createAppKit({
 function ContextProvider({
   children,
   cookiesString,
-  cookies,
 }: {
   children: ReactNode;
   cookiesString: string | null;
-  cookies: [string, { name: string; value: string }][];
 }) {
   const initialState = cookieToInitialState(
     wagmiAdapter.wagmiConfig as Config,
     cookiesString
   );
-  const sidebarState =
-    cookies.find(([name]) => name === 'sidebar_state')?.[1].value === 'true';
 
   return (
-    <SidebarProvider defaultOpen={sidebarState}>
+    <SidebarProvider>
       <WagmiProvider
         config={wagmiAdapter.wagmiConfig as Config}
         initialState={initialState}

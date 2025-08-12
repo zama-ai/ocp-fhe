@@ -34,24 +34,18 @@ export default async function RootLayout({
 }>) {
   const headersObj = await headers();
   const cookiesString = headersObj.get('cookie');
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ContextProvider
-          cookiesString={cookiesString}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          cookies={cookieStore as any}
-        >
-          <SidebarProvider defaultOpen={defaultOpen}>
+        <ContextProvider cookiesString={cookiesString}>
+          <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
               <header className="flex h-16 shrink-0 items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
+                {/* <SidebarTrigger className="-ml-1" /> */}
                 <div className="flex items-center gap-2">
                   <BreadcrumbNav />
                 </div>

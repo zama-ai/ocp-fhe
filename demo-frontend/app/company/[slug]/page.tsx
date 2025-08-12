@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { RoundCard, type Round } from '@/components/round-card';
-import { LockIcon, UnlockIcon } from 'lucide-react';
+import { CreateRoundModal } from '@/components/create-round-modal';
+import { Button } from '@/components/ui/button';
+import { LockIcon, UnlockIcon, Plus } from 'lucide-react';
+import { useRole } from '@/hooks/use-role';
 
 // Mock data matching the template design
 const mockRounds: Round[] = [
@@ -74,7 +77,7 @@ const mockRounds: Round[] = [
       },
     ],
   },
-];
+].toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 export default function Page({
   params,
@@ -84,6 +87,8 @@ export default function Page({
   const [slug, setSlug] = useState<string>('');
   const [rounds, setRounds] = useState<Round[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { role } = useRole();
 
   useEffect(() => {
     const loadData = async () => {
@@ -100,6 +105,16 @@ export default function Page({
     loadData();
   }, [params]);
 
+  const handleCreateRound = (newRound: Omit<Round, 'id'>) => {
+    const roundWithId: Round = {
+      ...newRound,
+      id: `round-${Date.now()}`,
+    };
+
+    // Add new round to the beginning of the list (most recent first)
+    setRounds(prevRounds => [roundWithId, ...prevRounds]);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -108,7 +123,18 @@ export default function Page({
           <h1 className="text-3xl font-bold mb-2 text-zinc-900">
             {slug.charAt(0).toUpperCase() + slug.slice(1)} Company
           </h1>
-          <p className="text-zinc-600">Rounds & Allocations for {slug}</p>
+          <p className="text-zinc-600 mb-4">Rounds & Allocations for {slug}</p>
+
+          {/* Create Round Button - Only visible for FOUNDER */}
+          {role === 'FOUNDER' && !isLoading && (
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create New Round
+            </Button>
+          )}
         </div>
 
         {/* Content */}
@@ -145,6 +171,13 @@ export default function Page({
           </section>
         )}
       </main>
+
+      {/* Create Round Modal */}
+      <CreateRoundModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onCreateRound={handleCreateRound}
+      />
     </div>
   );
 }
