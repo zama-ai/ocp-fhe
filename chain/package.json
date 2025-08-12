@@ -6,6 +6,9 @@
         "lib": "lib",
         "test": "test"
     },
+    "files": [
+        "src"
+    ],
     "scripts": {
         "clean": "rimraf ./fhevmTemp ./artifacts ./cache ./coverage ./types ./coverage.json ./dist && npm run typechain",
         "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
@@ -27,7 +30,7 @@
         "@fhevm/hardhat-plugin": "^0.0.1-6",
         "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
         "@nomicfoundation/hardhat-ethers": "^3.1.0",
-        "@nomicfoundation/hardhat-foundry": "^1.2.0",
+
         "@nomicfoundation/hardhat-network-helpers": "^1.1.0",
         "@nomicfoundation/hardhat-verify": "^2.1.1",
         "@typechain/ethers-v6": "^0.5.1",

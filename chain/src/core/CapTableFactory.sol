@@ -2,14 +2,14 @@
 pragma solidity ^0.8.20;
 
 import { CapTable } from "./CapTable.sol";
-import { IDiamondLoupe } from "diamond-3-hardhat/interfaces/IDiamondLoupe.sol";
-import { DiamondCutFacet } from "diamond-3-hardhat/facets/DiamondCutFacet.sol";
-import { IDiamondCut } from "diamond-3-hardhat/interfaces/IDiamondCut.sol";
+import { IDiamondLoupe } from "diamond-3-hardhat/contracts/interfaces/IDiamondLoupe.sol";
+import { DiamondCutFacet } from "diamond-3-hardhat/contracts/facets/DiamondCutFacet.sol";
+import { IDiamondCut } from "diamond-3-hardhat/contracts/interfaces/IDiamondCut.sol";
 import { IssuerFacet } from "src/facets/IssuerFacet.sol";
 import { AccessControlFacet } from "src/facets/AccessControlFacet.sol";
 import { AccessControl } from "src/libraries/AccessControl.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { DiamondLoupeFacet } from "diamond-3-hardhat/facets/DiamondLoupeFacet.sol";
+import { DiamondLoupeFacet } from "diamond-3-hardhat/contracts/facets/DiamondLoupeFacet.sol";
 
 contract CapTableFactory is Ownable {
     event CapTableCreated(address indexed capTable, bytes16 indexed issuerId);
