@@ -6,7 +6,7 @@ import {
   initSDK,
   SepoliaConfig,
 } from '@zama-fhe/relayer-sdk/bundle';
-import { clientToEthersTransport } from '@/lib/abi/wagmi-etheres-adapter';
+import { clientToEthersTransport } from '@/lib/wagmi-etheres-adapter';
 
 const sepoliaChainId = 11155111; // Sepolia testnet chain ID
 

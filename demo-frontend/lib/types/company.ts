@@ -1,6 +1,7 @@
 export interface Investor {
   address: string;
   name?: string;
+  securityId?: string; // The on-chain security ID for this investment
 }
 
 export interface Round {

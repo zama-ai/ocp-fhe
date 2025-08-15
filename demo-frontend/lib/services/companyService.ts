@@ -242,6 +242,13 @@ export class CompanyService {
       const newInvestors = [...existingInvestors];
 
       if (roundData.investors) {
+        // Store round-specific investment security IDs
+        const roundInvestmentsKey = generateKey(
+          KEY_PREFIXES.ROUND_INVESTMENTS,
+          newRound.id
+        );
+        const securityIds: string[] = [];
+
         roundData.investors.forEach(investor => {
           const exists = newInvestors.some(
             existing => existing.address === investor.address
@@ -256,7 +263,17 @@ export class CompanyService {
             );
             redis.sadd(investorKey, companyId).catch(console.error);
           }
+
+          // Collect security IDs for this round
+          if (investor.securityId) {
+            securityIds.push(investor.securityId);
+          }
         });
+
+        // Store security IDs for this round
+        if (securityIds.length > 0) {
+          redis.sadd(roundInvestmentsKey, securityIds).catch(console.error);
+        }
       }
 
       await redis.hset(companyKey, {
@@ -308,6 +325,23 @@ export class CompanyService {
     } catch (error) {
       console.error('Error adding investor to last round:', error);
       throw new Error('Failed to add investor to last round');
+    }
+  }
+
+  /**
+   * 9. Get all security IDs for a specific round
+   */
+  async getRoundSecurityIds(roundId: string): Promise<string[]> {
+    try {
+      const roundInvestmentsKey = generateKey(
+        KEY_PREFIXES.ROUND_INVESTMENTS,
+        roundId
+      );
+      const securityIds = await redis.smembers(roundInvestmentsKey);
+      return securityIds;
+    } catch (error) {
+      console.error('Error fetching round security IDs:', error);
+      throw new Error('Failed to fetch round security IDs');
     }
   }
 }

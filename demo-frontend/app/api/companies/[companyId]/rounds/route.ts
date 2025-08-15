@@ -73,6 +73,16 @@ export async function POST(
             { status: 400 }
           );
         }
+        // Validate security ID if provided (should be a hex string)
+        if (investor.securityId && typeof investor.securityId !== 'string') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Invalid security ID format at index ${i}`,
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 

@@ -14,6 +14,7 @@ export const KEY_PREFIXES = {
   COMPANY_ROUNDS: 'rounds',
   COMPANY_INVESTORS: 'investors',
   COMPANY_SEARCH: 'search',
+  ROUND_INVESTMENTS: 'roundinvestments', // For storing round-specific investment security IDs
 } as const;
 
 // Utility function to generate Redis keys
