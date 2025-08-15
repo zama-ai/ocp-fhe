@@ -322,16 +322,16 @@ task("list-captables", "List all deployed CapTables and factory information").se
   // Table header
   console.log(
     "│" +
-      " #".padEnd(4) +
-      "│" +
-      " Address".padEnd(44) +
-      "│" +
-      " Issuer ID".padEnd(36) +
-      "│" +
-      " Shares".padEnd(12) +
-      "│" +
-      " Deployed".padEnd(20) +
-      "│"
+    " #".padEnd(4) +
+    "│" +
+    " Address".padEnd(44) +
+    "│" +
+    " Issuer ID".padEnd(36) +
+    "│" +
+    " Shares".padEnd(12) +
+    "│" +
+    " Deployed".padEnd(20) +
+    "│"
   );
   console.log("├" + "─".repeat(4) + "┼" + "─".repeat(44) + "┼" + "─".repeat(36) + "┼" + "─".repeat(12) + "┼" + "─".repeat(20) + "┤");
 
@@ -344,16 +344,16 @@ task("list-captables", "List all deployed CapTables and factory information").se
 
     console.log(
       "│" +
-        ` ${(index + 1).toString()}`.padEnd(4) +
-        "│" +
-        ` ${shortAddress}`.padEnd(44) +
-        "│" +
-        ` ${shortIssuerId}`.padEnd(36) +
-        "│" +
-        ` ${formattedShares}`.padEnd(12) +
-        "│" +
-        ` ${deployedDate}`.padEnd(20) +
-        "│"
+      ` ${(index + 1).toString()}`.padEnd(4) +
+      "│" +
+      ` ${shortAddress}`.padEnd(44) +
+      "│" +
+      ` ${shortIssuerId}`.padEnd(36) +
+      "│" +
+      ` ${formattedShares}`.padEnd(12) +
+      "│" +
+      ` ${deployedDate}`.padEnd(20) +
+      "│"
     );
   });
 
@@ -567,9 +567,9 @@ task("issue-private-stock", "Issue FHE-encrypted private stock to a stakeholder"
     // Issue private stock
     console.log("\n🚀 ISSUING PRIVATE STOCK");
     console.log("-".repeat(40));
-    console.log("Calling issuePrivateStock...");
+    console.log("Calling issuePrivateStocks...");
 
-    const tx = await privateStockFacet.connect(signer).issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+    const tx = await privateStockFacet.connect(signer).issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
     console.log("✅ Transaction sent:", tx.hash);
     console.log("⏳ Waiting for confirmation...");
 

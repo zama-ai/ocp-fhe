@@ -1,24 +1,24 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { 
-  CapTable, 
-  CapTable__factory, 
-  CapTableFactory, 
-  CapTableFactory__factory 
+import {
+  CapTable,
+  CapTable__factory,
+  CapTableFactory,
+  CapTableFactory__factory
 } from "../types";
-import type { 
+import type {
   DiamondCutFacet,
   DiamondLoupeFacet
 } from "../types";
-import type { 
+import type {
   IDiamondCut,
 } from "../types";
-import { 
+import {
   DiamondCutFacet__factory,
   DiamondLoupeFacet__factory
 } from "../types";
-import { 
+import {
   IssuerFacet,
   IssuerFacet__factory,
   StakeholderFacet,
@@ -296,7 +296,7 @@ describe("Factory Deployment with All Facets", function () {
           action: 0, // Add
           functionSelectors: [
             privateStockFacet.interface.getFunction("initialize").selector,
-            privateStockFacet.interface.getFunction("issuePrivateStock").selector,
+            privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
             privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
             privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector
           ]
@@ -304,10 +304,10 @@ describe("Factory Deployment with All Facets", function () {
       ];
 
       console.log("Performing diamond cuts...");
-      
+
       // Perform the cuts
       const diamondCut = DiamondCutFacet__factory.connect(await referenceDiamond.getAddress(), signers.deployer);
-      
+
       for (let i = 0; i < cuts.length; i++) {
         console.log(`Adding facet ${i + 1}/${cuts.length}: ${cuts[i].facetAddress}`);
         await diamondCut.diamondCut([cuts[i]], ethers.ZeroAddress, "0x");
@@ -321,7 +321,7 @@ describe("Factory Deployment with All Facets", function () {
 
       // Get the loupe interface from the reference diamond
       const loupe = DiamondLoupeFacet__factory.connect(await referenceDiamond.getAddress(), signers.deployer);
-      
+
       // Get all facets
       const facets = await loupe.facets();
       console.log(`Total facets found: ${facets.length}`);
@@ -417,7 +417,7 @@ describe("Factory Deployment with All Facets", function () {
 
       // Verify the cap table has all the facets
       const loupe = DiamondLoupeFacet__factory.connect(capTableAddress, signers.deployer);
-      
+
       const facets = await loupe.facets();
       console.log(`CapTable has ${facets.length} facets`);
 

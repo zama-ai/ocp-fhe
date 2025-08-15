@@ -294,7 +294,7 @@ async function main() {
       action: 0, // Add
       functionSelectors: [
         privateStockFacet.interface.getFunction("initialize").selector,
-        privateStockFacet.interface.getFunction("issuePrivateStock").selector,
+        privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
         privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
         privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector,
       ],

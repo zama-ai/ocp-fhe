@@ -19,12 +19,7 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         FHE.setDecryptionOracle(ZamaConfig.getSepoliaOracleAddress());
     }
 
-    function issuePrivateStock(IssuePrivateStockParams calldata params, bytes calldata inputProof) external {
-
-        if (!AccessControl.hasAdminRole(msg.sender)) {
-            revert AccessControl.AccessControlUnauthorized(msg.sender, AccessControl.DEFAULT_ADMIN_ROLE);
-        }
-
+    function issuePrivateStockInternal(IssuePrivateStockParams calldata params, bytes calldata inputProof) internal {
         Storage storage ds = StorageLib.get();
 
         // Create stock position
@@ -54,6 +49,18 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         // Update security to stakeholder mapping
         ds._privateStockActivePositions.securityToStakeholder[params.security_id] = params.stakeholder_address;
     }
+
+    function issuePrivateStocks(IssuePrivateStockParams[] calldata params, bytes calldata inputProof) external {
+
+        if (!AccessControl.hasAdminRole(msg.sender)) {
+            revert AccessControl.AccessControlUnauthorized(msg.sender, AccessControl.DEFAULT_ADMIN_ROLE);
+        }
+
+        for(uint256 i = 0; i < params.length; i++) {
+            issuePrivateStockInternal(params[i], inputProof);
+        }
+    }
+
 
     /// @notice Get details of a stock position
     /// @dev Accessible to INVESTOR_ROLE and above

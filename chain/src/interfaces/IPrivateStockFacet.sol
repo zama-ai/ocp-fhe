@@ -8,7 +8,7 @@ interface IPrivateStockFacet {
     /// @dev Only OPERATOR_ROLE can issue stock
     /// @param params Parameters for issuing stock including stakeholder Address, stock class ID, quantity, etc.
 
-    function issuePrivateStock(IssuePrivateStockParams calldata params,  bytes calldata inputProof) external;
+    function issuePrivateStocks(IssuePrivateStockParams[] calldata params, bytes calldata inputProof) external;
 
     /// @notice Get details of a stock position
     /// @dev Accessible to INVESTOR_ROLE and above. Investors can only view their own positions

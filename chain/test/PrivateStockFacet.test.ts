@@ -43,7 +43,7 @@ async function deployFixture() {
 
   // Add facets to reference diamond
   const diamondCut = await ethers.getContractAt("DiamondCutFacet", await referenceDiamond.getAddress());
-  
+
   // Add DiamondLoupeFacet
   await diamondCut.diamondCut([{
     facetAddress: await diamondLoupeFacet.getAddress(),
@@ -89,7 +89,7 @@ async function deployFixture() {
     action: 0, // Add
     functionSelectors: [
       privateStockFacet.interface.getFunction("initialize").selector,
-      privateStockFacet.interface.getFunction("issuePrivateStock").selector,
+      privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
       privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
       privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector
     ]
@@ -196,7 +196,7 @@ describe("PrivateStockFacet System", function () {
 
       // Just verify that we can access the facet
       expect(privateStockFacet).to.not.be.undefined;
-      
+
       // Try to call a simple view function to see if the facet is accessible
       try {
         const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.founder.address, ethers.hexlify(ethers.randomBytes(16)));
@@ -231,7 +231,7 @@ describe("PrivateStockFacet System", function () {
       };
 
       // Issue private stock
-      const tx = await privateStockFacet.connect(signers.founder).issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      const tx = await privateStockFacet.connect(signers.founder).issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       await tx.wait();
 
       // Check that the transaction was successful
@@ -265,7 +265,7 @@ describe("PrivateStockFacet System", function () {
       };
 
       // Issue private stock
-      const tx = await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      const tx = await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       await tx.wait();
 
       // Get the security ID from the stakeholder's securities
@@ -278,7 +278,7 @@ describe("PrivateStockFacet System", function () {
       // Get the private stock position
       const position = await privateStockFacet.getPrivateStockPosition(securityId);
       console.log(position);
-      
+
       // Decode the encrypted quantity
       const decodedQuantity = await fhevm.userDecryptEuint(
         FhevmType.euint64,
@@ -340,7 +340,7 @@ describe("PrivateStockFacet System", function () {
           security_law_exemptions_mapping: "",
         };
 
-        await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+        await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       }
 
       // Get all private securities for the investor
@@ -409,7 +409,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
       };
 
-      await expect(privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof)).to.be.reverted;
+      await expect(privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof)).to.be.reverted;
     });
 
     it("should generate unique security IDs", async function () {
@@ -453,8 +453,8 @@ describe("PrivateStockFacet System", function () {
       };
 
       // Issue private stock to two different investors
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams1, encryptedInput1.inputProof);
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams2, encryptedInput2.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams1], encryptedInput1.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams2], encryptedInput2.inputProof);
 
       // Check that both transactions were successful
       expect(issuePrivateStockParams1.security_id).to.not.equal(issuePrivateStockParams2.security_id);
@@ -486,7 +486,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
       };
 
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
 
       // Get the security ID from the stakeholder's securities
       const securities = await privateStockFacet.getPrivateStakeholderSecurities(
@@ -576,7 +576,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
       };
 
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
 
       const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, stockClassId);
 
@@ -613,7 +613,7 @@ describe("PrivateStockFacet System", function () {
           security_law_exemptions_mapping: "",
         };
 
-        await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+        await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       }
 
       // Get all private securities for the stakeholder
@@ -677,7 +677,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
       };
 
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
 
       const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, stockClassId);
 
@@ -706,7 +706,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
       };
 
-      await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
 
       const investorPrivateStockFacet = await ethers.getContractAt("PrivateStockFacet", capTableAddress);
       const securities = await investorPrivateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, stockClassId);
@@ -744,7 +744,7 @@ describe("PrivateStockFacet System", function () {
       };
 
       // Issue private stock
-      const tx = await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+      const tx = await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       await tx.wait();
 
       // Get the security ID from the stakeholder's securities
@@ -817,7 +817,7 @@ describe("PrivateStockFacet System", function () {
           security_law_exemptions_mapping: "",
         };
 
-        await privateStockFacet.issuePrivateStock(issuePrivateStockParams, encryptedInput.inputProof);
+        await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
       }
 
       // Each investor decodes their own data
