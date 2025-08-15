@@ -4,11 +4,9 @@ import * as React from 'react';
 import {
   Building2,
   Home,
-  Users,
-  TrendingUp,
-  Settings,
   Wallet as WalletIcon,
   ChevronUp,
+  PiggyBank,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -49,27 +47,14 @@ const navigationItems = [
     icon: Home,
   },
   {
-    title: 'Rounds',
-    url: '/rounds',
-    icon: TrendingUp,
-  },
-  {
     title: 'Companies',
     url: '/company',
     icon: Building2,
   },
   {
-    title: 'Mocked Cap Table Page',
-    url: '/mocked-cap',
-    icon: Users,
-  },
-];
-
-const settingsItems = [
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings,
+    title: 'Investments',
+    url: '/investments',
+    icon: PiggyBank,
   },
 ];
 
@@ -141,27 +126,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map(item => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarSeparator />
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsItems.map(item => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>

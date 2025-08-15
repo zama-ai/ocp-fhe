@@ -4,116 +4,45 @@ import { useState, useEffect } from 'react';
 import { RoundCard, type Round } from '@/components/round-card';
 import { CreateRoundModal } from '@/components/create-round-modal';
 import { Button } from '@/components/ui/button';
-import { LockIcon, UnlockIcon, Plus } from 'lucide-react';
+import { LockIcon, UnlockIcon, Plus, AlertCircle } from 'lucide-react';
 import { useRole } from '@/hooks/use-role';
-
-// Mock data matching the template design
-const mockRounds: Round[] = [
-  {
-    id: '1',
-    name: 'Seed',
-    date: '06/01/2024',
-    investors: [
-      {
-        id: '1',
-        name: 'Investor 1',
-        address: '0xINV1...BbB1',
-        shares: null,
-        pricePerShare: null,
-        investment: null,
-        hasAccess: false,
-      },
-      {
-        id: '2',
-        name: 'Investor 2',
-        address: '0xINV2...CcC2',
-        shares: null,
-        pricePerShare: null,
-        investment: null,
-        hasAccess: false,
-      },
-      {
-        id: '3',
-        name: 'Investor 3',
-        address: '0xINV3...DdD3',
-        shares: null,
-        pricePerShare: null,
-        investment: null,
-        hasAccess: false,
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Series A',
-    date: '09/15/2024',
-    investors: [
-      {
-        id: '4',
-        name: 'Venture Capital Fund',
-        address: '0xVCF1...EeE4',
-        shares: 50000,
-        pricePerShare: 10,
-        investment: 500000,
-        hasAccess: true,
-      },
-      {
-        id: '5',
-        name: 'Angel Investor',
-        address: '0xANG1...FfF5',
-        shares: 25000,
-        pricePerShare: 10,
-        investment: 250000,
-        hasAccess: true,
-      },
-      {
-        id: '6',
-        name: 'Strategic Partner',
-        address: '0xSTR1...GgG6',
-        shares: null,
-        pricePerShare: null,
-        investment: null,
-        hasAccess: false,
-      },
-    ],
-  },
-].toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+import { useCompany } from '@/hooks/use-company';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Page({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const [slug, setSlug] = useState<string>('');
-  const [rounds, setRounds] = useState<Round[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { role } = useRole();
+  const queryClient = useQueryClient();
+
+  // Get company data from API
+  const { data: company, isLoading, error } = useCompany(companyId);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadCompanyId = async () => {
       const resolvedParams = await params;
-      setSlug(resolvedParams.slug);
-
-      // Simulate loading delay
-      setTimeout(() => {
-        setRounds(mockRounds);
-        setIsLoading(false);
-      }, 1500);
+      setCompanyId(resolvedParams.slug); // slug is actually the company ID (Ethereum address)
     };
 
-    loadData();
+    loadCompanyId();
   }, [params]);
 
-  const handleCreateRound = (newRound: Omit<Round, 'id'>) => {
-    const roundWithId: Round = {
-      ...newRound,
-      id: `round-${Date.now()}`,
-    };
-
-    // Add new round to the beginning of the list (most recent first)
-    setRounds(prevRounds => [roundWithId, ...prevRounds]);
+  const handleCreateRound = () => {
+    // Refresh company data after successful round creation
+    // The modal will handle the API call and close itself
+    // We just need to trigger a refetch of the company data
+    queryClient.invalidateQueries({ queryKey: ['company', companyId] });
   };
+
+  // Sort rounds by date (most recent first)
+  const sortedRounds =
+    company?.rounds?.toSorted(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    ) || [];
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -121,12 +50,14 @@ export default function Page({
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-zinc-900">
-            {slug.charAt(0).toUpperCase() + slug.slice(1)} Company
+            {company?.name || companyId} Company
           </h1>
-          <p className="text-zinc-600 mb-4">Rounds & Allocations for {slug}</p>
+          <p className="text-zinc-600 mb-4">
+            Rounds & Allocations for {company?.name || companyId}
+          </p>
 
           {/* Create Round Button - Only visible for FOUNDER */}
-          {role === 'FOUNDER' && !isLoading && (
+          {role === 'FOUNDER' && !isLoading && !error && company && (
             <Button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2"
@@ -144,10 +75,27 @@ export default function Page({
             <RoundCard isLoading />
             <RoundCard isLoading />
           </div>
-        ) : rounds.length > 0 ? (
+        ) : error ? (
+          // Error state
+          <div className="text-center py-12">
+            <div className="flex flex-col items-center gap-4">
+              <AlertCircle className="h-12 w-12 text-red-500" />
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                  Company Not Found
+                </h3>
+                <p className="text-zinc-600">
+                  {error.message.includes('Company not found')
+                    ? `No company found with ID "${companyId}"`
+                    : 'Failed to load company data. Please try again.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : sortedRounds.length > 0 ? (
           // Show actual round data
           <div className="space-y-8">
-            {rounds.map(round => (
+            {sortedRounds.map((round: Round) => (
               <RoundCard key={round.id} round={round} />
             ))}
           </div>
@@ -155,11 +103,21 @@ export default function Page({
           // Empty state
           <div className="text-center py-12">
             <p className="text-zinc-600">No rounds found for this company.</p>
+            {role === 'FOUNDER' && (
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-4 flex items-center gap-2 mx-auto"
+                variant="outline"
+              >
+                <Plus className="h-4 w-4" />
+                Create First Round
+              </Button>
+            )}
           </div>
         )}
 
         {/* Legend */}
-        {!isLoading && rounds.length > 0 && (
+        {!isLoading && !error && sortedRounds.length > 0 && (
           <section className="text-xs text-zinc-600 flex items-center gap-4">
             <span className="inline-flex items-center gap-1">
               <LockIcon className="h-3 w-3" /> Encrypted
@@ -177,6 +135,7 @@ export default function Page({
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onCreateRound={handleCreateRound}
+        companyId={companyId}
       />
     </div>
   );

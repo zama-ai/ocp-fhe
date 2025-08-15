@@ -227,6 +227,8 @@ export function RoundCard({ round, isLoading = false }: RoundCardProps) {
     setDecrypted(next);
   };
 
+  console.log(`Round: ${round.id}`, round);
+
   return (
     <>
       {/* Round Card */}

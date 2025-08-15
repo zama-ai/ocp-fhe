@@ -13,12 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAddress } from 'viem';
-import type { Round, RoundInvestor } from '@/components/round-card';
 
 interface CreateRoundModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateRound: (round: Omit<Round, 'id'>) => void;
+  onCreateRound: () => void;
+  companyId: string;
 }
 
 interface InvestorFormData {
@@ -32,6 +32,7 @@ export function CreateRoundModal({
   open,
   onOpenChange,
   onCreateRound,
+  companyId,
 }: CreateRoundModalProps) {
   const [roundName, setRoundName] = useState('');
   const [roundDate, setRoundDate] = useState('');
@@ -107,30 +108,31 @@ export function CreateRoundModal({
     setIsSubmitting(true);
 
     try {
-      // Convert form data to Round format
-      const roundInvestors: RoundInvestor[] = investors.map(
-        (investor, index) => ({
-          id: `investor-${Date.now()}-${index}`,
-          name: investor.name.trim(),
-          address: investor.address.trim(),
-          shares: parseFloat(investor.shares),
-          pricePerShare: parseFloat(investor.pricePerShare),
-          investment:
-            parseFloat(investor.shares) * parseFloat(investor.pricePerShare),
-          hasAccess: true, // For demo purposes, founder can see all data
-        })
-      );
+      // Prepare API payload - only send address and name (shares/price are encrypted on-chain)
+      const apiInvestors = investors.map(investor => ({
+        address: investor.address.trim(),
+        name: investor.name.trim(),
+      }));
 
-      const newRound: Omit<Round, 'id'> = {
-        name: roundName.trim(),
-        date: roundDate,
-        investors: roundInvestors,
-      };
+      const response = await fetch(`/api/companies/${companyId}/rounds`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: roundName.trim(),
+          date: roundDate,
+          investors: apiInvestors,
+        }),
+      });
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await response.json();
 
-      onCreateRound(newRound);
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create round');
+      }
+
+      onCreateRound();
       toast.success(`Round "${roundName}" created successfully!`);
 
       // Reset form
@@ -139,7 +141,12 @@ export function CreateRoundModal({
       setInvestors([{ name: '', address: '', shares: '', pricePerShare: '' }]);
       onOpenChange(false);
     } catch (error) {
-      toast.error('Failed to create round. Please try again.');
+      console.error('Error creating round:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create round. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }

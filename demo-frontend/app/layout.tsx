@@ -2,15 +2,12 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import ContextProvider from '@/context';
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { Toaster } from '@/components/ui/sonner';
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { BreadcrumbNav } from '@/components/breadcrumb-nav';
+import Script from 'next/script';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -37,6 +34,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <Script src="https://cdn.zama.ai/relayer-sdk-js/0.1.0-9/relayer-sdk-js.umd.cjs" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

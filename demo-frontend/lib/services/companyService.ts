@@ -140,7 +140,24 @@ export class CompanyService {
   }
 
   /**
-   * 5. Get company by ID (helper method)
+   * 5. Get company by name (slug)
+   */
+  async getCompanyByName(companyName: string): Promise<Company | null> {
+    try {
+      // Get all companies and find by name
+      const companies = await this.getAllCompanies();
+      const company = companies.find(
+        c => c.name.toLowerCase() === companyName.toLowerCase()
+      );
+      return company || null;
+    } catch (error) {
+      console.error('Error fetching company by name:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 6. Get company by ID (helper method)
    */
   async getCompanyById(companyId: string): Promise<Company | null> {
     try {
@@ -197,7 +214,7 @@ export class CompanyService {
   }
 
   /**
-   * 6. Add a new round to a company
+   * 7. Add a new round to a company
    */
   async addRound(
     companyId: string,
@@ -214,14 +231,37 @@ export class CompanyService {
         id: `${companyId}_round_${rounds.length + 1}`,
         type: roundData.type,
         date: roundData.date,
-        investors: [], // Initialize with empty investors array
+        investors: roundData.investors || [],
         createdAt: new Date().toISOString(),
       };
 
       rounds.push(newRound);
 
+      // Update company's global investors list (avoid duplicates)
+      const existingInvestors = company.investors || [];
+      const newInvestors = [...existingInvestors];
+
+      if (roundData.investors) {
+        roundData.investors.forEach(investor => {
+          const exists = newInvestors.some(
+            existing => existing.address === investor.address
+          );
+          if (!exists) {
+            newInvestors.push(investor);
+
+            // Index company by investor for lookup
+            const investorKey = generateKey(
+              KEY_PREFIXES.COMPANY_BY_INVESTOR,
+              investor.address
+            );
+            redis.sadd(investorKey, companyId).catch(console.error);
+          }
+        });
+      }
+
       await redis.hset(companyKey, {
         rounds: JSON.stringify(rounds),
+        investors: JSON.stringify(newInvestors),
         updatedAt: new Date().toISOString(),
       });
 
@@ -233,7 +273,7 @@ export class CompanyService {
   }
 
   /**
-   * 7. Add investor to the last round (allows multiple investments from same investor)
+   * 8. Add investor to the last round (allows multiple investments from same investor)
    */
   async addInvestorToLastRound(
     companyId: string,
