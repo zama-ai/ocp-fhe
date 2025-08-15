@@ -1,10 +1,11 @@
 import React from 'react';
-import { LockIcon, UnlockIcon } from 'lucide-react';
+import { LockIcon, UnlockIcon, Loader2Icon } from 'lucide-react';
 
 interface EncryptedCellProps {
   label: string;
   value: string;
   decrypted: boolean;
+  loading?: boolean;
   onDecrypt: () => void;
   onHide: () => void;
   canDecrypt: boolean;
@@ -14,6 +15,7 @@ export function EncryptedCell({
   label,
   value,
   decrypted,
+  loading = false,
   onDecrypt,
   onHide,
   canDecrypt,
@@ -22,15 +24,20 @@ export function EncryptedCell({
     <div className="flex items-center gap-2">
       {!decrypted ? (
         <div className="inline-flex items-center gap-2 text-zinc-600">
-          <LockIcon className="h-4 w-4" aria-hidden />
+          {loading ? (
+            <Loader2Icon className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <LockIcon className="h-4 w-4" aria-hidden />
+          )}
           <span className="tracking-widest select-none">••••</span>
           {canDecrypt ? (
             <button
               onClick={onDecrypt}
-              className="text-xs px-2 py-1 rounded-full border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition"
-              title={`Decrypt ${label}`}
+              disabled={loading}
+              className="text-xs px-2 py-1 rounded-full border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              title={loading ? 'Decrypting...' : `Decrypt ${label}`}
             >
-              Decrypt
+              {loading ? 'Decrypting...' : 'Decrypt'}
             </button>
           ) : (
             <span

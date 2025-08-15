@@ -56,6 +56,7 @@ export function useCreateRound(companyId: string, contractAddress: string) {
   const [encryptedData, setEncryptedData] = useState<EncryptedInvestorData[]>(
     []
   );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inputProof, setInputProof] = useState<string>('');
 
   // Smart contract interaction

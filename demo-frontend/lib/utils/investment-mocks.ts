@@ -11,6 +11,7 @@ export function generateMockAllocation(
   // Generate mock values that would normally come from the blockchain (encrypted)
   const shares = 1000 + (seed % 50000); // 1,000 - 51,000 shares
   const pricePerShare = 0.5 + (seed % 100) / 10; // $0.50 - $10.50 per share
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const investment = shares * pricePerShare;
 
   return {

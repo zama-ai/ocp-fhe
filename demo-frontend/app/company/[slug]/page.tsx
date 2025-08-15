@@ -1,13 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RoundCard, type Round } from '@/components/round-card';
-import { CreateRoundModal } from '@/components/create-round-modal';
 import { Button } from '@/components/ui/button';
 import { LockIcon, UnlockIcon, Plus, AlertCircle } from 'lucide-react';
 import { useRole } from '@/hooks/use-role';
 import { useCompany } from '@/hooks/use-company';
 import { useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
+import { Round } from '@/lib/types/company';
+
+const DynamicCreateRoundModal = dynamic(
+  () =>
+    import('@/components/create-round-modal').then(mod => mod.CreateRoundModal),
+  {
+    ssr: false,
+  }
+);
+
+const DynamicRoundCard = dynamic(
+  () => import('@/components/round-card').then(mod => mod.RoundCard),
+  {
+    ssr: false,
+  }
+);
 
 export default function Page({
   params,
@@ -72,8 +87,8 @@ export default function Page({
         {isLoading ? (
           // Show skeleton loading cards
           <div className="space-y-6">
-            <RoundCard isLoading />
-            <RoundCard isLoading />
+            <DynamicRoundCard isLoading companyAddress={companyId} />
+            <DynamicRoundCard isLoading companyAddress={companyId} />
           </div>
         ) : error ? (
           // Error state
@@ -96,7 +111,11 @@ export default function Page({
           // Show actual round data
           <div className="space-y-8">
             {sortedRounds.map((round: Round) => (
-              <RoundCard key={round.id} round={round} />
+              <DynamicRoundCard
+                key={round.id}
+                round={round}
+                companyAddress={company?.contractAddress || companyId}
+              />
             ))}
           </div>
         ) : (
@@ -131,12 +150,15 @@ export default function Page({
       </main>
 
       {/* Create Round Modal */}
-      <CreateRoundModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onCreateRound={handleCreateRound}
-        companyId={companyId}
-      />
+      {company && (
+        <DynamicCreateRoundModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onCreateRound={handleCreateRound}
+          companyId={companyId}
+          contractAddress={company.contractAddress}
+        />
+      )}
     </div>
   );
 }

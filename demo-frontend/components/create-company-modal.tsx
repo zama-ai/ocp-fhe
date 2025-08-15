@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAccount } from 'wagmi';
-import { Plus, Loader2, ExternalLink, CheckCircle } from 'lucide-react';
+import { Plus, Loader2, ExternalLink } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -52,6 +52,7 @@ export function CreateCompanyModal() {
     if (companyFlow.step === 'saving' && companyName) {
       companyFlow.saveToDatabase(companyName);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyFlow.step, companyName]);
 
   // Handle completion
@@ -64,6 +65,7 @@ export function CreateCompanyModal() {
       setOpen(false);
       companyFlow.reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyFlow.step]);
 
   // Handle errors

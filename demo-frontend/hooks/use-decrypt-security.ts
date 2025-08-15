@@ -1,16 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { useDecryptionStore } from '@/stores/decryption-store';
 import { useRoleStore } from '@/stores/role-store';
 import { useFhevm } from '@/hooks/use-fhevm';
 import { privateStockFacetAbi } from '@/lib/abi/privateStockFacetAbi';
-import {
-  clientToEthersTransport,
-  clientToSigner,
-} from '@/lib/wagmi-etheres-adapter';
+import { clientToSigner } from '@/lib/wagmi-etheres-adapter';
 import { useConnectorClient } from 'wagmi';
 import { readContract } from '@wagmi/core';
 import { config } from '@/config/wagmi';

@@ -3,7 +3,6 @@
 import { useAccount } from 'wagmi';
 import { useRoleStore } from '@/stores/role-store';
 import { useCompanies, useFounderCompanies } from '@/hooks/use-companies';
-import { CompanyCard } from '@/components/company-card';
 import { CreateCompanyModal } from '@/components/create-company-modal';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';

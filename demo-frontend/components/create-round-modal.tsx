@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,22 +10,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAddress } from 'viem';
+import { useCreateRound, InvestorFormData } from '@/hooks/use-create-round';
 
 interface CreateRoundModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateRound: () => void;
   companyId: string;
-}
-
-interface InvestorFormData {
-  name: string;
-  address: string;
-  shares: string;
-  pricePerShare: string;
+  contractAddress: string;
 }
 
 export function CreateRoundModal({
@@ -33,13 +28,27 @@ export function CreateRoundModal({
   onOpenChange,
   onCreateRound,
   companyId,
+  contractAddress,
 }: CreateRoundModalProps) {
   const [roundName, setRoundName] = useState('');
   const [roundDate, setRoundDate] = useState('');
   const [investors, setInvestors] = useState<InvestorFormData[]>([
     { name: '', address: '', shares: '', pricePerShare: '' },
   ]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    createRound,
+    saveToDatabase,
+    reset,
+    step,
+    isPending,
+    isConfirming,
+    isEncrypting,
+    isSaving,
+    isFhevmLoading,
+    error,
+    canProceed,
+  } = useCreateRound(companyId, contractAddress);
 
   const addInvestor = () => {
     setInvestors([
@@ -96,6 +105,37 @@ export function CreateRoundModal({
     return null;
   };
 
+  // Handle step progression and auto-save when ready
+  useEffect(() => {
+    if (step === 'saving') {
+      saveToDatabase(roundName, roundDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Handle completion
+  useEffect(() => {
+    if (step === 'complete') {
+      onCreateRound();
+      toast.success(`Round "${roundName}" created successfully!`);
+      handleReset();
+      onOpenChange(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error('Error creating round:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create round. Please try again.'
+      );
+    }
+  }, [error]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -105,41 +145,19 @@ export function CreateRoundModal({
       return;
     }
 
-    setIsSubmitting(true);
+    if (!canProceed.encrypt) {
+      toast.error(
+        'FHEVM not ready. Please ensure your wallet is connected and try again.'
+      );
+      return;
+    }
 
     try {
-      // Prepare API payload - only send address and name (shares/price are encrypted on-chain)
-      const apiInvestors = investors.map(investor => ({
-        address: investor.address.trim(),
-        name: investor.name.trim(),
-      }));
-
-      const response = await fetch(`/api/companies/${companyId}/rounds`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: roundName.trim(),
-          date: roundDate,
-          investors: apiInvestors,
-        }),
+      await createRound({
+        roundName: roundName.trim(),
+        roundDate,
+        investors,
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create round');
-      }
-
-      onCreateRound();
-      toast.success(`Round "${roundName}" created successfully!`);
-
-      // Reset form
-      setRoundName('');
-      setRoundDate('');
-      setInvestors([{ name: '', address: '', shares: '', pricePerShare: '' }]);
-      onOpenChange(false);
     } catch (error) {
       console.error('Error creating round:', error);
       toast.error(
@@ -147,9 +165,14 @@ export function CreateRoundModal({
           ? error.message
           : 'Failed to create round. Please try again.'
       );
-    } finally {
-      setIsSubmitting(false);
     }
+  };
+
+  const handleReset = () => {
+    setRoundName('');
+    setRoundDate('');
+    setInvestors([{ name: '', address: '', shares: '', pricePerShare: '' }]);
+    reset();
   };
 
   const handleCancel = () => {
@@ -315,22 +338,69 @@ export function CreateRoundModal({
             </div>
           </div>
 
+          {/* Progress indicator */}
+          {(isEncrypting || isPending || isConfirming || isSaving) && (
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <div className="text-sm">
+                {isEncrypting && 'Encrypting investor data...'}
+                {isPending && 'Waiting for transaction confirmation...'}
+                {isConfirming && 'Transaction confirming...'}
+                {isSaving && 'Saving round data...'}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={handleCancel}
-              disabled={isSubmitting}
+              disabled={isEncrypting || isPending || isConfirming || isSaving}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="min-w-[100px]"
+              disabled={
+                isEncrypting ||
+                isPending ||
+                isConfirming ||
+                isSaving ||
+                isFhevmLoading
+              }
+              className="min-w-[120px]"
             >
-              {isSubmitting ? 'Creating...' : 'Create Round'}
+              {isEncrypting && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Encrypting...
+                </>
+              )}
+              {isPending && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Confirming...
+                </>
+              )}
+              {isConfirming && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Processing...
+                </>
+              )}
+              {isSaving && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              )}
+              {!isEncrypting &&
+                !isPending &&
+                !isConfirming &&
+                !isSaving &&
+                'Create Round'}
             </Button>
           </div>
         </form>
