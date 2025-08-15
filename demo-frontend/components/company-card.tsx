@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Users, TrendingUp, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFhevm } from '@/hooks/use-fhevm';
+// import { useFhevm } from '@/hooks/use-fhevm';
 
 interface CompanyCardProps {
   company: Company;
@@ -23,7 +23,7 @@ export function CompanyCard({
   const totalRounds = company.rounds.length;
   const totalInvestors = company.investors.length;
 
-  const { data: fhevmInstance } = useFhevm();
+  //   const { data: fhevmInstance } = useFhevm();
 
   // Format founder address for display
   const formatAddress = (address: string) => {

@@ -26,6 +26,11 @@ export interface CompanyCreateData {
   name: string;
   founder: string;
   contractAddress: string;
+  companyId?: string; // Optional bytes16 identifier for on-chain tracking
+}
+
+export interface CompanyFormData {
+  name: string;
 }
 
 export interface RoundCreateData {
