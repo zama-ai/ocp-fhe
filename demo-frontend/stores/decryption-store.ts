@@ -27,6 +27,7 @@ interface DecryptionState {
     loading: boolean
   ) => void;
   clearDecryptedData: (companyAddress: string, securityId?: string) => void;
+  clearAllDecryptedData: () => void;
   isDecrypted: (companyAddress: string, securityId: string) => boolean;
   isLoading: (companyAddress: string, securityId: string) => boolean;
   getDecryptedData: (
@@ -111,6 +112,13 @@ export const useDecryptionStore = create<DecryptionState>()(
             };
           });
         }
+      },
+
+      clearAllDecryptedData: () => {
+        set(() => ({
+          decryptedSecurities: {},
+          loadingDecryption: {},
+        }));
       },
 
       isDecrypted: (companyAddress: string, securityId: string): boolean => {

@@ -7,6 +7,10 @@ import {
   Wallet as WalletIcon,
   ChevronUp,
   PiggyBank,
+  Shield,
+  Loader2,
+  AlertCircle,
+  Settings,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,9 +38,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount } from 'wagmi';
 import { useRole } from '@/hooks/use-role';
+import { useFhevm } from '@/hooks/use-fhevm';
+import { useDecryptionStore } from '@/stores/decryption-store';
 import type { Role } from '@/stores/role-store';
 
 // Navigation items
@@ -58,10 +81,59 @@ const navigationItems = [
   },
 ];
 
-export function AppSidebar() {
+export function PrivateAppSidebar() {
   const { open: openAppKitModal } = useAppKit();
-  const { address: walletAddress, isConnected } = useAccount();
+  const { address: walletAddress, isConnected, chainId } = useAccount();
   const { role, setRole } = useRole();
+  const fhevmQuery = useFhevm();
+  const { clearAllDecryptedData } = useDecryptionStore();
+
+  const getFhevmStatus = () => {
+    if (!walletAddress || !chainId) {
+      return {
+        status: 'waiting' as const,
+        text: 'Waiting',
+        icon: Shield,
+        className: 'text-yellow-500',
+      };
+    }
+
+    if (fhevmQuery.isLoading) {
+      return {
+        status: 'loading' as const,
+        text: 'Loading',
+        icon: Loader2,
+        className: 'text-yellow-500 animate-spin',
+      };
+    }
+
+    if (fhevmQuery.isError) {
+      return {
+        status: 'error' as const,
+        text: 'Error',
+        icon: AlertCircle,
+        className: 'text-red-500',
+      };
+    }
+
+    if (fhevmQuery.data) {
+      return {
+        status: 'active' as const,
+        text: 'Active',
+        icon: Shield,
+        className: 'text-green-600',
+      };
+    }
+
+    return {
+      status: 'waiting' as const,
+      text: 'Waiting',
+      icon: Shield,
+      className: 'text-yellow-500',
+    };
+  };
+
+  const fhevmStatus = getFhevmStatus();
 
   const handleRoleChange = (next: Role) => {
     setRole(next);
@@ -77,6 +149,10 @@ export function AppSidebar() {
     } else {
       openAppKitModal({ view: 'Connect', namespace: 'eip155' });
     }
+  };
+
+  const handleClearDecryptedData = () => {
+    clearAllDecryptedData();
   };
 
   return (
@@ -138,53 +214,137 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarSeparator />
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton className="w-full flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      <span>Settings</span>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={e => e.preventDefault()}
+                        >
+                          Clear Decrypted Data
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Clear Decrypted Data
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove all locally stored
+                            decrypted data from your browser. You will need to
+                            decrypt the data again when viewing encrypted
+                            information. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleClearDecryptedData}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Clear Data
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {isConnected && walletAddress ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+        <TooltipProvider>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <SidebarMenuButton
-                    size="lg"
-                    className="w-full bg-sidebar-accent/10 hover:bg-sidebar-accent/20 border border-sidebar-border/50 hover:border-sidebar-accent/50 transition-all duration-200"
+                    size="sm"
+                    className="w-full bg-green-50/50 hover:bg-green-100/50 border border-green-200/50 hover:border-green-300/50 transition-all duration-200 mb-2"
                   >
-                    <WalletIcon className="h-5 w-5 text-green-600" />
-                    <span className="flex-1 text-left font-medium">
-                      {formatAddress(walletAddress)}
+                    <fhevmStatus.icon
+                      className={`h-3 w-3 ${fhevmStatus.className}`}
+                    />
+                    <span className="text-xs font-medium text-green-700">
+                      FHEVM {fhevmStatus.text}
                     </span>
-                    <ChevronUp className="ml-auto h-4 w-4" />
                   </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  className="w-[--radix-popper-anchor-width]"
-                >
-                  <DropdownMenuItem onClick={handleWalletClick}>
-                    <span>Account Details</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      openAppKitModal({ view: 'Connect', namespace: 'eip155' })
-                    }
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p className="text-sm">
+                    FHEVM allows the app to privately interact with encrypted
+                    blockchain data
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              {isConnected && walletAddress ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      className="w-full bg-sidebar-accent/10 hover:bg-sidebar-accent/20 border border-sidebar-border/50 hover:border-sidebar-accent/50 transition-all duration-200"
+                    >
+                      <WalletIcon className="h-5 w-5 text-green-600" />
+                      <span className="flex-1 text-left font-medium">
+                        {formatAddress(walletAddress)}
+                      </span>
+                      <ChevronUp className="ml-auto h-4 w-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="top"
+                    className="w-[--radix-popper-anchor-width]"
                   >
-                    <span>Switch Wallet</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <SidebarMenuButton
-                onClick={handleWalletClick}
-                size="lg"
-                className="w-full bg-primary/10 hover:bg-primary/20 border-2 border-primary/30 hover:border-primary/50 text-primary hover:text-primary font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <WalletIcon className="h-6 w-6" />
-                <span>Connect Wallet</span>
-              </SidebarMenuButton>
-            )}
-          </SidebarMenuItem>
-        </SidebarMenu>
+                    <DropdownMenuItem onClick={handleWalletClick}>
+                      <span>Account Details</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        openAppKitModal({
+                          view: 'Connect',
+                          namespace: 'eip155',
+                        })
+                      }
+                    >
+                      <span>Switch Wallet</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <SidebarMenuButton
+                  onClick={handleWalletClick}
+                  size="lg"
+                  className="w-full bg-primary/10 hover:bg-primary/20 border-2 border-primary/30 hover:border-primary/50 text-primary hover:text-primary font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <WalletIcon className="h-6 w-6" />
+                  <span>Connect Wallet</span>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </TooltipProvider>
       </SidebarFooter>
     </Sidebar>
   );

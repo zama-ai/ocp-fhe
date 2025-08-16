@@ -5,7 +5,7 @@ import ContextProvider from '@/context';
 import { headers } from 'next/headers';
 import { Toaster } from '@/components/ui/sonner';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
+import { AppSidebar } from '@/components/app-sidebar-dynamic';
 import { BreadcrumbNav } from '@/components/breadcrumb-nav';
 import Script from 'next/script';
 

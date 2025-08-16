@@ -220,17 +220,24 @@ export function useDecryptSecurity(
           eip712.message
         );
 
-        // Decrypt all values in a single call
-        const result = await fhevmInstance.userDecrypt(
-          handleContractPairs,
-          keypair.privateKey,
-          keypair.publicKey,
-          signature.replace('0x', ''),
-          contractAddresses,
-          signer.address,
-          startTimeStamp,
-          durationDays
-        );
+        // // Decrypt all values in a single call
+        // const result = await fhevmInstance.userDecrypt(
+        //   handleContractPairs,
+        //   keypair.privateKey,
+        //   keypair.publicKey,
+        //   signature.replace('0x', ''),
+        //   contractAddresses,
+        //   signer.address,
+        //   startTimeStamp,
+        //   durationDays
+        // );
+        // mock decryption, wait for 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const result: Record<string, bigint | boolean | string> = {};
+        validSecurities.forEach(({ securityId, position }) => {
+          result[position.quantity] = BigInt(1000); // Mock quantity
+          result[position.share_price] = BigInt(50); // Mock share price
+        });
 
         // Parse results and store decrypted data
         const decryptedSecurities: Record<

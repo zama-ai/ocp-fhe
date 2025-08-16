@@ -7,6 +7,7 @@ import { sepolia } from '@reown/appkit/networks';
 import React, { type ReactNode } from 'react';
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { StoreSync } from '@/components/store-sync';
 
 // Set up queryClient
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ function ContextProvider({
         initialState={initialState}
       >
         <QueryClientProvider client={queryClient}>
+          <StoreSync />
           {children}
         </QueryClientProvider>
       </WagmiProvider>
