@@ -1,103 +1,263 @@
-import Image from "next/image";
+'use client';
+
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useRoleStore, type Role } from '@/stores/role-store';
+import { Badge } from '@/components/ui/badge';
+import {
+  Shield,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Database,
+  Key,
+  Building2,
+  TrendingUp,
+  Plus,
+} from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { role, setRole } = useRoleStore();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const roleCards = [
+    {
+      role: 'FOUNDER' as Role,
+      title: 'Founder',
+      description: 'Company owners with full access',
+      permissions: [
+        { icon: Plus, text: 'Create companies, issue shares', allowed: true },
+        { icon: Unlock, text: 'Can decrypt full cap table', allowed: true },
+      ],
+      color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+      buttonColor: 'bg-blue-600 hover:bg-blue-700',
+    },
+    {
+      role: 'INVESTOR' as Role,
+      title: 'Investor',
+      description: 'Stakeholders with limited access',
+      permissions: [
+        { icon: Eye, text: 'See own investments', allowed: true },
+        {
+          icon: EyeOff,
+          text: "Cannot see other investors' allocations",
+          allowed: false,
+        },
+      ],
+      color:
+        'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+      buttonColor: 'bg-green-600 hover:bg-green-700',
+    },
+    {
+      role: 'PUBLIC' as Role,
+      title: 'Public',
+      description: 'General users with read-only access',
+      permissions: [
+        { icon: Building2, text: 'Browse companies and rounds', allowed: true },
+        { icon: Lock, text: 'Cannot decrypt any amounts', allowed: false },
+      ],
+      color: 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800',
+      buttonColor: 'bg-gray-600 hover:bg-gray-700',
+    },
+  ];
+
+  const encryptionSteps = [
+    {
+      icon: Shield,
+      title: 'Encrypt',
+      description:
+        'Shares, price/share and amounts are encrypted client-side before any on-chain interaction.',
+    },
+    {
+      icon: Database,
+      title: 'Store',
+      description:
+        'Smart contracts store ciphertexts only. Public can inspect structure without accessing values',
+    },
+    {
+      icon: Key,
+      title: 'Access Control',
+      description:
+        'Authorized roles derive keys to decrypt the parts they’re allowed to see – founder (all), investor (own), public (none).',
+    },
+  ];
+
+  const quickLinks = [
+    {
+      href: '/company',
+      title: 'Browse Companies',
+      description: 'Explore all companies and their funding rounds',
+      icon: Building2,
+      showForRoles: ['FOUNDER', 'INVESTOR', 'PUBLIC'] as Role[],
+    },
+    {
+      href: '/company',
+      title: 'Create a Company',
+      description: 'Start a new company and manage its cap table',
+      icon: Plus,
+      showForRoles: ['FOUNDER'] as Role[],
+    },
+    {
+      href: '/investments',
+      title: 'View My Investments',
+      description: 'See your portfolio and investment history',
+      icon: TrendingUp,
+      showForRoles: ['INVESTOR'] as Role[],
+    },
+  ];
+
+  return (
+    <main className="flex-1 space-y-16 p-8 max-w-6xl mx-auto">
+      {/* Hero Section */}
+      <section className="text-center space-y-6">
+        <div className="space-y-4">
+          <Badge variant="outline" className="text-xs px-3 py-1">
+            Proof-of-Concept Demo – Not production
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            Confidential Cap Tables
+            <span className="block text-primary">on-chain</span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Powered by Fully Homomorphic Encryption. Sensitive investment data
+            remains private, while stakeholders keep access to what they need.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+
+      {/* Role Cards Section */}
+      <section className="space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-semibold">Choose Your Role</h2>
+          <p className="text-muted-foreground">
+            Each role has different access levels to demonstrate confidential
+            data handling
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {roleCards.map(roleCard => (
+            <Card
+              key={roleCard.role}
+              className={`relative transition-all duration-200 hover:shadow-lg ${
+                role === roleCard.role
+                  ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                  : ''
+              } ${roleCard.color}`}
+            >
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  {roleCard.title}
+                  {role === roleCard.role && (
+                    <Badge variant="default" className="text-xs">
+                      Active
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>{roleCard.description}</CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {roleCard.permissions.map((permission, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 text-sm"
+                    >
+                      <permission.icon
+                        className={`h-4 w-4 ${
+                          permission.allowed
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-500 dark:text-red-400'
+                        }`}
+                      />
+                      <span
+                        className={
+                          permission.allowed ? '' : 'text-muted-foreground'
+                        }
+                      >
+                        {permission.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => setRole(roleCard.role)}
+                  className={`w-full ${roleCard.buttonColor} text-white`}
+                  variant={role === roleCard.role ? 'default' : 'outline'}
+                >
+                  {role === roleCard.role
+                    ? 'Current Role'
+                    : `Try as ${roleCard.title}`}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* How Encryption Works Section */}
+      <section className="space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-semibold">How Encryption Works</h2>
+          <p className="text-muted-foreground">
+            Three simple steps backend by the Zama Protocol
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {encryptionSteps.map((step, index) => (
+            <div key={index} className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <step.icon className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">{step.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Links Section */}
+      <section className="space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-semibold">Get Started</h2>
+          <p className="text-muted-foreground">
+            Explore the platform based on your current role:{' '}
+            <Badge variant="outline">{role}</Badge>
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {quickLinks
+            .filter(link => link.showForRoles.includes(role))
+            .map((link, index) => (
+              <Link key={index} href={link.href}>
+                <Card className="transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <link.icon className="h-5 w-5 text-primary" />
+                      {link.title}
+                    </CardTitle>
+                    <CardDescription>{link.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
+            ))}
+        </div>
+      </section>
+    </main>
   );
 }

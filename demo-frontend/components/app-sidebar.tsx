@@ -163,7 +163,7 @@ export function PrivateAppSidebar() {
             <div className="flex items-center gap-2 px-2 py-1">
               <Building2 className="h-6 w-6" />
               <span className="font-semibold text-sidebar-foreground">
-                OCP Demo
+                OCP-FHE Demo
               </span>
             </div>
           </SidebarMenuItem>
