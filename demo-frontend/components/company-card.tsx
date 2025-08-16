@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Company } from '@/lib/types/company';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, TrendingUp, User } from 'lucide-react';
+import { Building2, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // import { useFhevm } from '@/hooks/use-fhevm';
 
@@ -65,7 +65,7 @@ export function CompanyCard({
         </CardHeader>
 
         <CardContent className="pt-0">
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <div>
@@ -83,14 +83,6 @@ export function CompanyCard({
                 <div className="text-xs text-muted-foreground">
                   {totalInvestors === 1 ? 'Investor' : 'Investors'}
                 </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">-</div>
-                <div className="text-xs text-muted-foreground">Raised</div>
               </div>
             </div>
           </div>

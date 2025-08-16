@@ -51,7 +51,7 @@ export function RoundCard({
   const { role } = useRoleStore();
 
   const {
-    decryptSecurity,
+    decryptSecurities,
     decryptAllPermitted,
     isDecrypted,
     isLoading: isDecryptionLoading,
@@ -275,7 +275,7 @@ export function RoundCard({
                           }
                           decrypted={isSecurityDecrypted}
                           loading={isSecurityLoading}
-                          onDecrypt={() => decryptSecurity(securityId)}
+                          onDecrypt={() => decryptSecurities([securityId])}
                           onHide={() => clearDecrypted(securityId)}
                           canDecrypt={hasAccess}
                         />
@@ -290,7 +290,7 @@ export function RoundCard({
                           }
                           decrypted={isSecurityDecrypted}
                           loading={isSecurityLoading}
-                          onDecrypt={() => decryptSecurity(securityId)}
+                          onDecrypt={() => decryptSecurities([securityId])}
                           onHide={() => clearDecrypted(securityId)}
                           canDecrypt={hasAccess}
                         />
@@ -305,7 +305,7 @@ export function RoundCard({
                           }
                           decrypted={isSecurityDecrypted}
                           loading={isSecurityLoading}
-                          onDecrypt={() => decryptSecurity(securityId)}
+                          onDecrypt={() => decryptSecurities([securityId])}
                           onHide={() => clearDecrypted(securityId)}
                           canDecrypt={hasAccess}
                         />

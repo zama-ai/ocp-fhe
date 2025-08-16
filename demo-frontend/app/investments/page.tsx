@@ -3,7 +3,6 @@
 import React from 'react';
 import { useAccount } from 'wagmi';
 import { useInvestments } from '@/hooks/use-investments';
-import { InvestmentRoundCard } from '@/components/investment-round-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   TrendingUp,
@@ -12,6 +11,17 @@ import {
   LockIcon,
   UnlockIcon,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const DynamicInvestmentRoundCard = dynamic(
+  () =>
+    import('@/components/investment-round-card').then(
+      mod => mod.InvestmentRoundCard
+    ),
+  {
+    ssr: false,
+  }
+);
 
 export default function InvestmentsPage() {
   const { address, isConnected } = useAccount();
@@ -98,29 +108,35 @@ export default function InvestmentsPage() {
           // Show investments
           <div className="space-y-8">
             {/* Summary Stats */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div className="bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-lg p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-blue-900">
+                  <div className="text-2xl font-bold text-gray-900">
                     {investments.length}
                   </div>
-                  <div className="text-sm text-blue-700">
+                  <div className="text-sm text-gray-600">
                     {investments.length === 1 ? 'Investment' : 'Investments'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-900">
+                  <div className="text-2xl font-bold text-gray-900">
                     {new Set(investments.map(inv => inv.companyId)).size}
                   </div>
-                  <div className="text-sm text-blue-700">
+                  <div className="text-sm text-gray-600">
                     {new Set(investments.map(inv => inv.companyId)).size === 1
                       ? 'Company'
                       : 'Companies'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-900">🔒</div>
-                  <div className="text-sm text-blue-700">Encrypted Data</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {investments.length}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {investments.length === 1
+                      ? 'Active Round'
+                      : 'Active Rounds'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -128,10 +144,12 @@ export default function InvestmentsPage() {
             {/* Investment Cards */}
             <div className="space-y-8">
               {investments.map(investment => (
-                <InvestmentRoundCard
+                <DynamicInvestmentRoundCard
                   key={investment.id}
                   round={investment}
                   investorAddress={address!}
+                  companyAddress={investment.companyId}
+                  securityId={investment.securityId}
                 />
               ))}
             </div>

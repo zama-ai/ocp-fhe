@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { InvestmentRound } from '@/lib/types/investment';
 import { Company } from '@/lib/types/company';
-import { generateMockAllocation } from '@/lib/utils/investment-mocks';
+import { InvestmentRound } from '@/lib/types/investment';
 
-async function fetchInvestorCompanies(
+async function fetchInvestorRounds(
   investorAddress: string
 ): Promise<InvestmentRound[]> {
   const response = await fetch(`/api/companies/investor/${investorAddress}`);
@@ -18,27 +17,36 @@ async function fetchInvestorCompanies(
     throw new Error(data.error || 'Failed to fetch investor companies');
   }
 
-  // Transform company data into investment rounds
   const investmentRounds: InvestmentRound[] = [];
 
   data.data.forEach((company: Company) => {
-    company.rounds.forEach(round => {
-      // Check if the investor is in this round
-      const isInvestorInRound = round.investors.some(
+    // Filter rounds where the investor participated
+    const investorRounds = company.rounds.filter(round =>
+      round.investors.some(
+        investor =>
+          investor.address.toLowerCase() === investorAddress.toLowerCase()
+      )
+    );
+
+    // Transform each round into an InvestmentRound
+    investorRounds.forEach(round => {
+      // Find the investor's data in this round
+      const investorData = round.investors.find(
         investor =>
           investor.address.toLowerCase() === investorAddress.toLowerCase()
       );
 
-      if (isInvestorInRound) {
-        investmentRounds.push({
-          id: `${company.id}_${round.id}`,
-          companyId: company.id,
-          companyName: company.name,
-          roundType: round.type,
-          date: round.date,
-          allocation: generateMockAllocation(investorAddress, round.id),
-        });
-      }
+      investmentRounds.push({
+        id: round.id,
+        companyId: company.id,
+        companyName: company.name,
+        roundType: round.type,
+        date: round.date,
+        createdAt: round.createdAt,
+        investorAddress: investorAddress,
+        investorName: investorData?.name,
+        securityId: investorData?.securityId,
+      });
     });
   });
 
@@ -51,7 +59,7 @@ async function fetchInvestorCompanies(
 export function useInvestments(investorAddress?: string) {
   return useQuery({
     queryKey: ['investments', investorAddress],
-    queryFn: () => fetchInvestorCompanies(investorAddress!),
+    queryFn: () => fetchInvestorRounds(investorAddress!),
     enabled: !!investorAddress,
   });
 }

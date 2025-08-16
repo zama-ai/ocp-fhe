@@ -30,7 +30,6 @@ can be opened at path `/company/[company-name]`
 - Show basic public context about the selected company and round.
   - number of rounds
   - number of investors
-  - total raised
 - For the active round, list investors and their **encrypted** allocations:
   - **Shares** (confidential)
   - **Price / Share** (confidential)
@@ -81,7 +80,6 @@ Shows a list of all companies which are created in the main smart contract with 
 - company name
 - founder address
 - number of rounds
-- amount raised
 
 If you’re a **FOUNDER**, at the top you see the **My Companies** list with the **Create New Company** button.
 

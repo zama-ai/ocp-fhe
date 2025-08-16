@@ -13,7 +13,7 @@ import { readContract } from '@wagmi/core';
 import { config } from '@/config/wagmi';
 
 export interface UseDecryptSecurityResult {
-  decryptSecurity: (securityId: string) => Promise<void>;
+  decryptSecurities: (securityIds: string[]) => Promise<void>;
   decryptAllPermitted: (
     securityIds: string[],
     investorAddresses: string[]
@@ -103,46 +103,69 @@ export function useDecryptSecurity(
     [companyAddress, clearDecryptedData]
   );
 
-  // Main decryption function
-  const decryptSecurity = useCallback(
-    async (securityId: string) => {
+  // Main batch decryption function
+  const decryptSecurities = useCallback(
+    async (securityIds: string[]) => {
       if (!walletAddress || !client || !fhevmInstance) {
         toast.error('Wallet not connected or FHEVM not initialized');
         return;
       }
 
-      // Check if already decrypted
-      if (isSecurityDecrypted(securityId)) {
-        return;
-      }
+      // Filter out already decrypted or loading securities
+      const securitiesToDecrypt = securityIds.filter(
+        securityId =>
+          !isSecurityDecrypted(securityId) && !isSecurityLoading(securityId)
+      );
 
-      // Check if already loading
-      if (isSecurityLoading(securityId)) {
+      if (securitiesToDecrypt.length === 0) {
         return;
       }
 
       try {
-        setLoading(companyAddress, securityId, true);
-
-        // Fetch encrypted data from blockchain
-        const position = await readContract(config, {
-          address: companyAddress as `0x${string}`,
-          abi: privateStockFacetAbi,
-          functionName: 'getPrivateStockPosition',
-          args: [securityId as `0x${string}`],
+        // Set loading state for all securities
+        securitiesToDecrypt.forEach(securityId => {
+          setLoading(companyAddress, securityId, true);
         });
 
-        if (!position) {
-          throw new Error('No position data found for this security');
+        // Batch fetch encrypted data from blockchain
+        const positionPromises = securitiesToDecrypt.map(securityId =>
+          readContract(config, {
+            address: companyAddress as `0x${string}`,
+            abi: privateStockFacetAbi,
+            functionName: 'getPrivateStockPosition',
+            args: [securityId as `0x${string}`],
+          }).then(position => ({ securityId, position }))
+        );
+
+        const positionResults = await Promise.all(positionPromises);
+
+        // Filter out securities without positions and check permissions
+        const validSecurities: Array<{
+          securityId: string;
+          position: PrivateStockPosition;
+        }> = [];
+
+        for (const { securityId, position } of positionResults) {
+          if (!position) {
+            console.error(`No position data found for security ${securityId}`);
+            continue;
+          }
+
+          const stockPosition = position as PrivateStockPosition;
+
+          // Check permissions
+          if (!canDecrypt(stockPosition.stakeholder_address)) {
+            console.error(
+              `No permission to decrypt security ${securityId} for ${stockPosition.stakeholder_address}`
+            );
+            continue;
+          }
+
+          validSecurities.push({ securityId, position: stockPosition });
         }
 
-        const stockPosition = position as PrivateStockPosition;
-
-        // Check permissions
-        if (!canDecrypt(stockPosition.stakeholder_address)) {
-          throw new Error(
-            'You do not have permission to decrypt this security'
-          );
+        if (validSecurities.length === 0) {
+          throw new Error('No securities available for decryption');
         }
 
         // Perform FHE decryption
@@ -151,17 +174,30 @@ export function useDecryptSecurity(
         // Generate keypair
         const keypair = fhevmInstance.generateKeypair();
 
-        // Prepare handles for decryption
-        const handleContractPairs = [
-          {
-            handle: stockPosition.quantity,
+        // Prepare handles for batch decryption
+        const handleContractPairs: Array<{
+          handle: string;
+          contractAddress: string;
+        }> = [];
+
+        // Build mapping of handles to securities for result parsing
+        const handleToSecurity: Record<string, string> = {};
+
+        validSecurities.forEach(({ securityId, position }) => {
+          // Add quantity handle
+          handleContractPairs.push({
+            handle: position.quantity,
             contractAddress: companyAddress,
-          },
-          {
-            handle: stockPosition.share_price,
+          });
+          handleToSecurity[position.quantity] = securityId;
+
+          // Add share_price handle
+          handleContractPairs.push({
+            handle: position.share_price,
             contractAddress: companyAddress,
-          },
-        ];
+          });
+          handleToSecurity[position.share_price] = securityId;
+        });
 
         const startTimeStamp = Math.floor(Date.now() / 1000).toString();
         const durationDays = '10';
@@ -175,8 +211,6 @@ export function useDecryptSecurity(
           durationDays
         );
 
-        console.log(signer);
-
         const signature = await signer.signTypedData(
           eip712.domain,
           {
@@ -186,7 +220,7 @@ export function useDecryptSecurity(
           eip712.message
         );
 
-        // Decrypt the values
+        // Decrypt all values in a single call
         const result = await fhevmInstance.userDecrypt(
           handleContractPairs,
           keypair.privateKey,
@@ -198,28 +232,46 @@ export function useDecryptSecurity(
           durationDays
         );
 
-        // Extract decrypted values
-        const quantity = parseInt(result[stockPosition.quantity].toString());
-        const sharePrice = parseInt(
-          result[stockPosition.share_price].toString()
-        );
-        const investment = quantity * sharePrice;
+        // Parse results and store decrypted data
+        const decryptedSecurities: Record<
+          string,
+          { quantity: number; sharePrice: number }
+        > = {};
 
-        // Store decrypted data
-        setDecryptedData(companyAddress, securityId, {
-          quantity,
-          sharePrice,
-          investment,
-          timestamp: Date.now(),
+        // Group results by security
+        validSecurities.forEach(({ securityId, position }) => {
+          const quantity = parseInt(result[position.quantity].toString());
+          const sharePrice = parseInt(result[position.share_price].toString());
+
+          decryptedSecurities[securityId] = { quantity, sharePrice };
         });
 
-        toast.success('Security decrypted successfully');
+        // Store all decrypted data
+        Object.entries(decryptedSecurities).forEach(
+          ([securityId, { quantity, sharePrice }]) => {
+            const investment = quantity * sharePrice;
+
+            setDecryptedData(companyAddress, securityId, {
+              quantity,
+              sharePrice,
+              investment,
+              timestamp: Date.now(),
+            });
+          }
+        );
+
+        const successCount = Object.keys(decryptedSecurities).length;
+        if (successCount === 1) {
+          toast.success('Security decrypted successfully');
+        } else {
+          toast.success(`${successCount} securities decrypted successfully`);
+        }
       } catch (error) {
-        console.error('Decryption error:', error);
+        console.error('Batch decryption error:', error);
 
         if (error instanceof Error) {
           if (error.message.includes('permission')) {
-            toast.error('Access denied: You cannot decrypt this security');
+            toast.error('Access denied: You cannot decrypt these securities');
           } else if (error.message.includes('network')) {
             toast.error(
               'Network error: Please check your connection and try again'
@@ -231,7 +283,10 @@ export function useDecryptSecurity(
           toast.error('Decryption failed: Unknown error occurred');
         }
       } finally {
-        setLoading(companyAddress, securityId, false);
+        // Clear loading state for all securities
+        securitiesToDecrypt.forEach(securityId => {
+          setLoading(companyAddress, securityId, false);
+        });
       }
     },
     [
@@ -270,25 +325,16 @@ export function useDecryptSecurity(
 
       toast.info(`Decrypting ${permittedSecurities.length} securities...`);
 
-      // Decrypt securities sequentially to avoid overwhelming the system
-      for (const securityId of permittedSecurities) {
-        try {
-          await decryptSecurity(securityId);
-          // Small delay between decryptions
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          console.error(`Failed to decrypt security ${securityId}:`, error);
-          // Continue with other securities even if one fails
-        }
-      }
+      // Use the new batch decryption function
+      await decryptSecurities(permittedSecurities);
 
       toast.success('Bulk decryption completed');
     },
-    [walletAddress, canDecrypt, isSecurityDecrypted, decryptSecurity]
+    [walletAddress, canDecrypt, isSecurityDecrypted, decryptSecurities]
   );
 
   return {
-    decryptSecurity,
+    decryptSecurities,
     decryptAllPermitted,
     isDecrypted: isSecurityDecrypted,
     isLoading: isSecurityLoading,

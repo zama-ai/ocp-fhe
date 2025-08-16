@@ -1,15 +1,11 @@
-export interface InvestmentAllocation {
-  shares: number | null; // null when encrypted, actual value when decrypted
-  pricePerShare: number | null;
-  investment: number | null; // calculated: shares × pricePerShare
-  hasAccess: boolean; // true for investor's own investments
-}
-
 export interface InvestmentRound {
-  id: string;
-  companyId: string;
-  companyName: string;
-  roundType: string;
-  date: string;
-  allocation: InvestmentAllocation;
+  id: string; // Round ID (used as securityId)
+  companyId: string; // Company identifier
+  companyName: string; // Company name for display
+  roundType: string; // Round type (Seed, Series A, etc.)
+  date: string; // Investment date
+  createdAt: string; // When the round was created
+  investorAddress: string; // The investor's address
+  investorName?: string; // Optional investor name
+  securityId?: string; // The on-chain security ID for this investment
 }

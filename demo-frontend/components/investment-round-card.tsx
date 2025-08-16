@@ -1,85 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { InvestmentRound } from '@/lib/types/investment';
-import {
-  LockIcon,
-  UnlockIcon,
-  EyeIcon,
-  PiggyBankIcon,
-  ExternalLink,
-} from 'lucide-react';
+import { EyeIcon, PiggyBankIcon, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getDecryptedValues } from '@/lib/utils/investment-mocks';
-import { toast } from 'sonner';
+import { useDecryptSecurity } from '@/hooks/use-decrypt-security';
+import { EncryptedCell } from '@/components/ui/encrypted-cell';
+import { useAccount } from 'wagmi';
+import { useRoleStore } from '@/stores/role-store';
 
 interface InvestmentRoundCardProps {
   round: InvestmentRound;
   investorAddress: string;
+  companyAddress: string;
+  securityId?: string;
   className?: string;
 }
 
-// Helper functions (reused from RoundCard)
+// Helper functions
 const fmtNum = (n: number) => n.toLocaleString();
 const fmtMoney = (n: number) =>
   `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
-// Encrypted Cell Component (reused from RoundCard)
-function EncryptedCell({
-  label,
-  value,
-  decrypted,
-  onDecrypt,
-  onHide,
-  can,
-}: {
-  label: string;
-  value: string;
-  decrypted: boolean;
-  onDecrypt: () => void;
-  onHide: () => void;
-  can: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      {!decrypted ? (
-        <div className="inline-flex items-center gap-2 text-zinc-600">
-          <LockIcon className="h-4 w-4" aria-hidden />
-          <span className="tracking-widest select-none">••••</span>
-          {can ? (
-            <button
-              onClick={onDecrypt}
-              className="text-xs px-2 py-1 rounded-full border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition"
-              title={`Decrypt ${label}`}
-            >
-              Decrypt
-            </button>
-          ) : (
-            <span
-              className="text-xs px-2 py-1 rounded-full text-zinc-400"
-              title="You are not authorized to decrypt this field"
-            >
-              No access
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="inline-flex items-center gap-2">
-          <UnlockIcon className="h-4 w-4 text-emerald-600" aria-hidden />
-          <span className="font-mono">{value}</span>
-          <button
-            onClick={onHide}
-            className="text-xs px-2 py-1 rounded-full border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition"
-            title={`Hide ${label}`}
-          >
-            Hide
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Table components (reused from RoundCard)
+// Table components
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="px-4 py-3 text-xs font-medium text-zinc-600 uppercase tracking-wide">
@@ -103,46 +45,62 @@ function Badge({ children }: { children: React.ReactNode }) {
 export function InvestmentRoundCard({
   round,
   investorAddress,
+  companyAddress,
+  securityId,
   className,
 }: InvestmentRoundCardProps) {
-  const [decrypted, setDecrypted] = useState<Record<string, boolean>>({});
+  const { address: walletAddress } = useAccount();
+  const { role } = useRoleStore();
 
-  const handleDecrypt = (field: string) => {
-    const key = `${round.id}:${field}`;
-    setDecrypted(prev => ({ ...prev, [key]: true }));
-    toast('Decrypted locally. Visible only in this session.');
-  };
+  const {
+    decryptSecurities,
+    decryptAllPermitted,
+    isDecrypted,
+    isLoading: isDecryptionLoading,
+    getDecryptedData,
+    clearDecrypted,
+  } = useDecryptSecurity(companyAddress);
 
-  const handleHide = (field: string) => {
-    const key = `${round.id}:${field}`;
-    setDecrypted(prev => ({ ...prev, [key]: false }));
-  };
+  // Helper function to determine if user can decrypt their own data
+  const canDecryptInvestor = (): boolean => {
+    if (!walletAddress) return false;
 
-  const decryptAllPermitted = () => {
-    const next = { ...decrypted };
-    if (round.allocation.hasAccess) {
-      ['shares', 'pricePerShare', 'investment'].forEach(field => {
-        next[`${round.id}:${field}`] = true;
-      });
+    if (role === 'FOUNDER') {
+      // Founders can decrypt if they own the company (this would need additional logic)
+      return true; // For now, assume founders can decrypt
     }
-    setDecrypted(next);
-    toast('Decrypted your permitted fields.');
+    if (role === 'INVESTOR') {
+      return walletAddress.toLowerCase() === investorAddress.toLowerCase();
+    }
+    return false; // PUBLIC role
   };
 
-  const hideAll = () => {
-    const next = { ...decrypted };
-    Object.keys(next)
-      .filter(key => key.startsWith(`${round.id}:`))
-      .forEach(key => (next[key] = false));
-    setDecrypted(next);
+  const handleDecryptAllPermitted = () => {
+    if (!securityId) return;
+
+    if (canDecryptInvestor()) {
+      decryptAllPermitted([securityId], [investorAddress]);
+    }
   };
 
-  // Get decrypted values for display
-  const decryptedValues = getDecryptedValues(investorAddress, round.id);
+  const handleHideAll = () => {
+    clearDecrypted();
+  };
 
-  const isSharesDecrypted = decrypted[`${round.id}:shares`];
-  const isPriceDecrypted = decrypted[`${round.id}:pricePerShare`];
-  const isInvestmentDecrypted = decrypted[`${round.id}:investment`];
+  // Get decrypted data if available
+  const decryptedData = securityId ? getDecryptedData(securityId) : null;
+  const isSecurityDecrypted = securityId ? isDecrypted(securityId) : false;
+  const isSecurityLoading = securityId
+    ? isDecryptionLoading(securityId)
+    : false;
+  const hasAccess = canDecryptInvestor();
+
+  // Fallback values for display
+  const displayValues = {
+    shares: decryptedData ? decryptedData.quantity : 0,
+    pricePerShare: decryptedData ? decryptedData.sharePrice : 0,
+    investment: decryptedData ? decryptedData.investment : 0,
+  };
 
   return (
     <section
@@ -180,14 +138,14 @@ export function InvestmentRoundCard({
       {/* Actions */}
       <div className="px-4 py-3 flex items-center gap-2">
         <button
-          onClick={decryptAllPermitted}
+          onClick={handleDecryptAllPermitted}
           className="text-sm px-3 py-1.5 rounded-xl border border-zinc-300 hover:bg-zinc-50 transition"
           title="Decrypt all your investment data"
         >
           Decrypt all permitted
         </button>
         <button
-          onClick={hideAll}
+          onClick={handleHideAll}
           className="text-sm px-3 py-1.5 rounded-xl border border-zinc-300 hover:bg-zinc-50 transition"
           title="Hide all decrypted values for this investment"
         >
@@ -229,31 +187,40 @@ export function InvestmentRoundCard({
               <Td>
                 <EncryptedCell
                   label="Shares"
-                  value={fmtNum(decryptedValues.shares)}
-                  decrypted={isSharesDecrypted}
-                  onDecrypt={() => handleDecrypt('shares')}
-                  onHide={() => handleHide('shares')}
-                  can={round.allocation.hasAccess}
+                  value={fmtNum(displayValues.shares)}
+                  decrypted={isSecurityDecrypted}
+                  loading={isSecurityLoading}
+                  onDecrypt={() =>
+                    securityId && decryptSecurities([securityId])
+                  }
+                  onHide={() => securityId && clearDecrypted(securityId)}
+                  canDecrypt={hasAccess}
                 />
               </Td>
               <Td>
                 <EncryptedCell
                   label="Price / Share"
-                  value={fmtMoney(decryptedValues.pricePerShare)}
-                  decrypted={isPriceDecrypted}
-                  onDecrypt={() => handleDecrypt('pricePerShare')}
-                  onHide={() => handleHide('pricePerShare')}
-                  can={round.allocation.hasAccess}
+                  value={fmtMoney(displayValues.pricePerShare)}
+                  decrypted={isSecurityDecrypted}
+                  loading={isSecurityLoading}
+                  onDecrypt={() =>
+                    securityId && decryptSecurities([securityId])
+                  }
+                  onHide={() => securityId && clearDecrypted(securityId)}
+                  canDecrypt={hasAccess}
                 />
               </Td>
               <Td>
                 <EncryptedCell
                   label="Investment"
-                  value={fmtMoney(decryptedValues.investment)}
-                  decrypted={isInvestmentDecrypted}
-                  onDecrypt={() => handleDecrypt('investment')}
-                  onHide={() => handleHide('investment')}
-                  can={round.allocation.hasAccess}
+                  value={fmtMoney(displayValues.investment)}
+                  decrypted={isSecurityDecrypted}
+                  loading={isSecurityLoading}
+                  onDecrypt={() =>
+                    securityId && decryptSecurities([securityId])
+                  }
+                  onHide={() => securityId && clearDecrypted(securityId)}
+                  canDecrypt={hasAccess}
                 />
               </Td>
             </tr>
