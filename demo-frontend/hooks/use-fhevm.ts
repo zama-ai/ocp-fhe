@@ -35,5 +35,7 @@ export function useFhevm() {
       return instance;
     },
     enabled: !!address && !!chainId && !!client,
+    // do not refresh automatically
+    staleTime: Infinity,
   });
 }

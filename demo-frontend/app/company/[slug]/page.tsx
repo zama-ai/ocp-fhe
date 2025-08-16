@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LockIcon, UnlockIcon, Plus, AlertCircle } from 'lucide-react';
 import { useRole } from '@/hooks/use-role';
 import { useCompany } from '@/hooks/use-company';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAccount } from 'wagmi';
 import dynamic from 'next/dynamic';
 import { Round } from '@/lib/types/company';
 
@@ -32,10 +34,20 @@ export default function Page({
   const [companyId, setCompanyId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { role } = useRole();
+  const { address: walletAddress } = useAccount();
   const queryClient = useQueryClient();
 
   // Get company data from API
   const { data: company, isLoading, error } = useCompany(companyId);
+
+  // Check if current user is the company owner
+  const isCompanyOwner =
+    walletAddress && company?.founder
+      ? walletAddress.toLowerCase() === company.founder.toLowerCase()
+      : false;
+
+  // Determine if user should have founder privileges
+  const hasFounderPrivileges = role === 'FOUNDER' && isCompanyOwner;
 
   useEffect(() => {
     const loadCompanyId = async () => {
@@ -62,6 +74,23 @@ export default function Page({
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Disclaimer Alert for non-owner founders */}
+        {role === 'FOUNDER' &&
+          !isLoading &&
+          !error &&
+          company &&
+          !isCompanyOwner && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You are viewing this company as a founder, but you are not the
+                owner of this company. Your access is limited to public
+                information only. You cannot create new rounds or decrypt
+                confidential data.
+              </AlertDescription>
+            </Alert>
+          )}
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-zinc-900">
@@ -71,8 +100,8 @@ export default function Page({
             Rounds & Allocations for {company?.name || companyId}
           </p>
 
-          {/* Create Round Button - Only visible for FOUNDER */}
-          {role === 'FOUNDER' && !isLoading && !error && company && (
+          {/* Create Round Button - Only visible for company owner founders */}
+          {hasFounderPrivileges && !isLoading && !error && company && (
             <Button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2"
@@ -87,8 +116,16 @@ export default function Page({
         {isLoading ? (
           // Show skeleton loading cards
           <div className="space-y-6">
-            <DynamicRoundCard isLoading companyAddress={companyId} />
-            <DynamicRoundCard isLoading companyAddress={companyId} />
+            <DynamicRoundCard
+              isLoading
+              companyAddress={companyId}
+              isCompanyOwner={false}
+            />
+            <DynamicRoundCard
+              isLoading
+              companyAddress={companyId}
+              isCompanyOwner={false}
+            />
           </div>
         ) : error ? (
           // Error state
@@ -115,6 +152,7 @@ export default function Page({
                 key={round.id}
                 round={round}
                 companyAddress={company?.contractAddress || companyId}
+                isCompanyOwner={isCompanyOwner}
               />
             ))}
           </div>
@@ -122,7 +160,7 @@ export default function Page({
           // Empty state
           <div className="text-center py-12">
             <p className="text-zinc-600">No rounds found for this company.</p>
-            {role === 'FOUNDER' && (
+            {hasFounderPrivileges && (
               <Button
                 onClick={() => setShowCreateModal(true)}
                 className="mt-4 flex items-center gap-2 mx-auto"

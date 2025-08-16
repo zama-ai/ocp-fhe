@@ -11,6 +11,7 @@ interface RoundCardProps {
   round?: Round;
   isLoading?: boolean;
   companyAddress: string;
+  isCompanyOwner?: boolean;
 }
 
 // Helper functions
@@ -44,6 +45,7 @@ export function RoundCard({
   round,
   isLoading = false,
   companyAddress,
+  isCompanyOwner = false,
 }: RoundCardProps) {
   const { address: walletAddress } = useAccount();
   const { role } = useRoleStore();
@@ -61,7 +63,10 @@ export function RoundCard({
   const canDecryptInvestor = (investorAddress: string): boolean => {
     if (!walletAddress) return false;
 
-    if (role === 'FOUNDER') return true;
+    if (role === 'FOUNDER') {
+      // Only company owners can decrypt data when in FOUNDER role
+      return isCompanyOwner;
+    }
     if (role === 'INVESTOR') {
       return walletAddress.toLowerCase() === investorAddress.toLowerCase();
     }
