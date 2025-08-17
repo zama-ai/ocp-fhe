@@ -45,9 +45,6 @@ flowchart LR
 - **Homomorphic compute:** ciphertext multiplication/addition; plaintext is never revealed on‑chain.
 - **Access control:** `FHE.allow` grants per‑address visibility (founder and investor). Unprivileged callers get ciphertexts only.
 - **Sealed outputs:** authorized reads return sealed ciphertexts to be opened by the viewer through the Zama relayer/oracle flow.
-- **Network config:** `initialize()` configures coprocessor and oracle using `ZamaConfig` (e.g., Sepolia endpoints).
-
-> Note: This integration uses conservative `euint64` widths for simplicity. Production systems should select ciphertext parameters and ranges with care.
 
 ## Zama FHE integration
 
