@@ -2,13 +2,17 @@
 
 This repository is a fork of Fairmint’s Open Cap Table Protocol (Diamond architecture) augmented with a new facet, `PrivateStockFacet`, that demonstrates Fully Homomorphic Encryption (FHE) for confidential allocations. Using Zama’s FHEVM toolchain, we store and compute on encrypted values (shares, price/share, investment) while preserving role‑based access for founders and investors and keeping public views privacy‑safe.
 
+## Repository layout
+
+- **`chain/`** — Fairmint Diamond contracts plus the new `PrivateStockFacet` (Hardhat + `@fhevm/solidity`).
+- **`demo-frontend/`** — Next.js demo app; integrates `privateStockFacetAbi` and Zama Relayer SDK.
+
 
 ## What this includes
 
 - **Encrypted allocations:** shares and price/share are stored as encrypted integers and multiplied homomorphically for investment amounts.
 - **Role‑based visibility:** founders can decrypt all allocations; investors can decrypt only their own; the public cannot decrypt.
 - **Per‑position access control:** decryption permissions are granted per security position using Zama’s access control primitives.
-
 
 
 
@@ -24,6 +28,7 @@ Related interfaces and structs:
 - **`chain/src/interfaces/IPrivateStockFacet.sol`** — facet ABI
 - **`chain/src/libraries/Structs.sol`** — `PrivateStockActivePosition`, `IssuePrivateStockParams`
 - **`chain/src/core/Storage.sol`** — persistent storage for private positions
+
 
 ## How FHE works here (high‑level)
 
@@ -45,6 +50,34 @@ flowchart LR
 - **Homomorphic compute:** ciphertext multiplication/addition; plaintext is never revealed on‑chain.
 - **Access control:** `FHE.allow` grants per‑address visibility (founder and investor). Unprivileged callers get ciphertexts only.
 - **Sealed outputs:** authorized reads return sealed ciphertexts to be opened by the viewer through the Zama relayer/oracle flow.
+
+
+## FHE basics
+
+Fully Homomorphic Encryption (FHE) lets you compute on encrypted data without ever decrypting it on-chain. In this repo:
+
+- Plaintext (normal numbers) is encrypted in the browser/SDK. The blockchain only sees ciphertexts.
+- Smart contracts can add/multiply encrypted numbers and store the results still encrypted.
+- Only addresses explicitly granted access by the contract can decrypt specific values client-side.
+
+### Key concepts
+
+- **Plaintext**: the original value (e.g., 100 shares, $2.50 price/share).
+- **Ciphertext**: the encrypted form stored on-chain (looks like random bytes).
+- **Homomorphic operation**: arithmetic performed on ciphertexts (e.g., multiply shares × price) producing an encrypted result.
+- **Sealed output**: an encrypted value “sealed” for a specific viewer so only that viewer can open it via the SDK.
+- **Access control**: on-chain permissions (with `FHE.allow`) that determine who is allowed to decrypt which values.
+
+### What stays private vs public
+
+- **Private**: per-investor allocation amounts (shares, price/share, derived totals). These are returned as ciphertexts and only decryptable by permitted viewers.
+- **Public**: non-sensitive metadata (addresses, IDs) and transaction existence. Note that gas usage and event timestamps remain public like any EVM app.
+
+### Threat model (at a glance)
+
+- Contracts and validators never see plaintext. They only manipulate ciphertexts.
+- Decryption requires two things: (1) the caller must be allowed on-chain (`FHE.allow`), and (2) the client must use the SDK’s oracle flow to open sealed results.
+- The relayer/oracle enables decryption but cannot arbitrarily reveal data to unauthorized addresses because the contract’s ACL is enforced cryptographically.
 
 ## Zama FHE integration
 
@@ -113,11 +146,6 @@ Unauthorized users cannot open sealed values, even if they can read storage.
 
 - The repo targets Sepolia via `ZamaConfig`; swap to other supported networks by changing coprocessor/oracle addresses.
 - Ensure the frontend uses the same network when initializing the Relayer SDK.
-
-## Repository layout
-
-- **`chain/`** — Fairmint Diamond contracts plus the new `PrivateStockFacet` (Hardhat + `@fhevm/solidity`).
-- **`demo-frontend/`** — Next.js demo app; integrates `privateStockFacetAbi` and Zama Relayer SDK.
 
 
 ## Running locally
