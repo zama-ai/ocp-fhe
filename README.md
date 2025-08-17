@@ -104,17 +104,17 @@ Call `initialize()` once after adding the facet in your diamond cut/deploy flow.
 
 ```solidity
 // params.quantity / params.share_price are externalEuint64 (from client SDK)
-euint64 q = FHE.fromExternal(params.quantity, inputProof);
-euint64 p = FHE.fromExternal(params.share_price, inputProof);
+euint64 q = FHE.fromExternal(params.quantity, inputProof)
+euint64 p = FHE.fromExternal(params.share_price, inputProof)
 
 // Grant per-address read permissions
-FHE.allowThis(q);
-FHE.allow(q, msg.sender);
-FHE.allow(q, params.stakeholder_address);
+FHE.allowThis(q)
+FHE.allow(q, msg.sender)
+FHE.allow(q, params.stakeholder_address)
 
-FHE.allowThis(p);
-FHE.allow(p, msg.sender);
-FHE.allow(p, params.stakeholder_address);
+FHE.allowThis(p)
+FHE.allow(p, msg.sender)
+FHE.allow(p, params.stakeholder_address)
 ```
 
 Values are stored encrypted in storage. Any arithmetic (e.g., investment amount) can be performed homomorphically without revealing plaintext.
