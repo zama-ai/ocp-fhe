@@ -45,55 +45,79 @@ async function deployFixture() {
   const diamondCut = await ethers.getContractAt("DiamondCutFacet", await referenceDiamond.getAddress());
 
   // Add DiamondLoupeFacet
-  await diamondCut.diamondCut([{
-    facetAddress: await diamondLoupeFacet.getAddress(),
-    action: 0, // Add
-    functionSelectors: [
-      diamondLoupeFacet.interface.getFunction("facets").selector,
-      diamondLoupeFacet.interface.getFunction("facetFunctionSelectors").selector,
-      diamondLoupeFacet.interface.getFunction("facetAddresses").selector,
-      diamondLoupeFacet.interface.getFunction("facetAddress").selector,
-      diamondLoupeFacet.interface.getFunction("supportsInterface").selector
-    ]
-  }], ethers.ZeroAddress, "0x");
+  await diamondCut.diamondCut(
+    [
+      {
+        facetAddress: await diamondLoupeFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: [
+          diamondLoupeFacet.interface.getFunction("facets").selector,
+          diamondLoupeFacet.interface.getFunction("facetFunctionSelectors").selector,
+          diamondLoupeFacet.interface.getFunction("facetAddresses").selector,
+          diamondLoupeFacet.interface.getFunction("facetAddress").selector,
+          diamondLoupeFacet.interface.getFunction("supportsInterface").selector,
+        ],
+      },
+    ],
+    ethers.ZeroAddress,
+    "0x"
+  );
 
   // Add IssuerFacet
-  await diamondCut.diamondCut([{
-    facetAddress: await issuerFacet.getAddress(),
-    action: 0, // Add
-    functionSelectors: [
-      issuerFacet.interface.getFunction("initializeIssuer").selector,
-      issuerFacet.interface.getFunction("adjustIssuerAuthorizedShares").selector
-    ]
-  }], ethers.ZeroAddress, "0x");
+  await diamondCut.diamondCut(
+    [
+      {
+        facetAddress: await issuerFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: [
+          issuerFacet.interface.getFunction("initializeIssuer").selector,
+          issuerFacet.interface.getFunction("adjustIssuerAuthorizedShares").selector,
+        ],
+      },
+    ],
+    ethers.ZeroAddress,
+    "0x"
+  );
 
   // Add AccessControlFacet
-  await diamondCut.diamondCut([{
-    facetAddress: await accessControlFacet.getAddress(),
-    action: 0, // Add
-    functionSelectors: [
-      accessControlFacet.interface.getFunction("grantRole").selector,
-      accessControlFacet.interface.getFunction("revokeRole").selector,
-      accessControlFacet.interface.getFunction("hasRole").selector,
-      accessControlFacet.interface.getFunction("initializeAccessControl").selector,
-      accessControlFacet.interface.getFunction("transferAdmin").selector,
-      accessControlFacet.interface.getFunction("acceptAdmin").selector,
-      accessControlFacet.interface.getFunction("getAdmin").selector,
-      accessControlFacet.interface.getFunction("getPendingAdmin").selector
-    ]
-  }], ethers.ZeroAddress, "0x");
+  await diamondCut.diamondCut(
+    [
+      {
+        facetAddress: await accessControlFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: [
+          accessControlFacet.interface.getFunction("grantRole").selector,
+          accessControlFacet.interface.getFunction("revokeRole").selector,
+          accessControlFacet.interface.getFunction("hasRole").selector,
+          accessControlFacet.interface.getFunction("initializeAccessControl").selector,
+          accessControlFacet.interface.getFunction("transferAdmin").selector,
+          accessControlFacet.interface.getFunction("acceptAdmin").selector,
+          accessControlFacet.interface.getFunction("getAdmin").selector,
+          accessControlFacet.interface.getFunction("getPendingAdmin").selector,
+        ],
+      },
+    ],
+    ethers.ZeroAddress,
+    "0x"
+  );
 
   // Add PrivateStockFacet
-  await diamondCut.diamondCut([{
-    facetAddress: await privateStockFacet.getAddress(),
-    action: 0, // Add
-    functionSelectors: [
-      privateStockFacet.interface.getFunction("initialize").selector,
-      privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
-      privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
-      privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector
-    ]
-  }], ethers.ZeroAddress, "0x");
+  await diamondCut.diamondCut(
+    [
+      {
+        facetAddress: await privateStockFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: [
+          privateStockFacet.interface.getFunction("initialize").selector,
+          privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
+          privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
+          privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector,
+        ],
+      },
+    ],
+    ethers.ZeroAddress,
+    "0x"
+  );
 
   // Deploy CapTableFactory with reference diamond
   const FactoryFactory = (await ethers.getContractFactory("CapTableFactory")) as CapTableFactory__factory;
@@ -131,7 +155,7 @@ describe("PrivateStockFacet System", function () {
     }
 
     ({ capTableFactory, factoryAddress } = await deployFixture());
-    capTableFactory = capTableFactory.connect(signers.founder)
+    capTableFactory = capTableFactory.connect(signers.founder);
     // Create a cap table
     const issuerId = ethers.randomBytes(16);
     const initialSharesAuthorized = ethers.parseEther("1000000000"); // 1 billion shares
@@ -188,10 +212,8 @@ describe("PrivateStockFacet System", function () {
     });
   });
 
-
   describe("Private Stock Issuance", function () {
     it("should be able to access PrivateStockFacet methods", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       // Just verify that we can access the facet
@@ -200,7 +222,7 @@ describe("PrivateStockFacet System", function () {
       // Try to call a simple view function to see if the facet is accessible
       try {
         const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.founder.address, ethers.hexlify(ethers.randomBytes(16)));
-        expect(securities).to.be.an('array');
+        expect(securities).to.be.an("array");
       } catch (error: any) {
         console.log("Error accessing PrivateStockFacet:", error.message);
         // This is expected if the facet is not properly initialized
@@ -208,7 +230,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should issue private stock to an investor", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -216,7 +237,7 @@ describe("PrivateStockFacet System", function () {
         .add64(100) // quantity
         .add64(1000) // share_price
         .encrypt();
-      console.log(capTableAddress, signers.founder.address)
+      console.log("cap table:", capTableAddress, "signer:", signers.founder.address);
       // Create issue private stock parameters
       const issuePrivateStockParams = {
         id: ethers.hexlify(ethers.randomBytes(16)),
@@ -228,6 +249,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       // Issue private stock
@@ -239,7 +261,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should issue private stock and show decoded data", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const clearQuantity = 150;
@@ -262,6 +283,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       // Issue private stock
@@ -269,10 +291,7 @@ describe("PrivateStockFacet System", function () {
       await tx.wait();
 
       // Get the security ID from the stakeholder's securities
-      const securities = await privateStockFacet.getPrivateStakeholderSecurities(
-        signers.investor1.address,
-        issuePrivateStockParams.stock_class_id,
-      );
+      const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, issuePrivateStockParams.stock_class_id);
       const securityId = securities[0];
 
       // Get the private stock position
@@ -280,20 +299,10 @@ describe("PrivateStockFacet System", function () {
       console.log(position);
 
       // Decode the encrypted quantity
-      const decodedQuantity = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.quantity,
-        capTableAddress,
-        signers.founder,
-      );
+      const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, signers.founder);
 
       // Decode the encrypted share price
-      const decodedSharePrice = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.share_price,
-        capTableAddress,
-        signers.founder,
-      );
+      const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, signers.founder);
 
       // Verify the decoded values match the original values
       expect(decodedQuantity).to.equal(clearQuantity);
@@ -307,7 +316,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should issue multiple private stocks and show decoded totals", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const stockClassId = ethers.hexlify(ethers.randomBytes(16));
@@ -322,11 +330,7 @@ describe("PrivateStockFacet System", function () {
         totalQuantity += quantity;
         totalValue += quantity * sharePrice;
 
-        const encryptedInput = await fhevm
-          .createEncryptedInput(capTableAddress, signers.founder.address)
-          .add64(quantity)
-          .add64(sharePrice)
-          .encrypt();
+        const encryptedInput = await fhevm.createEncryptedInput(capTableAddress, signers.founder.address).add64(quantity).add64(sharePrice).encrypt();
 
         const issuePrivateStockParams = {
           id: ethers.hexlify(ethers.randomBytes(16)),
@@ -338,6 +342,7 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          admin_viewer: signers.founder.address,
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -355,19 +360,9 @@ describe("PrivateStockFacet System", function () {
       for (let i = 0; i < securities.length; i++) {
         const position = await privateStockFacet.getPrivateStockPosition(securities[i]);
 
-        const decodedQuantity = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.quantity,
-          capTableAddress,
-          signers.founder,
-        );
+        const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, signers.founder);
 
-        const decodedSharePrice = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.share_price,
-          capTableAddress,
-          signers.founder,
-        );
+        const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, signers.founder);
 
         decodedTotalQuantity += Number(decodedQuantity);
         decodedTotalValue += Number(decodedQuantity) * Number(decodedSharePrice);
@@ -388,7 +383,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should not allow non-operators to issue private stock", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -407,13 +401,13 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       await expect(privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof)).to.be.reverted;
     });
 
     it("should generate unique security IDs", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput1 = await fhevm
@@ -438,6 +432,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       const issuePrivateStockParams2 = {
@@ -450,6 +445,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       // Issue private stock to two different investors
@@ -465,7 +461,6 @@ describe("PrivateStockFacet System", function () {
     let securityId: string;
 
     beforeEach(async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -484,20 +479,17 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
 
       // Get the security ID from the stakeholder's securities
-      const securities = await privateStockFacet.getPrivateStakeholderSecurities(
-        signers.investor1.address,
-        issuePrivateStockParams.stock_class_id,
-      );
+      const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, issuePrivateStockParams.stock_class_id);
       securityId = securities[0];
     });
 
     it("should allow operators to get private stock position", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
       const position = await privateStockFacet.getPrivateStockPosition(securityId);
 
@@ -512,25 +504,14 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should retrieve and decode private stock position data", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
       const position = await privateStockFacet.getPrivateStockPosition(securityId);
 
       // Decode the encrypted quantity
-      const decodedQuantity = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.quantity,
-        capTableAddress,
-        signers.founder,
-      );
+      const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, signers.founder);
 
       // Decode the encrypted share price
-      const decodedSharePrice = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.share_price,
-        capTableAddress,
-        signers.founder,
-      );
+      const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, signers.founder);
 
       console.log("Retrieved and decoded private stock position:");
       console.log("  Security ID:", securityId);
@@ -544,7 +525,6 @@ describe("PrivateStockFacet System", function () {
       expect(decodedQuantity).to.equal(100);
       expect(decodedSharePrice).to.equal(1000);
     });
-
   });
 
   describe("Private Stakeholder Securities", function () {
@@ -555,7 +535,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should return correct private securities for stakeholder", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -574,6 +553,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -584,7 +564,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should retrieve and decode multiple private securities for stakeholder", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       // Issue multiple private securities to the same stakeholder
@@ -611,6 +590,7 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          admin_viewer: signers.founder.address,
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -627,19 +607,9 @@ describe("PrivateStockFacet System", function () {
       for (let i = 0; i < securities.length; i++) {
         const position = await privateStockFacet.getPrivateStockPosition(securities[i]);
 
-        const decodedQuantity = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.quantity,
-          capTableAddress,
-          signers.founder,
-        );
+        const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, signers.founder);
 
-        const decodedSharePrice = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.share_price,
-          capTableAddress,
-          signers.founder,
-        );
+        const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, signers.founder);
 
         const positionValue = Number(decodedQuantity) * Number(decodedSharePrice);
 
@@ -656,7 +626,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should allow operators to view all private stakeholder securities", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -675,6 +644,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -685,7 +655,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should allow investors to view their own private securities", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const encryptedInput = await fhevm
@@ -704,6 +673,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -713,12 +683,10 @@ describe("PrivateStockFacet System", function () {
 
       expect(securities.length).to.equal(1);
     });
-
   });
 
   describe("Investor Private Stock Position Decoding", function () {
     it("should allow investor to decode their own private stock position data", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const clearQuantity = 200;
@@ -741,6 +709,7 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        admin_viewer: signers.founder.address,
       };
 
       // Issue private stock
@@ -748,10 +717,7 @@ describe("PrivateStockFacet System", function () {
       await tx.wait();
 
       // Get the security ID from the stakeholder's securities
-      const securities = await privateStockFacet.getPrivateStakeholderSecurities(
-        signers.investor1.address,
-        issuePrivateStockParams.stock_class_id,
-      );
+      const securities = await privateStockFacet.getPrivateStakeholderSecurities(signers.investor1.address, issuePrivateStockParams.stock_class_id);
       const securityId = securities[0];
 
       // Investor connects to the contract and gets their own position
@@ -759,20 +725,10 @@ describe("PrivateStockFacet System", function () {
       const position = await investorPrivateStockFacet.getPrivateStockPosition(securityId);
 
       // Investor decrypts their own encrypted quantity
-      const decodedQuantity = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.quantity,
-        capTableAddress,
-        signers.investor1,
-      );
+      const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, signers.investor1);
 
       // Investor decrypts their own encrypted share price
-      const decodedSharePrice = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        position.share_price,
-        capTableAddress,
-        signers.investor1,
-      );
+      const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, signers.investor1);
 
       // Verify the decoded values match the original values
       expect(decodedQuantity).to.equal(clearQuantity);
@@ -788,7 +744,6 @@ describe("PrivateStockFacet System", function () {
     });
 
     it("should allow multiple investors to decode their own private stock position data", async function () {
-
       const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
 
       const stockClassId = ethers.hexlify(ethers.randomBytes(16));
@@ -815,6 +770,7 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          admin_viewer: signers.founder.address,
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -830,20 +786,10 @@ describe("PrivateStockFacet System", function () {
         const position = await investorPrivateStockFacet.getPrivateStockPosition(securityId);
 
         // Investor decrypts their own encrypted quantity
-        const decodedQuantity = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.quantity,
-          capTableAddress,
-          data.investor,
-        );
+        const decodedQuantity = await fhevm.userDecryptEuint(FhevmType.euint64, position.quantity, capTableAddress, data.investor);
 
         // Investor decrypts their own encrypted share price
-        const decodedSharePrice = await fhevm.userDecryptEuint(
-          FhevmType.euint64,
-          position.share_price,
-          capTableAddress,
-          data.investor,
-        );
+        const decodedSharePrice = await fhevm.userDecryptEuint(FhevmType.euint64, position.share_price, capTableAddress, data.investor);
 
         // Verify the decoded values match the original values
         expect(decodedQuantity).to.equal(data.quantity);

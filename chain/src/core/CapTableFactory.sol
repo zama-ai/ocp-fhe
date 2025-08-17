@@ -10,7 +10,8 @@ import { AccessControlFacet } from "src/facets/AccessControlFacet.sol";
 import { AccessControl } from "src/libraries/AccessControl.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DiamondLoupeFacet } from "diamond-3-hardhat/contracts/facets/DiamondLoupeFacet.sol";
-import {PrivateStockFacet} from "src/facets/PrivateStockFacet.sol";
+import { PrivateStockFacet } from "src/facets/PrivateStockFacet.sol";
+
 contract CapTableFactory is Ownable {
     event CapTableCreated(address indexed capTable, bytes16 indexed issuerId);
 

@@ -322,16 +322,16 @@ task("list-captables", "List all deployed CapTables and factory information").se
   // Table header
   console.log(
     "│" +
-    " #".padEnd(4) +
-    "│" +
-    " Address".padEnd(44) +
-    "│" +
-    " Issuer ID".padEnd(36) +
-    "│" +
-    " Shares".padEnd(12) +
-    "│" +
-    " Deployed".padEnd(20) +
-    "│"
+      " #".padEnd(4) +
+      "│" +
+      " Address".padEnd(44) +
+      "│" +
+      " Issuer ID".padEnd(36) +
+      "│" +
+      " Shares".padEnd(12) +
+      "│" +
+      " Deployed".padEnd(20) +
+      "│"
   );
   console.log("├" + "─".repeat(4) + "┼" + "─".repeat(44) + "┼" + "─".repeat(36) + "┼" + "─".repeat(12) + "┼" + "─".repeat(20) + "┤");
 
@@ -344,16 +344,16 @@ task("list-captables", "List all deployed CapTables and factory information").se
 
     console.log(
       "│" +
-      ` ${(index + 1).toString()}`.padEnd(4) +
-      "│" +
-      ` ${shortAddress}`.padEnd(44) +
-      "│" +
-      ` ${shortIssuerId}`.padEnd(36) +
-      "│" +
-      ` ${formattedShares}`.padEnd(12) +
-      "│" +
-      ` ${deployedDate}`.padEnd(20) +
-      "│"
+        ` ${(index + 1).toString()}`.padEnd(4) +
+        "│" +
+        ` ${shortAddress}`.padEnd(44) +
+        "│" +
+        ` ${shortIssuerId}`.padEnd(36) +
+        "│" +
+        ` ${formattedShares}`.padEnd(12) +
+        "│" +
+        ` ${deployedDate}`.padEnd(20) +
+        "│"
     );
   });
 
@@ -562,6 +562,7 @@ task("issue-private-stock", "Issue FHE-encrypted private stock to a stakeholder"
       custom_id: "",
       stock_legend_ids_mapping: "",
       security_law_exemptions_mapping: "",
+      admin_viewer: signer.address,
     };
 
     // Issue private stock

@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {FHE} from "@fhevm/solidity/lib/FHE.sol";
+import { FHE } from "@fhevm/solidity/lib/FHE.sol";
 
 import { StorageLib, Storage } from "src/core/Storage.sol";
-import { PrivateStockActivePosition,IssuePrivateStockParams } from "src/libraries/Structs.sol";
+import { PrivateStockActivePosition, IssuePrivateStockParams } from "src/libraries/Structs.sol";
 import { TxHelper, TxType } from "src/libraries/TxHelper.sol";
 import { AccessControl } from "src/libraries/AccessControl.sol";
 import { IPrivateStockFacet } from "src/interfaces/IPrivateStockFacet.sol";
-import {ZamaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import { ZamaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract PrivateStockFacet is IPrivateStockFacet, Initializable {
-
-
     function initialize() public initializer {
         FHE.setCoprocessor(ZamaConfig.getSepoliaConfig());
         FHE.setDecryptionOracle(ZamaConfig.getSepoliaOracleAddress());
@@ -33,12 +31,12 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         FHE.allowThis(position.quantity);
         FHE.allow(position.quantity, msg.sender);
         FHE.allow(position.quantity, params.stakeholder_address);
-
+        FHE.allow(position.quantity, params.admin_viewer);
 
         FHE.allowThis(position.share_price);
         FHE.allow(position.share_price, msg.sender);
         FHE.allow(position.share_price, params.stakeholder_address);
-
+        FHE.allow(position.share_price, params.admin_viewer);
 
         // Store the position
         ds._privateStockActivePositions.securities[params.security_id] = position;
@@ -51,16 +49,14 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
     }
 
     function issuePrivateStocks(IssuePrivateStockParams[] calldata params, bytes calldata inputProof) external {
-
         if (!AccessControl.hasAdminRole(msg.sender)) {
             revert AccessControl.AccessControlUnauthorized(msg.sender, AccessControl.DEFAULT_ADMIN_ROLE);
         }
 
-        for(uint256 i = 0; i < params.length; i++) {
+        for (uint256 i = 0; i < params.length; i++) {
             issuePrivateStockInternal(params[i], inputProof);
         }
     }
-
 
     /// @notice Get details of a stock position
     /// @dev Accessible to INVESTOR_ROLE and above

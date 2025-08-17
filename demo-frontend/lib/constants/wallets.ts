@@ -82,7 +82,7 @@ export const PREDEFINED_WALLETS: PredefinedWallet[] = [
     company: 'System',
     role: 'ADMIN',
     privateKey: getPrivateKey(process.env.NEXT_PUBLIC_WALLET_PRIVATE_KEY_ADMIN),
-    address: '0xBCdEf0138bc7CE112385f2c47479993F25256452',
+    address: '0x782E9f5336d64493E059Ff539b3dB51fd173275F',
     icon: 'Shield',
   },
 ];
