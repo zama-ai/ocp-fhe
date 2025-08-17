@@ -15,7 +15,12 @@ export function useAccount(): UseAccountReturnType {
   const wagmiAccount = useAccountWagmi();
 
   const { data: accountData } = useQuery({
-    queryKey: ['account-proxy', isOwnWallet, selectedWallet],
+    queryKey: [
+      'account-proxy',
+      isOwnWallet,
+      selectedWallet,
+      wagmiAccount.address ?? '0x',
+    ],
     queryFn: () => {
       if (isOwnWallet) {
         return wagmiAccount;
