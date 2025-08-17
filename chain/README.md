@@ -71,17 +71,17 @@ Call `initialize()` once after adding the facet to the Diamond.
 
 ```solidity
 // Import external encrypted inputs using the proof from the SDK
-position.quantity = FHE.fromExternal(params.quantity, inputProof);
-position.share_price = FHE.fromExternal(params.share_price, inputProof);
+position.quantity = FHE.fromExternal(params.quantity, inputProof)
+position.share_price = FHE.fromExternal(params.share_price, inputProof)
 
 // Grant read permissions to founder (msg.sender) and investor
-FHE.allowThis(position.quantity);
-FHE.allow(position.quantity, msg.sender);
-FHE.allow(position.quantity, params.stakeholder_address);
+FHE.allowThis(position.quantity)
+FHE.allow(position.quantity, msg.sender)
+FHE.allow(position.quantity, params.stakeholder_address)
 
-FHE.allowThis(position.share_price);
-FHE.allow(position.share_price, msg.sender);
-FHE.allow(position.share_price, params.stakeholder_address);
+FHE.allowThis(position.share_price)
+FHE.allow(position.share_price, msg.sender)
+FHE.allow(position.share_price, params.stakeholder_address)
 ```
 
 Notes:
