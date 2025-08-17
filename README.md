@@ -7,6 +7,11 @@ This repository is a fork of Fairmint’s Open Cap Table Protocol (Diamond archi
 - **`chain/`** — Fairmint Diamond contracts plus the new `PrivateStockFacet` (Hardhat + `@fhevm/solidity`).
 - **`demo-frontend/`** — Next.js demo app; integrates `privateStockFacetAbi` and Zama Relayer SDK.
 
+## Setup and test guides
+
+- Contracts (Hardhat + FHE): see `chain/README.md` for install, compile, test, and deploy steps → [Contracts setup guide](chain/README.md)
+- Frontend (Next.js + Relayer SDK): see `demo-frontend/README.md` for install, run, and usage → [Frontend setup guide](demo-frontend/README.md)
+
 
 ## What this includes
 

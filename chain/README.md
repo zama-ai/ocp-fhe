@@ -3,6 +3,7 @@
 ### Build
 
 ```shell
+$ npm install
 $ npm run compile
 ```
 
@@ -10,6 +11,35 @@ $ npm run compile
 
 ```shell
 $ npm run test
+```
+
+### Environment variables
+
+```env
+# Hardhat vars (set via: npx hardhat vars set KEY VALUE)
+# Used by hardhat.config.ts via vars.get(...)
+MNEMONIC="test test test test test test test test test test test junk"
+RPC_URL=https://sepolia.infura.io/v3/your-key
+ETHERSCAN_API_KEY=your_etherscan_key
+
+# Optional gas reporter
+REPORT_GAS=true
+```
+
+### Local network (optional)
+
+Use Anvil/Hardhat node in another terminal if needed:
+
+```shell
+npx hardhat node
+```
+
+### Deploy (example)
+
+Deploy the reference diamond and factory (adjust network):
+
+```shell
+npx hardhat run deploy/deployFactory.ts --network sepolia
 ```
 
 ### Format
