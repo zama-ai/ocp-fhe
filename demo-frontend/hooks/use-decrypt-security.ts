@@ -1,16 +1,15 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { toast } from 'sonner';
 import { useDecryptionStore } from '@/stores/decryption-store';
 import { useRoleStore } from '@/stores/role-store';
 import { useFhevm } from '@/hooks/use-fhevm';
 import { privateStockFacetAbi } from '@/lib/abi/privateStockFacetAbi';
-import { clientToSigner } from '@/lib/wagmi-etheres-adapter';
-import { useConnectorClient } from 'wagmi';
 import { readContract } from '@wagmi/core';
 import { config } from '@/config/wagmi';
+import { useSigner } from './use-signer';
 
 export interface UseDecryptSecurityResult {
   decryptSecurities: (securityIds: string[]) => Promise<void>;
@@ -37,7 +36,8 @@ export function useDecryptSecurity(
   companyAddress: string
 ): UseDecryptSecurityResult {
   const { address: walletAddress } = useAccount();
-  const { data: client } = useConnectorClient();
+  // const { data: connectorClient } = useConnectorClient();
+  const signer = useSigner();
   const { role } = useRoleStore();
   const { data: fhevmInstance } = useFhevm();
 
@@ -54,6 +54,7 @@ export function useDecryptSecurity(
   const canDecrypt = useCallback(
     (investorAddress: string): boolean => {
       if (!walletAddress) return false;
+      if (role === 'ADMIN') return true; // Admins can decrypt all data
 
       if (role === 'FOUNDER') return true;
       if (role === 'INVESTOR') {
@@ -106,7 +107,7 @@ export function useDecryptSecurity(
   // Main batch decryption function
   const decryptSecurities = useCallback(
     async (securityIds: string[]) => {
-      if (!walletAddress || !client || !fhevmInstance) {
+      if (!walletAddress || !signer || !fhevmInstance) {
         toast.error('Wallet not connected or FHEVM not initialized');
         return;
       }
@@ -169,7 +170,6 @@ export function useDecryptSecurity(
         }
 
         // Perform FHE decryption
-        const signer = clientToSigner(client);
 
         // Generate keypair
         const keypair = fhevmInstance.generateKeypair();
@@ -220,24 +220,24 @@ export function useDecryptSecurity(
           eip712.message
         );
 
-        // // Decrypt all values in a single call
-        // const result = await fhevmInstance.userDecrypt(
-        //   handleContractPairs,
-        //   keypair.privateKey,
-        //   keypair.publicKey,
-        //   signature.replace('0x', ''),
-        //   contractAddresses,
-        //   signer.address,
-        //   startTimeStamp,
-        //   durationDays
-        // );
-        // mock decryption, wait for 2 seconds
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const result: Record<string, bigint | boolean | string> = {};
-        validSecurities.forEach(({ securityId, position }) => {
-          result[position.quantity] = BigInt(1000); // Mock quantity
-          result[position.share_price] = BigInt(50); // Mock share price
-        });
+        // Decrypt all values in a single call
+        const result = await fhevmInstance.userDecrypt(
+          handleContractPairs,
+          keypair.privateKey,
+          keypair.publicKey,
+          signature.replace('0x', ''),
+          contractAddresses,
+          signer.address,
+          startTimeStamp,
+          durationDays
+        );
+        // // mock decryption, wait for 2 seconds
+        // await new Promise(resolve => setTimeout(resolve, 2000));
+        // const result: Record<string, bigint | boolean | string> = {};
+        // validSecurities.forEach(({ securityId, position }) => {
+        //   result[position.quantity] = BigInt(1000); // Mock quantity
+        //   result[position.share_price] = BigInt(50); // Mock share price
+        // });
 
         // Parse results and store decrypted data
         const decryptedSecurities: Record<
@@ -298,7 +298,7 @@ export function useDecryptSecurity(
     },
     [
       walletAddress,
-      client,
+      signer,
       fhevmInstance,
       companyAddress,
       canDecrypt,

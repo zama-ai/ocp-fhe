@@ -1,6 +1,6 @@
 'use client';
 
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useRoleStore } from '@/stores/role-store';
 import { useCompanies, useFounderCompanies } from '@/hooks/use-companies';
 import { CreateCompanyModal } from '@/components/create-company-modal';

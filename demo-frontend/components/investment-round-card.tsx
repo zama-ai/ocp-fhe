@@ -5,7 +5,7 @@ import { EyeIcon, PiggyBankIcon, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDecryptSecurity } from '@/hooks/use-decrypt-security';
 import { EncryptedCell } from '@/components/ui/encrypted-cell';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useRoleStore } from '@/stores/role-store';
 
 interface InvestmentRoundCardProps {

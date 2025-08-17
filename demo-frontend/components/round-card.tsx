@@ -4,7 +4,7 @@ import { LockIcon, EyeIcon, PiggyBankIcon } from 'lucide-react';
 import { useDecryptSecurity } from '@/hooks/use-decrypt-security';
 import { EncryptedCell } from '@/components/ui/encrypted-cell';
 import { Round } from '@/lib/types/company';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useRoleStore } from '@/stores/role-store';
 
 interface RoundCardProps {
@@ -62,6 +62,11 @@ export function RoundCard({
   // Helper function to determine if user can decrypt investor's data
   const canDecryptInvestor = (investorAddress: string): boolean => {
     if (!walletAddress) return false;
+
+    if (role === 'ADMIN') {
+      // Admins can decrypt all data
+      return true;
+    }
 
     if (role === 'FOUNDER') {
       // Only company owners can decrypt data when in FOUNDER role

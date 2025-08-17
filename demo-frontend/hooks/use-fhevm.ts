@@ -1,6 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
-import { useAccount, useConnectorClient } from 'wagmi';
+import { usePublicClient } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import {
   createInstance,
   initSDK,
@@ -12,7 +13,10 @@ const sepoliaChainId = 11155111; // Sepolia testnet chain ID
 
 export function useFhevm() {
   const { address, chainId } = useAccount();
-  const { data: client } = useConnectorClient();
+
+  const client = usePublicClient({
+    chainId: sepoliaChainId,
+  });
 
   return useQuery({
     queryKey: ['fhevm', address, chainId],

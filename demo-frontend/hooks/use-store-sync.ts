@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useRoleStore } from '@/stores/role-store';
 import { useDecryptionStore } from '@/stores/decryption-store';
 

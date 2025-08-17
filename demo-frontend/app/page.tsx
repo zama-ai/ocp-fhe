@@ -23,14 +23,16 @@ import {
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
+import { PREDEFINED_WALLETS } from '@/lib/constants/wallets';
 
 export default function Home() {
-  const { role, setRole } = useRoleStore();
+  const { role, switchToPredefinedWallet } = useRoleStore();
 
   const roleCards = [
     {
       role: 'FOUNDER' as Role,
       title: 'Founder',
+      wallet: PREDEFINED_WALLETS[0],
       description: 'Company owners with full access',
       permissions: [
         { icon: Plus, text: 'Create companies, issue shares', allowed: true },
@@ -42,6 +44,7 @@ export default function Home() {
     {
       role: 'INVESTOR' as Role,
       title: 'Investor',
+      wallet: PREDEFINED_WALLETS[1],
       description: 'Stakeholders with limited access',
       permissions: [
         { icon: Eye, text: 'See own investments', allowed: true },
@@ -58,6 +61,7 @@ export default function Home() {
     {
       role: 'PUBLIC' as Role,
       title: 'Public',
+      wallet: PREDEFINED_WALLETS[4],
       description: 'General users with read-only access',
       permissions: [
         { icon: Building2, text: 'Browse companies and rounds', allowed: true },
@@ -190,7 +194,7 @@ export default function Home() {
                 </div>
 
                 <Button
-                  onClick={() => setRole(roleCard.role)}
+                  onClick={() => switchToPredefinedWallet(roleCard.wallet)}
                   className={`w-full ${roleCard.buttonColor} text-white`}
                   variant={role === roleCard.role ? 'default' : 'outline'}
                 >

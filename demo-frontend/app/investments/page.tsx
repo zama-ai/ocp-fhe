@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useInvestments } from '@/hooks/use-investments';
 import { Skeleton } from '@/components/ui/skeleton';
 import {

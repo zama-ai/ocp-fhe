@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-} from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useFhevm } from './use-fhevm';
 import { privateStockFacetAbi } from '@/lib/abi/privateStockFacetAbi';
 import {
@@ -48,7 +45,7 @@ type CreateRoundStep =
   | 'complete';
 
 export function useCreateRound(companyId: string, contractAddress: string) {
-  const { address } = useAccount();
+  const { address, proxyAccount } = useAccount();
   const queryClient = useQueryClient();
   const { data: fhevmInstance, isLoading: isFhevmLoading } = useFhevm();
 
@@ -210,6 +207,7 @@ export function useCreateRound(companyId: string, contractAddress: string) {
       // Step 3: Call smart contract
       setStep('contract');
       writeContract({
+        account: proxyAccount,
         address: contractAddress as `0x${string}`,
         abi: privateStockFacetAbi,
         functionName: 'issuePrivateStocks',

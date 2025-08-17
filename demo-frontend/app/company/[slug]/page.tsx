@@ -7,7 +7,7 @@ import { LockIcon, UnlockIcon, Plus, AlertCircle } from 'lucide-react';
 import { useRole } from '@/hooks/use-role';
 import { useCompany } from '@/hooks/use-company';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAccount } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import dynamic from 'next/dynamic';
 import { Round } from '@/lib/types/company';
 

@@ -1,7 +1,7 @@
 import {
   Config,
-  getConnectorClient,
   GetConnectorClientReturnType,
+  GetPublicClientReturnType,
 } from '@wagmi/core';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 
@@ -26,16 +26,7 @@ export function clientToSigner(
 }
 
 export function clientToEthersTransport(
-  client: GetConnectorClientReturnType<Config, number>
+  client: NonNullable<GetPublicClientReturnType<Config, number>>
 ) {
   return client.transport;
-}
-
-/** Action to convert a viem Wallet Client to an ethers.js Signer. */
-export async function getEthersSigner(
-  config: Config,
-  { chainId }: { chainId?: number } = {}
-) {
-  const client = await getConnectorClient(config, { chainId });
-  return clientToSigner(client);
 }

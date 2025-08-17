@@ -1,9 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-} from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
 import { useState, useEffect, useMemo } from 'react';
 import { parseEventLogs } from 'viem';
 import {
@@ -54,6 +51,7 @@ export function useFounderCompanies(founderAddress?: string) {
 // Contract interaction hook for creating cap table
 export function useCreateCompanyContract(companyId?: `0x${string}`) {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { proxyAccount } = useAccount();
 
   // Wait for transaction confirmation and get receipt
   const {
@@ -90,6 +88,7 @@ export function useCreateCompanyContract(companyId?: `0x${string}`) {
     }
 
     writeContract({
+      account: proxyAccount,
       address: factoryAddress as `0x${string}`,
       abi: privateCapTableFactoryAbi,
       functionName: 'createCapTable',
