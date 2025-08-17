@@ -1,116 +1,131 @@
-# Open Cap Table Protocol (OCP)
+# Fairmint OCP Fork + PrivateStockFacet (FHE)
 
-This repository implements the **Open Cap Table Protocol (OCP)** for managing cap tables on-chain. It adheres to the **Open Cap Format (OCF)** standard for data modeling and validation. OCP supports managing cap tables across multiple **EVM-compatible chains**.
+This repository is a fork of Fairmint’s Open Cap Table Protocol (Diamond architecture) augmented with a new facet, `PrivateStockFacet`, that demonstrates Fully Homomorphic Encryption (FHE) for confidential allocations. Using Zama’s FHEVM toolchain, we store and compute on encrypted values (shares, price/share, investment) while preserving role‑based access for founders and investors and keeping public views privacy‑safe.
 
-## Repo Organization
 
--   **`src/`** → Server files (routes, MongoDB, etc.)
--   **`chain/`** → Smart contracts (Diamond pattern with facets)
+## What this includes
 
-## Prerequisites
+- **Encrypted allocations:** shares and price/share are stored as encrypted integers and multiplied homomorphically for investment amounts.
+- **Role‑based visibility:** founders can decrypt all allocations; investors can decrypt only their own; the public cannot decrypt.
+- **Per‑position access control:** decryption permissions are granted per security position using Zama’s access control primitives.
 
-Ensure you have the following installed:
 
--   [Forge](https://book.getfoundry.sh/)
--   [Node.js](https://nodejs.org/)
--   [Yarn](https://yarnpkg.com/)
 
-## Setup & Running Locally
 
-1. Copy `.env.example` to `.env.local`. (The example file includes a local database setup for testing, which we recommend.)
+### Smart contracts (new facet)
 
-### Setup
+- **`chain/src/facets/PrivateStockFacet.sol`** (new)
+  - `initialize()` — configures FHE coprocessor and decryption oracle
+  - `issuePrivateStocks(IssuePrivateStockParams[] params, bytes inputProof)` — issues encrypted positions; grants viewing permissions to founder and the investor
+  - `getPrivateStockPosition(bytes16 securityId)` — returns an encrypted position
+  - `getPrivateStakeholderSecurities(address stakeholder, bytes16 stock_class_id)` — lists security IDs for a stakeholder
 
-1. Install dependencies:
+Related interfaces and structs:
+- **`chain/src/interfaces/IPrivateStockFacet.sol`** — facet ABI
+- **`chain/src/libraries/Structs.sol`** — `PrivateStockActivePosition`, `IssuePrivateStockParams`
+- **`chain/src/core/Storage.sol`** — persistent storage for private positions
 
-    ```sh
-    yarn install
-    ```
+## How FHE works here (high‑level)
 
-2. You should see the factory contracts successfully deployed.
+The contracts rely on Zama’s FHEVM to perform arithmetic on encrypted integers (`euint64`) and to enforce read permissions. Conceptually:
 
-3. Start services:
-
-    - **Terminal 1:** Start Anvil (local blockchain)
-        ```sh
-        anvil
-        ```
-      - Take one of the output's "Private Keys" and set your env file's `PRIVATE_KEY`
-
-    - **Terminal 2:** Deploy contracts
-        ```sh
-        yarn deploy:local
-        ```
-      - Set your env file's variables using output of deploy script
-
-          ```sh
-          DIAMOND_CUT_FACET=
-          ISSUER_FACET=
-          STAKEHOLDER_FACET=
-          STOCK_CLASS_FACET=
-          STOCK_FACET=
-          CONVERTIBLES_FACET=
-          EQUITY_COMPENSATION_FACET=
-          STOCK_PLAN_FACET=
-          WARRANT_FACET=
-          STAKEHOLDER_NFT_FACET=
-          ```
-
-    - **Terminal 3:** Run the mongo instance
-        ```sh
-        docker compose up
-        ```
-
-    - **Terminal 4:** Run the backend server
-        ```sh
-        yarn dev
-        ```
-
-## Multi-Chain Support
-
-This repository supports deploying cap tables to different **EVM chains**.
-
--   Check `/src/chains.js` and configure the required chain keys.
--   When making API requests:
-    -   **Issuer creation** → Pass `chainId` in the request body.
-    -   **Other transactions** (e.g., creating stakeholders, issuing stock) → Pass `issuerId` in the request body.
--   See `/src/routes` for implementation details.
-
-## Usage
-
-1. Create an **issuer** first.
-2. Add **stakeholders**, stock classes, and other relevant data.
-3. For quick testing, use the example script:
-    ```sh
-    node src/examples/testTransfer.mjs
-    ```
-
-## Resetting Local Testing
-
-If you are frequently testing locally, reset the database before redeploying:
-
-```sh
-yarn deseed
+```mermaid
+flowchart LR
+    Dapp["Dapp"] -- sign txs --> Wallet["Wallet"]
+    Dapp -- tx with encrypted data and proof --> CapTableContract["CapTableContract"]
+    CapTableContract -- give decryption access to investors and founder --> FHEVM["FHEVM"]
+    Dapp -- open --> RelayerSDK["RelayerSDK"]
+    RelayerSDK -- decrypt --> ZamaOracle["ZamaOracle"]
+    ZamaOracle -- proof --> RelayerSDK
+    FHEVM <--> ZamaOracle
+    RelayerSDK -- decrypted data --> Dapp
 ```
 
-## Deployment
+- **Encrypted types:** values are stored and computed as `euint64` via `@fhevm/solidity`.
+- **Homomorphic compute:** ciphertext multiplication/addition; plaintext is never revealed on‑chain.
+- **Access control:** `FHE.allow` grants per‑address visibility (founder and investor). Unprivileged callers get ciphertexts only.
+- **Sealed outputs:** authorized reads return sealed ciphertexts to be opened by the viewer through the Zama relayer/oracle flow.
+- **Network config:** `initialize()` configures coprocessor and oracle using `ZamaConfig` (e.g., Sepolia endpoints).
 
-Use the appropriate command to deploy contracts:
+> Note: This integration uses conservative `euint64` widths for simplicity. Production systems should select ciphertext parameters and ranges with care.
 
--   **Local:**
-    ```sh
-    # Clear envvars in .env.local if they exist from a previous deployment
-    yarn deploy:local
-    ```
--   **Testnet:**
-    ```sh
-    yarn deploy:testnet
-    ```
--   **Mainnet:**
-    ```sh
-    yarn deploy:mainnet
-    ```
+## Zama FHE integration
 
-## License
+### Encrypted types and proofs
 
-This project is licensed under the MIT License. See the [`LICENSE`](LICENSE) file for details.
+- Encrypted integers are handled with `euint64` on-chain (serialized as `bytes32` in ABI).
+- Inputs from the client are provided as `externalEuint64` plus an `inputProof` generated by Zama’s Relayer SDK.
+- Contracts import external ciphertexts with `FHE.fromExternal(externalEuint64, inputProof)` so plaintext never appears on-chain.
+
+### Contract initialization
+
+`PrivateStockFacet.initialize()` sets the FHE coprocessor and decryption oracle (Sepolia config by default):
+
+```solidity
+function initialize() public initializer {
+    FHE.setCoprocessor(ZamaConfig.getSepoliaConfig());
+    FHE.setDecryptionOracle(ZamaConfig.getSepoliaOracleAddress());
+}
+```
+
+Call `initialize()` once after adding the facet in your diamond cut/deploy flow.
+
+### Issuing encrypted allocations
+
+```solidity
+// params.quantity / params.share_price are externalEuint64 (from client SDK)
+euint64 q = FHE.fromExternal(params.quantity, inputProof);
+euint64 p = FHE.fromExternal(params.share_price, inputProof);
+
+// Grant per-address read permissions
+FHE.allowThis(q);
+FHE.allow(q, msg.sender);
+FHE.allow(q, params.stakeholder_address);
+
+FHE.allowThis(p);
+FHE.allow(p, msg.sender);
+FHE.allow(p, params.stakeholder_address);
+```
+
+Values are stored encrypted in storage. Any arithmetic (e.g., investment amount) can be performed homomorphically without revealing plaintext.
+
+### Reading and decrypting
+
+- Read functions (e.g., `getPrivateStockPosition`) return ciphertexts or sealed values.
+- Authorized users decrypt client-side via the Relayer SDK → Oracle flow.
+
+Client-side (pseudocode):
+
+```ts
+import { initSDK, createInstance, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
+
+await initSDK();
+const sdk = await createInstance({ ...SepoliaConfig, network /* viem/ethers transport */ });
+
+// Fetch sealed ciphertexts from the facet
+const position = await contract.read.getPrivateStockPosition(securityId);
+
+// Open only if the caller’s address was granted via FHE.allow on-chain
+const quantity = await sdk.open(position.quantity);
+const price = await sdk.open(position.share_price);
+```
+
+Unauthorized users cannot open sealed values, even if they can read storage.
+
+### Network configuration
+
+- The repo targets Sepolia via `ZamaConfig`; swap to other supported networks by changing coprocessor/oracle addresses.
+- Ensure the frontend uses the same network when initializing the Relayer SDK.
+
+## Repository layout
+
+- **`chain/`** — Fairmint Diamond contracts plus the new `PrivateStockFacet` (Hardhat + `@fhevm/solidity`).
+- **`demo-frontend/`** — Next.js demo app; integrates `privateStockFacetAbi` and Zama Relayer SDK.
+
+
+## Running locally
+
+Prerequisites:
+- Node.js 18+
+- pnpm or yarn
+- Docker (for optional local services)
