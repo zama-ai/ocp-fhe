@@ -12,18 +12,23 @@ export function useSigner() {
   const { address: connectedAddress } = useAccount();
 
   return useQuery({
-    queryKey: ['signer', isOwnWallet, selectedWallet, connectedAddress],
+    queryKey: [
+      'signer',
+      isOwnWallet,
+      selectedWallet ?? '0x',
+      connectedAddress ?? '0x',
+    ],
     queryFn: () => {
       if (isOwnWallet) {
         // Use connected wallet via wagmi
-        return connectorClient ? clientToSigner(connectorClient) : undefined;
+        return connectorClient ? clientToSigner(connectorClient) : null;
       } else {
         // Use predefined wallet with private key
         if (selectedWallet?.privateKey) {
           return new Wallet(selectedWallet.privateKey);
         }
       }
-      return undefined;
+      return null;
     },
   });
 }

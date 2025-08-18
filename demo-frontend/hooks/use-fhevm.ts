@@ -35,7 +35,6 @@ export function useFhevm() {
         ...SepoliaConfig,
         network,
       });
-      console.log('FHEVM instance created:', instance);
       return instance;
     },
     enabled: !!address && !!chainId && !!client,

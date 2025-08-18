@@ -27,11 +27,6 @@ export function useAccount(): UseAccountReturnType {
       }
 
       if (selectedWallet) {
-        console.log(selectedWallet);
-        console.log(
-          'Using selected wallet from role store:',
-          selectedWallet.privateKey
-        );
         return {
           address: selectedWallet.address as `0x${string}`,
           isConnected: true,
@@ -59,30 +54,6 @@ export function useAccount(): UseAccountReturnType {
       chainId: undefined,
     }
   );
-
-  // if (isOwnWallet) {
-  //   return wagmiAccount;
-  // }
-  // if (selectedWallet) {
-  //   console.log(selectedWallet);
-  //   console.log(
-  //     'Using selected wallet from role store:',
-  //     selectedWallet.privateKey
-  //   );
-  //   return {
-  //     address: selectedWallet.address as `0x${string}`,
-  //     isConnected: true,
-  //     chainId: 11155111,
-  //     proxyAccount: privateKeyToAccount(
-  //       selectedWallet.privateKey as `0x${string}`
-  //     ),
-  //   } as UseAccountReturnType;
-  // }
-  // return {
-  //   address: undefined,
-  //   isConnected: false,
-  //   chainId: undefined,
-  // };
 }
 
 // also used from wagmi:
