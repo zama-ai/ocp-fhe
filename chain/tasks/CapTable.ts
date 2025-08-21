@@ -537,7 +537,7 @@ task("issue-private-stock", "Issue FHE-encrypted private stock to a stakeholder"
     // Create encrypted input
     console.log("\n🔐 CREATING ENCRYPTED INPUT");
     console.log("-".repeat(40));
-    const encryptedInput = await fhevm.createEncryptedInput(capTableAddress, signer.address).add64(quantity).add64(price).encrypt();
+    const encryptedInput = await fhevm.createEncryptedInput(capTableAddress, signer.address).add64(quantity).add64(price).add64(1000000).encrypt();
     console.log("✅ Encrypted input created");
     console.log("   Quantity handle:", encryptedInput.handles[0]);
     console.log("   Price handle:", encryptedInput.handles[1]);
@@ -562,6 +562,8 @@ task("issue-private-stock", "Issue FHE-encrypted private stock to a stakeholder"
       custom_id: "",
       stock_legend_ids_mapping: "",
       security_law_exemptions_mapping: "",
+      round_id: ethers.hexlify(ethers.randomBytes(16)),
+      pre_money_valuation: encryptedInput.handles[2],
     };
 
     // Issue private stock

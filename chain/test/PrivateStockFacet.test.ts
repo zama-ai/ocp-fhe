@@ -90,6 +90,7 @@ async function deployFixture() {
     functionSelectors: [
       privateStockFacet.interface.getFunction("initialize").selector,
       privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
+      privateStockFacet.interface.getFunction("getRoundTotalAmount").selector,
       privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
       privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector
     ]
@@ -215,6 +216,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
       console.log(capTableAddress, signers.founder.address)
       // Create issue private stock parameters
@@ -228,6 +230,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2], // pre_money_valuation
       };
 
       // Issue private stock
@@ -249,6 +253,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(clearQuantity) // quantity
         .add64(clearSharePrice) // share_price
+        .add64(5000000) // pre_money_valuation
         .encrypt();
 
       // Create issue private stock parameters
@@ -262,6 +267,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       // Issue private stock
@@ -299,11 +306,22 @@ describe("PrivateStockFacet System", function () {
       expect(decodedQuantity).to.equal(clearQuantity);
       expect(decodedSharePrice).to.equal(clearSharePrice);
 
+      // Decode and verify pre_money_valuation
+      const decodedPreMoneyValuation = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        position.pre_money_valuation,
+        capTableAddress,
+        signers.founder,
+      );
+
+      expect(Number(decodedPreMoneyValuation)).to.equal(5000000);
+
       console.log("Decoded private stock position data:");
       console.log("  Stakeholder address:", position.stakeholder_address);
       console.log("  Stock class ID:", position.stock_class_id);
       console.log("  Quantity (decoded):", decodedQuantity.toString());
       console.log("  Share price (decoded):", decodedSharePrice.toString());
+      console.log("  Pre-money valuation (decoded):", decodedPreMoneyValuation.toString());
     });
 
     it("should issue multiple private stocks and show decoded totals", async function () {
@@ -326,6 +344,7 @@ describe("PrivateStockFacet System", function () {
           .createEncryptedInput(capTableAddress, signers.founder.address)
           .add64(quantity)
           .add64(sharePrice)
+          .add64(1000000) // pre_money_valuation
           .encrypt();
 
         const issuePrivateStockParams = {
@@ -338,6 +357,8 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          round_id: ethers.hexlify(ethers.randomBytes(16)),
+          pre_money_valuation: encryptedInput.handles[2],
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -395,6 +416,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.unauthorized.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams = {
@@ -407,6 +429,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       await expect(privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof)).to.be.reverted;
@@ -420,12 +444,14 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const encryptedInput2 = await fhevm
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(200) // quantity
         .add64(1500) // share_price
+        .add64(2000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams1 = {
@@ -438,6 +464,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput1.handles[2],
       };
 
       const issuePrivateStockParams2 = {
@@ -450,6 +478,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput2.handles[2],
       };
 
       // Issue private stock to two different investors
@@ -472,6 +502,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams = {
@@ -484,6 +515,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -562,6 +595,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams = {
@@ -574,6 +608,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -599,6 +635,7 @@ describe("PrivateStockFacet System", function () {
           .createEncryptedInput(capTableAddress, signers.founder.address)
           .add64(data.quantity)
           .add64(data.sharePrice)
+          .add64(1000000) // pre_money_valuation
           .encrypt();
 
         const issuePrivateStockParams = {
@@ -611,6 +648,8 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          round_id: ethers.hexlify(ethers.randomBytes(16)),
+          pre_money_valuation: encryptedInput.handles[2],
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -641,17 +680,27 @@ describe("PrivateStockFacet System", function () {
           signers.founder,
         );
 
+        // Decode pre_money_valuation
+        const decodedPreMoneyValuation = await fhevm.userDecryptEuint(
+          FhevmType.euint64,
+          position.pre_money_valuation,
+          capTableAddress,
+          signers.founder,
+        );
+
         const positionValue = Number(decodedQuantity) * Number(decodedSharePrice);
 
         console.log(`  Security ${i + 1}:`);
         console.log("    Security ID:", securities[i]);
         console.log("    Quantity (decoded):", decodedQuantity.toString());
         console.log("    Share price (decoded):", decodedSharePrice.toString());
+        console.log("    Pre-money valuation (decoded):", decodedPreMoneyValuation.toString());
         console.log("    Position value:", positionValue.toString());
 
         // Verify the decoded values match the expected values
         expect(decodedQuantity).to.equal(securitiesData[i].quantity);
         expect(decodedSharePrice).to.equal(securitiesData[i].sharePrice);
+        expect(Number(decodedPreMoneyValuation)).to.equal(1000000);
       }
     });
 
@@ -663,6 +712,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams = {
@@ -675,6 +725,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -692,6 +744,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(100) // quantity
         .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
         .encrypt();
 
       const issuePrivateStockParams = {
@@ -704,6 +757,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -728,6 +783,7 @@ describe("PrivateStockFacet System", function () {
         .createEncryptedInput(capTableAddress, signers.founder.address)
         .add64(clearQuantity) // quantity
         .add64(clearSharePrice) // share_price
+        .add64(5000000) // pre_money_valuation
         .encrypt();
 
       // Create issue private stock parameters
@@ -741,6 +797,8 @@ describe("PrivateStockFacet System", function () {
         custom_id: "",
         stock_legend_ids_mapping: "",
         security_law_exemptions_mapping: "",
+        round_id: ethers.hexlify(ethers.randomBytes(16)),
+        pre_money_valuation: encryptedInput.handles[2],
       };
 
       // Issue private stock
@@ -803,6 +861,7 @@ describe("PrivateStockFacet System", function () {
           .createEncryptedInput(capTableAddress, signers.founder.address)
           .add64(data.quantity)
           .add64(data.sharePrice)
+          .add64(1000000) // pre_money_valuation
           .encrypt();
 
         const issuePrivateStockParams = {
@@ -815,6 +874,8 @@ describe("PrivateStockFacet System", function () {
           custom_id: "",
           stock_legend_ids_mapping: "",
           security_law_exemptions_mapping: "",
+          round_id: ethers.hexlify(ethers.randomBytes(16)),
+          pre_money_valuation: encryptedInput.handles[2],
         };
 
         await privateStockFacet.issuePrivateStocks([issuePrivateStockParams], encryptedInput.inputProof);
@@ -857,6 +918,82 @@ describe("PrivateStockFacet System", function () {
         console.log("  Share price (decoded by investor):", decodedSharePrice.toString());
         console.log("  Position value:", (Number(decodedQuantity) * Number(decodedSharePrice)).toString());
       }
+    });
+  });
+
+  describe("Round Total Amount", function () {
+    it("should track round total amount correctly", async function () {
+      const privateStockFacet = (await ethers.getContractAt("PrivateStockFacet", capTableAddress)).connect(signers.founder);
+
+      const roundId = ethers.hexlify(ethers.randomBytes(16));
+
+      // Issue first stock
+      const encryptedInput1 = await fhevm
+        .createEncryptedInput(capTableAddress, signers.founder.address)
+        .add64(100) // quantity
+        .add64(1000) // share_price
+        .add64(1000000) // pre_money_valuation
+        .encrypt();
+
+      const issuePrivateStockParams1 = {
+        id: ethers.hexlify(ethers.randomBytes(16)),
+        stock_class_id: ethers.hexlify(ethers.randomBytes(16)),
+        share_price: encryptedInput1.handles[1],
+        quantity: encryptedInput1.handles[0],
+        stakeholder_address: signers.investor1.address,
+        security_id: ethers.hexlify(ethers.randomBytes(16)),
+        custom_id: "",
+        stock_legend_ids_mapping: "",
+        security_law_exemptions_mapping: "",
+        round_id: roundId,
+        pre_money_valuation: encryptedInput1.handles[2],
+      };
+
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams1], encryptedInput1.inputProof);
+
+      // Issue second stock to same round
+      const encryptedInput2 = await fhevm
+        .createEncryptedInput(capTableAddress, signers.founder.address)
+        .add64(200) // quantity
+        .add64(1500) // share_price
+        .add64(2000000) // pre_money_valuation
+        .encrypt();
+
+      const issuePrivateStockParams2 = {
+        id: ethers.hexlify(ethers.randomBytes(16)),
+        stock_class_id: ethers.hexlify(ethers.randomBytes(16)),
+        share_price: encryptedInput2.handles[1],
+        quantity: encryptedInput2.handles[0],
+        stakeholder_address: signers.investor2.address,
+        security_id: ethers.hexlify(ethers.randomBytes(16)),
+        custom_id: "",
+        stock_legend_ids_mapping: "",
+        security_law_exemptions_mapping: "",
+        round_id: roundId,
+        pre_money_valuation: encryptedInput2.handles[2],
+      };
+
+      await privateStockFacet.issuePrivateStocks([issuePrivateStockParams2], encryptedInput2.inputProof);
+
+      // Get round total amount
+      const roundTotalAmount = await privateStockFacet.getRoundTotalAmount(roundId);
+
+      // Decode the total amount
+      const decodedTotalAmount = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        roundTotalAmount,
+        capTableAddress,
+        signers.founder,
+      );
+
+      // Expected: (100 * 1000) + (200 * 1500) = 100000 + 300000 = 400000
+      const expectedTotal = 100 * 1000 + 200 * 1500;
+      expect(Number(decodedTotalAmount)).to.equal(expectedTotal);
+
+      console.log("Round total amount test:");
+      console.log("  Round ID:", roundId);
+      console.log("  Expected total:", expectedTotal);
+      console.log("  Actual total (decoded):", decodedTotalAmount.toString());
     });
   });
 });

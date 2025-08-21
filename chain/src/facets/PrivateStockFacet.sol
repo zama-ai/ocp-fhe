@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {FHE} from "@fhevm/solidity/lib/FHE.sol";
+import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
 
 import { StorageLib, Storage } from "src/core/Storage.sol";
 import { PrivateStockActivePosition,IssuePrivateStockParams } from "src/libraries/Structs.sol";
@@ -27,18 +27,28 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
             stakeholder_address: params.stakeholder_address,
             stock_class_id: params.stock_class_id,
             quantity: FHE.fromExternal(params.quantity, inputProof),
-            share_price: FHE.fromExternal(params.share_price, inputProof)
+            share_price: FHE.fromExternal(params.share_price, inputProof),
+            pre_money_valuation: FHE.fromExternal(params.pre_money_valuation, inputProof)
         });
 
         FHE.allowThis(position.quantity);
         FHE.allow(position.quantity, msg.sender);
         FHE.allow(position.quantity, params.stakeholder_address);
 
-
         FHE.allowThis(position.share_price);
         FHE.allow(position.share_price, msg.sender);
         FHE.allow(position.share_price, params.stakeholder_address);
 
+        FHE.allowThis(position.pre_money_valuation);
+        FHE.allow(position.pre_money_valuation, msg.sender);
+        FHE.allow(position.pre_money_valuation, params.stakeholder_address);
+
+        euint64 positionValue = FHE.mul(position.share_price, position.quantity);
+        ds.round_total_amount[params.round_id] = FHE.add(ds.round_total_amount[params.round_id], positionValue);
+
+        FHE.allowThis(ds.round_total_amount[params.round_id]);
+        FHE.allow(ds.round_total_amount[params.round_id], msg.sender);
+        FHE.allow(ds.round_total_amount[params.round_id], params.stakeholder_address);
 
         // Store the position
         ds._privateStockActivePositions.securities[params.security_id] = position;
@@ -111,5 +121,11 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         returns (bytes16[] memory)
     {
         return _getPrivateStakeholderSecurities(stakeholder_address, stock_class_id);
+    }
+
+    /// @notice Get the total amount for a specific round
+    function getRoundTotalAmount(bytes16 round_id) external view returns (euint64) {
+        Storage storage ds = StorageLib.get();
+        return ds.round_total_amount[round_id];
     }
 }

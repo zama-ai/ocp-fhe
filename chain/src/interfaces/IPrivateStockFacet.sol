@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import { PrivateStockActivePosition, IssuePrivateStockParams } from "src/libraries/Structs.sol";
+import { euint64 } from "@fhevm/solidity/lib/FHE.sol";
 
 interface IPrivateStockFacet {
     /// @notice Issue new stock to a stakeholder
@@ -28,6 +29,11 @@ interface IPrivateStockFacet {
         external
         view
         returns (bytes16[] memory);
+
+    /// @notice Get the total amount for a specific round
+    /// @param round_id The ID of the round to get total amount for
+    /// @return The total amount for the round
+    function getRoundTotalAmount(bytes16 round_id) external view returns (euint64);
 
     /// @notice Transfer stock from one stakeholder to another
     /// @dev Only OPERATOR_ROLE can transfer stock
