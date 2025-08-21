@@ -897,6 +897,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
         round_id: roundId,
         pre_money_valuation: encryptedInput1.handles[2],
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams1], encryptedInput1.inputProof);
@@ -921,6 +922,7 @@ describe("PrivateStockFacet System", function () {
         security_law_exemptions_mapping: "",
         round_id: roundId,
         pre_money_valuation: encryptedInput2.handles[2],
+        admin_viewer: signers.founder.address,
       };
 
       await privateStockFacet.issuePrivateStocks([issuePrivateStockParams2], encryptedInput2.inputProof);
