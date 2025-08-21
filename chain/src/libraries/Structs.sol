@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import { externalEuint64, euint64 } from "@fhevm/solidity/lib/FHE.sol";
 
 struct Issuer {
     bytes16 id;
@@ -99,7 +99,7 @@ struct StakeholderPositions {
     EquityCompensationActivePosition[] equityCompensations;
 }
 
-struct IssuePrivateStockParams{
+struct IssuePrivateStockParams {
     bytes16 id;
     bytes16 stock_class_id;
     externalEuint64 share_price;
@@ -110,6 +110,7 @@ struct IssuePrivateStockParams{
     string custom_id;
     string stock_legend_ids_mapping;
     string security_law_exemptions_mapping;
+    address admin_viewer;
     bytes16 round_id;
 }
 

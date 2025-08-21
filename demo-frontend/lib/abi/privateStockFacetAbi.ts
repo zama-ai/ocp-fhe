@@ -159,6 +159,11 @@ export const privateStockFacetAbi = [
             name: 'security_law_exemptions_mapping',
             type: 'string',
           },
+          {
+            internalType: 'address',
+            name: 'admin_viewer',
+            type: 'address',
+          },
         ],
         internalType: 'struct IssuePrivateStockParams[]',
         name: 'params',

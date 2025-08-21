@@ -13,6 +13,7 @@ import {
   STOCK_CLASS_ID,
 } from '@/lib/utils/round';
 import { RoundCreateData } from '@/lib/types/company';
+import { PREDEFINED_WALLETS } from '@/lib/constants/wallets';
 
 export interface InvestorFormData {
   name: string;
@@ -202,6 +203,7 @@ export function useCreateRound(companyId: string, contractAddress: string) {
         custom_id: '',
         stock_legend_ids_mapping: '',
         security_law_exemptions_mapping: '',
+        admin_viewer: PREDEFINED_WALLETS[5].address as `0x${string}`,
       }));
 
       // Step 3: Call smart contract

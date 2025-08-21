@@ -36,8 +36,7 @@ export function useDecryptSecurity(
   companyAddress: string
 ): UseDecryptSecurityResult {
   const { address: walletAddress } = useAccount();
-  // const { data: connectorClient } = useConnectorClient();
-  const signer = useSigner();
+  const { data: signer } = useSigner();
   const { role } = useRoleStore();
   const { data: fhevmInstance } = useFhevm();
 
