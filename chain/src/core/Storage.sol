@@ -11,6 +11,7 @@ import {
     StockPlan,
     PrivateStockActivePositions
 } from "src/libraries/Structs.sol";
+import { euint64 } from "@fhevm/solidity/lib/FHE.sol";
 
 struct Storage {
     // Access Control storage
@@ -37,6 +38,9 @@ struct Storage {
     PrivateStockActivePositions _privateStockActivePositions;
     // Campaign state
     uint256 totalPrivateSecuritiesIssued;
+    
+    // Round tracking
+    mapping(bytes16 => euint64) round_total_amount;
 }
 
 library StorageLib {

@@ -35,6 +35,7 @@ struct PrivateStockActivePosition {
     bytes16 stock_class_id;
     euint64 quantity;
     euint64 share_price;
+    euint64 pre_money_valuation;
 }
 
 struct PrivateStockActivePositions {
@@ -103,12 +104,14 @@ struct IssuePrivateStockParams {
     bytes16 stock_class_id;
     externalEuint64 share_price;
     externalEuint64 quantity;
+    externalEuint64 pre_money_valuation;
     address stakeholder_address;
     bytes16 security_id;
     string custom_id;
     string stock_legend_ids_mapping;
     string security_law_exemptions_mapping;
     address admin_viewer;
+    bytes16 round_id;
 }
 
 struct IssueStockParams {
