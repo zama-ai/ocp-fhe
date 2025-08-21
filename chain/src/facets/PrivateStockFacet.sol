@@ -39,6 +39,20 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         FHE.allow(position.share_price, params.stakeholder_address);
         FHE.allow(position.share_price, params.admin_viewer);
 
+
+        FHE.allowThis(position.pre_money_valuation);
+        FHE.allow(position.pre_money_valuation, msg.sender);
+        FHE.allow(position.pre_money_valuation, params.stakeholder_address);
+        FHE.allow(position.pre_money_valuation, params.admin_viewer);
+
+        euint64 positionValue = FHE.mul(position.share_price, position.quantity);
+        ds.round_total_amount[params.round_id] = FHE.add(ds.round_total_amount[params.round_id], positionValue);
+
+        FHE.allowThis(ds.round_total_amount[params.round_id]);
+        FHE.allow(ds.round_total_amount[params.round_id], msg.sender);
+        FHE.allow(ds.round_total_amount[params.round_id], params.stakeholder_address);
+        FHE.allow(ds.round_total_amount[params.round_id], params.admin_viewer);
+
         // Store the position
         ds._privateStockActivePositions.securities[params.security_id] = position;
 
