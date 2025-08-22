@@ -2,6 +2,7 @@ import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LockIcon, EyeIcon, PiggyBankIcon } from 'lucide-react';
 import { useDecryptSecurity } from '@/hooks/use-decrypt-security';
+import { useDecryptRound } from '@/hooks/use-decrypt-round';
 import { EncryptedCell } from '@/components/ui/encrypted-cell';
 import { Round } from '@/lib/types/company';
 import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
@@ -59,6 +60,14 @@ export function RoundCard({
     clearDecrypted,
   } = useDecryptSecurity(companyAddress);
 
+  const {
+    decryptRoundData,
+    isRoundDecrypted,
+    isRoundLoading,
+    getRoundDecryptedData,
+    clearRoundDecrypted,
+  } = useDecryptRound(companyAddress);
+
   // Helper function to determine if user can decrypt investor's data
   const canDecryptInvestor = (investorAddress: string): boolean => {
     if (!walletAddress) return false;
@@ -76,6 +85,22 @@ export function RoundCard({
       return walletAddress.toLowerCase() === investorAddress.toLowerCase();
     }
     return false; // PUBLIC role
+  };
+
+  // Helper function to determine if user can decrypt round data
+  const canDecryptRound = (): boolean => {
+    if (!walletAddress) return false;
+    if (role === 'ADMIN') return true; // Admins can decrypt all data
+    if (role === 'FOUNDER') return isCompanyOwner; // Only company owners can decrypt round data
+    if (role === 'INVESTOR') {
+      return (
+        round?.investors.some(
+          investor =>
+            investor.address.toLowerCase() === walletAddress.toLowerCase()
+        ) || false
+      );
+    }
+    return false; // Investors and public cannot decrypt round totals
   };
 
   if (isLoading) {
@@ -183,6 +208,7 @@ export function RoundCard({
 
   const handleHideAll = () => {
     clearDecrypted();
+    clearRoundDecrypted();
   };
 
   return (
@@ -202,6 +228,56 @@ export function RoundCard({
           <h2 className="font-semibold flex items-center gap-2 text-zinc-900">
             <PiggyBankIcon className="h-5 w-5" /> Round Allocations
           </h2>
+        </div>
+
+        {/* Round Metrics */}
+        <div className="px-4 py-3 bg-zinc-50/50 border-b border-zinc-200">
+          <h3 className="text-sm font-medium text-zinc-700 mb-3">
+            Round Metrics
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-zinc-200">
+              <span className="text-sm font-medium text-zinc-600">
+                Post-Money Valuation <Badge>🔒</Badge>
+              </span>
+              <EncryptedCell
+                label="Post-Money Valuation"
+                value={
+                  getRoundDecryptedData(round.round_id)
+                    ? fmtMoney(
+                        getRoundDecryptedData(round.round_id)!
+                          .postMoneyValuation
+                      )
+                    : '$0'
+                }
+                decrypted={isRoundDecrypted(round.round_id)}
+                loading={isRoundLoading(round.round_id)}
+                onDecrypt={() => decryptRoundData(round.round_id)}
+                onHide={() => clearRoundDecrypted(round.round_id)}
+                canDecrypt={canDecryptRound()}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-zinc-200">
+              <span className="text-sm font-medium text-zinc-600">
+                Total Amount Invested <Badge>🔒</Badge>
+              </span>
+              <EncryptedCell
+                label="Total Amount Invested"
+                value={
+                  getRoundDecryptedData(round.round_id)
+                    ? fmtMoney(
+                        getRoundDecryptedData(round.round_id)!.totalAmount
+                      )
+                    : '$0'
+                }
+                decrypted={isRoundDecrypted(round.round_id)}
+                loading={isRoundLoading(round.round_id)}
+                onDecrypt={() => decryptRoundData(round.round_id)}
+                onHide={() => clearRoundDecrypted(round.round_id)}
+                canDecrypt={canDecryptRound()}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
@@ -325,7 +401,8 @@ export function RoundCard({
 
         <div className="px-4 py-3 text-xs text-zinc-600 border-t border-zinc-200">
           Public info: round label & date, number of participants. Confidential:
-          shares, price/share, investment amounts.
+          post-money valuation, total amount invested, shares, price/share,
+          investment amounts.
         </div>
       </section>
     </>

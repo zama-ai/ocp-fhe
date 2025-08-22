@@ -8,6 +8,7 @@ import { useFhevm } from './use-fhevm';
 import { privateStockFacetAbi } from '@/lib/abi/privateStockFacetAbi';
 import {
   generateBytes16Id,
+  generateRoundId,
   convertPriceToInteger,
   convertSharesToBigInt,
   STOCK_CLASS_ID,
@@ -26,15 +27,17 @@ export interface CreateRoundFormData {
   roundName: string;
   roundDate: string;
   investors: InvestorFormData[];
+  preMoneyValuationForm: string;
 }
 
 interface EncryptedInvestorData {
-  address: string;
+  address: `0x${string}`;
   name: string;
   shares: number;
   pricePerShare: number;
-  encryptedShares: string;
-  encryptedPrice: string;
+  encryptedShares: `0x${string}`;
+  encryptedPrice: `0x${string}`;
+  encryptedPreMoneyValuation: `0x${string}`;
   id: `0x${string}`;
 }
 
@@ -54,6 +57,8 @@ export function useCreateRound(companyId: string, contractAddress: string) {
   const [encryptedData, setEncryptedData] = useState<EncryptedInvestorData[]>(
     []
   );
+  const [roundId, setRoundId] = useState<string>('');
+  const [preMoneyValuation, setPreMoneyValuation] = useState<number>(0);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inputProof, setInputProof] = useState<string>('');
 
@@ -106,7 +111,8 @@ export function useCreateRound(companyId: string, contractAddress: string) {
   }, [isConfirmed, step]);
 
   const encryptInvestorData = async (
-    investors: InvestorFormData[]
+    investors: InvestorFormData[],
+    preMoneyValuationForm: string
   ): Promise<{
     encryptedInvestors: EncryptedInvestorData[];
     proof: string;
@@ -127,8 +133,9 @@ export function useCreateRound(companyId: string, contractAddress: string) {
     for (const investor of investors) {
       const shares = parseFloat(investor.shares);
       const pricePerShare = parseFloat(investor.pricePerShare);
+      const preMoneyValuation = parseFloat(preMoneyValuationForm);
 
-      if (shares <= 0 || pricePerShare <= 0) {
+      if (shares <= 0 || pricePerShare <= 0 || preMoneyValuation <= 0) {
         throw new Error(
           `Invalid shares or price for investor ${investor.name}`
         );
@@ -136,18 +143,21 @@ export function useCreateRound(companyId: string, contractAddress: string) {
 
       const sharesBigInt = convertSharesToBigInt(shares);
       const priceBigInt = convertPriceToInteger(pricePerShare);
+      const preMoneyValuationBigInt = convertPriceToInteger(preMoneyValuation);
 
       // Add encrypted values to buffer
       buffer.add64(sharesBigInt);
       buffer.add64(priceBigInt);
+      buffer.add64(preMoneyValuationBigInt);
 
       encryptedInvestors.push({
-        address: investor.address,
+        address: investor.address as `0x${string}`,
         name: investor.name,
         shares,
         pricePerShare,
-        encryptedShares: '', // Will be filled after encryption
-        encryptedPrice: '', // Will be filled after encryption
+        encryptedShares: '0x', // Will be filled after encryption
+        encryptedPrice: '0x', // Will be filled after encryption
+        encryptedPreMoneyValuation: '0x', // Will be filled after encryption
         id: generateBytes16Id(),
       });
     }
@@ -155,16 +165,19 @@ export function useCreateRound(companyId: string, contractAddress: string) {
     // Encrypt all values
     const ciphertexts = await buffer.encrypt();
 
-    // Map encrypted handles back to investors (2 handles per investor: shares + price)
+    // Map encrypted handles back to investors (3 handles per investor: shares + price + pre-money valuation)
     for (let i = 0; i < encryptedInvestors.length; i++) {
-      const sharesIndex = i * 2;
-      const priceIndex = i * 2 + 1;
+      const sharesIndex = i * 3;
+      const priceIndex = i * 3 + 1;
+      const preMoneyValuationIndex = i * 3 + 2;
 
       // Convert Uint8Array handles to hex strings
       encryptedInvestors[i].encryptedShares =
         `0x${Buffer.from(ciphertexts.handles[sharesIndex]).toString('hex')}`;
       encryptedInvestors[i].encryptedPrice =
         `0x${Buffer.from(ciphertexts.handles[priceIndex]).toString('hex')}`;
+      encryptedInvestors[i].encryptedPreMoneyValuation =
+        `0x${Buffer.from(ciphertexts.handles[preMoneyValuationIndex]).toString('hex')}`;
     }
 
     return {
@@ -183,10 +196,18 @@ export function useCreateRound(companyId: string, contractAddress: string) {
     }
 
     try {
+      // Generate round ID and store pre-money valuation
+      const generatedRoundId = generateRoundId();
+      const preMoneyVal = parseFloat(formData.preMoneyValuationForm);
+
+      setRoundId(generatedRoundId);
+      setPreMoneyValuation(preMoneyVal);
+
       // Step 1: Encrypt investor data
       setStep('encrypting');
       const { encryptedInvestors, proof } = await encryptInvestorData(
-        formData.investors
+        formData.investors,
+        formData.preMoneyValuationForm
       );
 
       setEncryptedData(encryptedInvestors);
@@ -196,14 +217,16 @@ export function useCreateRound(companyId: string, contractAddress: string) {
       const issueParams = encryptedInvestors.map(investor => ({
         id: investor.id,
         stock_class_id: STOCK_CLASS_ID,
-        share_price: investor.encryptedPrice as `0x${string}`,
-        quantity: investor.encryptedShares as `0x${string}`,
-        stakeholder_address: investor.address as `0x${string}`,
+        share_price: investor.encryptedPrice,
+        quantity: investor.encryptedShares,
+        stakeholder_address: investor.address,
         security_id: investor.id,
         custom_id: '',
         stock_legend_ids_mapping: '',
         security_law_exemptions_mapping: '',
         admin_viewer: PREDEFINED_WALLETS[5].address as `0x${string}`,
+        round_id: generatedRoundId as `0x${string}`,
+        pre_money_valuation: investor.encryptedPreMoneyValuation,
       }));
 
       // Step 3: Call smart contract
@@ -236,6 +259,8 @@ export function useCreateRound(companyId: string, contractAddress: string) {
     await saveRoundMutation.mutateAsync({
       type: roundName,
       date: roundDate,
+      round_id: roundId,
+      preMoneyValuation: preMoneyValuation,
       investors: apiInvestors,
     });
   };
@@ -243,6 +268,8 @@ export function useCreateRound(companyId: string, contractAddress: string) {
   const reset = () => {
     setStep('idle');
     setEncryptedData([]);
+    setRoundId('');
+    setPreMoneyValuation(0);
     setInputProof('');
   };
 

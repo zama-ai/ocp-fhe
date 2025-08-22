@@ -6,9 +6,11 @@ export interface Investor {
 
 export interface Round {
   id: string;
+  round_id: string; // Unique bytes16 identifier for on-chain tracking
   type: string;
   date: string;
   investors: Investor[]; // Investors in this specific round
+  preMoneyValuation: number; // Pre-money valuation for this round
   createdAt: string;
 }
 
@@ -37,5 +39,7 @@ export interface CompanyFormData {
 export interface RoundCreateData {
   type: string;
   date: string;
+  round_id: string; // Unique bytes16 identifier for on-chain tracking
+  preMoneyValuation: number; // Pre-money valuation for this round
   investors?: Investor[];
 }

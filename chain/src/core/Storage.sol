@@ -32,15 +32,13 @@ struct Storage {
     EquityCompensationActivePositions equityCompensationActivePositions;
     WarrantActivePositions warrantActivePositions;
     mapping(address => bytes16) addressToStakeholderId;
-
-
     // Private stock active positions
     PrivateStockActivePositions _privateStockActivePositions;
     // Campaign state
     uint256 totalPrivateSecuritiesIssued;
-    
     // Round tracking
     mapping(bytes16 => euint64) round_total_amount;
+    mapping(bytes16 => euint64) round_pre_money_valuation;
 }
 
 library StorageLib {

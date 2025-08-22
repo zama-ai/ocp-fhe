@@ -111,6 +111,7 @@ async function deployFixture() {
           privateStockFacet.interface.getFunction("initialize").selector,
           privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
           privateStockFacet.interface.getFunction("getRoundTotalAmount").selector,
+          privateStockFacet.interface.getFunction("getRoundPreMoneyValuation").selector,
           privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
           privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector,
         ],
@@ -320,7 +321,7 @@ describe("PrivateStockFacet System", function () {
         FhevmType.euint64,
         position.pre_money_valuation,
         capTableAddress,
-        signers.founder,
+        signers.founder
       );
 
       expect(Number(decodedPreMoneyValuation)).to.equal(5000000);
@@ -659,7 +660,7 @@ describe("PrivateStockFacet System", function () {
           FhevmType.euint64,
           position.pre_money_valuation,
           capTableAddress,
-          signers.founder,
+          signers.founder
         );
 
         const positionValue = Number(decodedQuantity) * Number(decodedSharePrice);
@@ -931,12 +932,7 @@ describe("PrivateStockFacet System", function () {
       const roundTotalAmount = await privateStockFacet.getRoundTotalAmount(roundId);
 
       // Decode the total amount
-      const decodedTotalAmount = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        roundTotalAmount,
-        capTableAddress,
-        signers.founder,
-      );
+      const decodedTotalAmount = await fhevm.userDecryptEuint(FhevmType.euint64, roundTotalAmount, capTableAddress, signers.founder);
 
       // Expected: (100 * 1000) + (200 * 1500) = 100000 + 300000 = 400000
       const expectedTotal = 100 * 1000 + 200 * 1500;

@@ -32,6 +32,7 @@ export function CreateRoundModal({
 }: CreateRoundModalProps) {
   const [roundName, setRoundName] = useState('');
   const [roundDate, setRoundDate] = useState('');
+  const [preMoneyValuation, setPreMoneyValuation] = useState('');
   const [investors, setInvestors] = useState<InvestorFormData[]>([
     { name: '', address: '', shares: '', pricePerShare: '' },
   ]);
@@ -85,9 +86,31 @@ export function CreateRoundModal({
       : '$0';
   };
 
+  const calculateTotalInvestment = (): number => {
+    return investors.reduce((total, investor) => {
+      const shares = parseFloat(investor.shares) || 0;
+      const pricePerShare = parseFloat(investor.pricePerShare) || 0;
+      return total + shares * pricePerShare;
+    }, 0);
+  };
+
+  const calculatePostMoneyValuation = (): number => {
+    const preMoneyValue = parseFloat(preMoneyValuation) || 0;
+    const totalInvestment = calculateTotalInvestment();
+    return preMoneyValue + totalInvestment;
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return amount > 0
+      ? `$${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+      : '$0';
+  };
+
   const validateForm = (): string | null => {
     if (!roundName.trim()) return 'Round name is required';
     if (!roundDate) return 'Round date is required';
+    if (!preMoneyValuation || parseFloat(preMoneyValuation) <= 0)
+      return 'Pre-money valuation must be greater than 0';
 
     for (let i = 0; i < investors.length; i++) {
       const investor = investors[i];
@@ -157,6 +180,7 @@ export function CreateRoundModal({
         roundName: roundName.trim(),
         roundDate,
         investors,
+        preMoneyValuationForm: preMoneyValuation,
       });
     } catch (error) {
       console.error('Error creating round:', error);
@@ -171,6 +195,7 @@ export function CreateRoundModal({
   const handleReset = () => {
     setRoundName('');
     setRoundDate('');
+    setPreMoneyValuation('');
     setInvestors([{ name: '', address: '', shares: '', pricePerShare: '' }]);
     reset();
   };
@@ -178,6 +203,7 @@ export function CreateRoundModal({
   const handleCancel = () => {
     setRoundName('');
     setRoundDate('');
+    setPreMoneyValuation('');
     setInvestors([{ name: '', address: '', shares: '', pricePerShare: '' }]);
     onOpenChange(false);
   };
@@ -191,24 +217,39 @@ export function CreateRoundModal({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Round Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="roundName">Round Name</Label>
-              <Input
-                id="roundName"
-                placeholder="e.g., Seed, Series A"
-                value={roundName}
-                onChange={e => setRoundName(e.target.value)}
-                required
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="roundName">Round Name</Label>
+                <Input
+                  id="roundName"
+                  placeholder="e.g., Seed, Series A"
+                  value={roundName}
+                  onChange={e => setRoundName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="roundDate">Round Date</Label>
+                <Input
+                  id="roundDate"
+                  type="date"
+                  value={roundDate}
+                  onChange={e => setRoundDate(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="roundDate">Round Date</Label>
+              <Label htmlFor="preMoneyValuation">Pre-Money Valuation ($)</Label>
               <Input
-                id="roundDate"
-                type="date"
-                value={roundDate}
-                onChange={e => setRoundDate(e.target.value)}
+                id="preMoneyValuation"
+                type="number"
+                placeholder="e.g., 5000000"
+                min="0"
+                step="0.01"
+                value={preMoneyValuation}
+                onChange={e => setPreMoneyValuation(e.target.value)}
                 required
               />
             </div>
@@ -334,6 +375,31 @@ export function CreateRoundModal({
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Round Summary */}
+          <div className="bg-zinc-50 border rounded-lg p-4 space-y-3">
+            <Label className="text-base font-semibold text-zinc-900">
+              Round Summary
+            </Label>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <div className="text-sm text-zinc-600">
+                  Total Amount Invested
+                </div>
+                <div className="text-xl font-semibold text-zinc-900 font-mono">
+                  {formatCurrency(calculateTotalInvestment())}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm text-zinc-600">
+                  Post-Money Valuation
+                </div>
+                <div className="text-xl font-semibold text-zinc-900 font-mono">
+                  {formatCurrency(calculatePostMoneyValuation())}
+                </div>
               </div>
             </div>
           </div>

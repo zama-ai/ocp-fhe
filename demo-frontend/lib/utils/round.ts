@@ -9,6 +9,13 @@ export function generateBytes16Id(): `0x${string}` {
 }
 
 /**
+ * Generate a unique round ID using bytes16 format
+ */
+export function generateRoundId(): `0x${string}` {
+  return generateBytes16Id();
+}
+
+/**
  * Convert decimal price to integer (encrypt the input values directly)
  */
 export function convertPriceToInteger(price: number): bigint {

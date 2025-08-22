@@ -229,9 +229,11 @@ export class CompanyService {
       const rounds = company.rounds || [];
       const newRound = {
         id: `${companyId}_round_${rounds.length + 1}`,
+        round_id: roundData.round_id,
         type: roundData.type,
         date: roundData.date,
         investors: roundData.investors || [],
+        preMoneyValuation: roundData.preMoneyValuation,
         createdAt: new Date().toISOString(),
       };
 

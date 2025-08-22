@@ -47,14 +47,40 @@ export async function POST(
   try {
     const { companyId } = await params;
     const body = await request.json();
-    const { type, date, investors } = body;
+    const { type, date, round_id, preMoneyValuation, investors } = body;
 
     // Validation
-    if (!type || !date) {
+    if (!type || !date || !round_id) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: type, date',
+          error: 'Missing required fields: type, date, round_id',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate round_id format (should be a hex string)
+    if (typeof round_id !== 'string' || !round_id.startsWith('0x')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Invalid round_id format. Must be a hex string starting with 0x',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate preMoneyValuation if provided
+    if (
+      preMoneyValuation !== undefined &&
+      (typeof preMoneyValuation !== 'number' || preMoneyValuation < 0)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid preMoneyValuation. Must be a non-negative number',
         },
         { status: 400 }
       );
@@ -89,6 +115,8 @@ export async function POST(
     const roundData: RoundCreateData = {
       type,
       date,
+      round_id,
+      preMoneyValuation,
       investors: investors || [],
     };
 

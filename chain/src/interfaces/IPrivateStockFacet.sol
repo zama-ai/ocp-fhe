@@ -5,6 +5,8 @@ import { PrivateStockActivePosition, IssuePrivateStockParams } from "src/librari
 import { euint64 } from "@fhevm/solidity/lib/FHE.sol";
 
 interface IPrivateStockFacet {
+    error EmptyParams();
+
     /// @notice Issue new stock to a stakeholder
     /// @dev Only OPERATOR_ROLE can issue stock
     /// @param params Parameters for issuing stock including stakeholder Address, stock class ID, quantity, etc.
@@ -34,6 +36,11 @@ interface IPrivateStockFacet {
     /// @param round_id The ID of the round to get total amount for
     /// @return The total amount for the round
     function getRoundTotalAmount(bytes16 round_id) external view returns (euint64);
+
+    /// @notice Get the pre-money valuation for a specific round
+    /// @param round_id The ID of the round to get pre-money valuation for
+    /// @return The pre-money valuation for the round
+    function getRoundPreMoneyValuation(bytes16 round_id) external view returns (euint64);
 
     /// @notice Transfer stock from one stakeholder to another
     /// @dev Only OPERATOR_ROLE can transfer stock

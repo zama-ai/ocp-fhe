@@ -17,6 +17,11 @@ export const privateStockFacetAbi = [
   },
   {
     inputs: [],
+    name: 'EmptyParams',
+    type: 'error',
+  },
+  {
+    inputs: [],
     name: 'InvalidInitialization',
     type: 'error',
   },
@@ -94,10 +99,53 @@ export const privateStockFacetAbi = [
             name: 'share_price',
             type: 'bytes32',
           },
+          {
+            internalType: 'euint64',
+            name: 'pre_money_valuation',
+            type: 'bytes32',
+          },
         ],
         internalType: 'struct PrivateStockActivePosition',
         name: '',
         type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes16',
+        name: 'round_id',
+        type: 'bytes16',
+      },
+    ],
+    name: 'getRoundPreMoneyValuation',
+    outputs: [
+      {
+        internalType: 'euint64',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes16',
+        name: 'round_id',
+        type: 'bytes16',
+      },
+    ],
+    name: 'getRoundTotalAmount',
+    outputs: [
+      {
+        internalType: 'euint64',
+        name: '',
+        type: 'bytes32',
       },
     ],
     stateMutability: 'view',
@@ -135,6 +183,11 @@ export const privateStockFacetAbi = [
             type: 'bytes32',
           },
           {
+            internalType: 'externalEuint64',
+            name: 'pre_money_valuation',
+            type: 'bytes32',
+          },
+          {
             internalType: 'address',
             name: 'stakeholder_address',
             type: 'address',
@@ -163,6 +216,11 @@ export const privateStockFacetAbi = [
             internalType: 'address',
             name: 'admin_viewer',
             type: 'address',
+          },
+          {
+            internalType: 'bytes16',
+            name: 'round_id',
+            type: 'bytes16',
           },
         ],
         internalType: 'struct IssuePrivateStockParams[]',

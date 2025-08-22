@@ -39,7 +39,6 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         FHE.allow(position.share_price, params.stakeholder_address);
         FHE.allow(position.share_price, params.admin_viewer);
 
-
         FHE.allowThis(position.pre_money_valuation);
         FHE.allow(position.pre_money_valuation, msg.sender);
         FHE.allow(position.pre_money_valuation, params.stakeholder_address);
@@ -52,6 +51,8 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         FHE.allow(ds.round_total_amount[params.round_id], msg.sender);
         FHE.allow(ds.round_total_amount[params.round_id], params.stakeholder_address);
         FHE.allow(ds.round_total_amount[params.round_id], params.admin_viewer);
+
+        FHE.allowThis(ds.round_pre_money_valuation[params.round_id]);
 
         // Store the position
         ds._privateStockActivePositions.securities[params.security_id] = position;
@@ -67,6 +68,18 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
         if (!AccessControl.hasAdminRole(msg.sender)) {
             revert AccessControl.AccessControlUnauthorized(msg.sender, AccessControl.DEFAULT_ADMIN_ROLE);
         }
+
+        if (params.length == 0) {
+            revert EmptyParams();
+        }
+
+        Storage storage ds = StorageLib.get();
+
+        ds.round_pre_money_valuation[params[0].round_id] = FHE.fromExternal(params[0].pre_money_valuation, inputProof);
+
+        FHE.allowThis(ds.round_pre_money_valuation[params[0].round_id]);
+        FHE.allow(ds.round_pre_money_valuation[params[0].round_id], msg.sender);
+        FHE.allow(ds.round_pre_money_valuation[params[0].round_id], params[0].admin_viewer);
 
         for (uint256 i = 0; i < params.length; i++) {
             issuePrivateStockInternal(params[i], inputProof);
@@ -128,5 +141,10 @@ contract PrivateStockFacet is IPrivateStockFacet, Initializable {
     function getRoundTotalAmount(bytes16 round_id) external view returns (euint64) {
         Storage storage ds = StorageLib.get();
         return ds.round_total_amount[round_id];
+    }
+
+    function getRoundPreMoneyValuation(bytes16 round_id) external view returns (euint64) {
+        Storage storage ds = StorageLib.get();
+        return ds.round_pre_money_valuation[round_id];
     }
 }

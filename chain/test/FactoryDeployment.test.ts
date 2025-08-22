@@ -1,23 +1,10 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import {
-  CapTable,
-  CapTable__factory,
-  CapTableFactory,
-  CapTableFactory__factory
-} from "../types";
-import type {
-  DiamondCutFacet,
-  DiamondLoupeFacet
-} from "../types";
-import type {
-  IDiamondCut,
-} from "../types";
-import {
-  DiamondCutFacet__factory,
-  DiamondLoupeFacet__factory
-} from "../types";
+import { CapTable, CapTable__factory, CapTableFactory, CapTableFactory__factory } from "../types";
+import type { DiamondCutFacet, DiamondLoupeFacet } from "../types";
+import type { IDiamondCut } from "../types";
+import { DiamondCutFacet__factory, DiamondLoupeFacet__factory } from "../types";
 import {
   IssuerFacet,
   IssuerFacet__factory,
@@ -40,7 +27,7 @@ import {
   AccessControlFacet,
   AccessControlFacet__factory,
   PrivateStockFacet,
-  PrivateStockFacet__factory
+  PrivateStockFacet__factory,
 } from "../types";
 
 type Signers = {
@@ -85,79 +72,79 @@ describe("Factory Deployment with All Facets", function () {
       console.log("Deploying individual facets...");
 
       // Deploy DiamondCutFacet
-      const DiamondCutFacetFactory = await ethers.getContractFactory("DiamondCutFacet") as DiamondCutFacet__factory;
+      const DiamondCutFacetFactory = (await ethers.getContractFactory("DiamondCutFacet")) as DiamondCutFacet__factory;
       diamondCutFacet = await DiamondCutFacetFactory.deploy();
       await diamondCutFacet.waitForDeployment();
       console.log("DiamondCutFacet deployed to:", await diamondCutFacet.getAddress());
 
       // Deploy DiamondLoupeFacet
-      const DiamondLoupeFacetFactory = await ethers.getContractFactory("DiamondLoupeFacet") as DiamondLoupeFacet__factory;
+      const DiamondLoupeFacetFactory = (await ethers.getContractFactory("DiamondLoupeFacet")) as DiamondLoupeFacet__factory;
       diamondLoupeFacet = await DiamondLoupeFacetFactory.deploy();
       await diamondLoupeFacet.waitForDeployment();
       console.log("DiamondLoupeFacet deployed to:", await diamondLoupeFacet.getAddress());
 
       // Deploy IssuerFacet
-      const IssuerFacetFactory = await ethers.getContractFactory("IssuerFacet") as IssuerFacet__factory;
+      const IssuerFacetFactory = (await ethers.getContractFactory("IssuerFacet")) as IssuerFacet__factory;
       issuerFacet = await IssuerFacetFactory.deploy();
       await issuerFacet.waitForDeployment();
       console.log("IssuerFacet deployed to:", await issuerFacet.getAddress());
 
       // Deploy StakeholderFacet
-      const StakeholderFacetFactory = await ethers.getContractFactory("StakeholderFacet") as StakeholderFacet__factory;
+      const StakeholderFacetFactory = (await ethers.getContractFactory("StakeholderFacet")) as StakeholderFacet__factory;
       stakeholderFacet = await StakeholderFacetFactory.deploy();
       await stakeholderFacet.waitForDeployment();
       console.log("StakeholderFacet deployed to:", await stakeholderFacet.getAddress());
 
       // Deploy StockClassFacet
-      const StockClassFacetFactory = await ethers.getContractFactory("StockClassFacet") as StockClassFacet__factory;
+      const StockClassFacetFactory = (await ethers.getContractFactory("StockClassFacet")) as StockClassFacet__factory;
       stockClassFacet = await StockClassFacetFactory.deploy();
       await stockClassFacet.waitForDeployment();
       console.log("StockClassFacet deployed to:", await stockClassFacet.getAddress());
 
       // Deploy StockFacet
-      const StockFacetFactory = await ethers.getContractFactory("StockFacet") as StockFacet__factory;
+      const StockFacetFactory = (await ethers.getContractFactory("StockFacet")) as StockFacet__factory;
       stockFacet = await StockFacetFactory.deploy();
       await stockFacet.waitForDeployment();
       console.log("StockFacet deployed to:", await stockFacet.getAddress());
 
       // Deploy ConvertiblesFacet
-      const ConvertiblesFacetFactory = await ethers.getContractFactory("ConvertiblesFacet") as ConvertiblesFacet__factory;
+      const ConvertiblesFacetFactory = (await ethers.getContractFactory("ConvertiblesFacet")) as ConvertiblesFacet__factory;
       convertiblesFacet = await ConvertiblesFacetFactory.deploy();
       await convertiblesFacet.waitForDeployment();
       console.log("ConvertiblesFacet deployed to:", await convertiblesFacet.getAddress());
 
       // Deploy EquityCompensationFacet
-      const EquityCompensationFacetFactory = await ethers.getContractFactory("EquityCompensationFacet") as EquityCompensationFacet__factory;
+      const EquityCompensationFacetFactory = (await ethers.getContractFactory("EquityCompensationFacet")) as EquityCompensationFacet__factory;
       equityCompensationFacet = await EquityCompensationFacetFactory.deploy();
       await equityCompensationFacet.waitForDeployment();
       console.log("EquityCompensationFacet deployed to:", await equityCompensationFacet.getAddress());
 
       // Deploy StockPlanFacet
-      const StockPlanFacetFactory = await ethers.getContractFactory("StockPlanFacet") as StockPlanFacet__factory;
+      const StockPlanFacetFactory = (await ethers.getContractFactory("StockPlanFacet")) as StockPlanFacet__factory;
       stockPlanFacet = await StockPlanFacetFactory.deploy();
       await stockPlanFacet.waitForDeployment();
       console.log("StockPlanFacet deployed to:", await stockPlanFacet.getAddress());
 
       // Deploy WarrantFacet
-      const WarrantFacetFactory = await ethers.getContractFactory("WarrantFacet") as WarrantFacet__factory;
+      const WarrantFacetFactory = (await ethers.getContractFactory("WarrantFacet")) as WarrantFacet__factory;
       warrantFacet = await WarrantFacetFactory.deploy();
       await warrantFacet.waitForDeployment();
       console.log("WarrantFacet deployed to:", await warrantFacet.getAddress());
 
       // Deploy StakeholderNFTFacet
-      const StakeholderNFTFacetFactory = await ethers.getContractFactory("StakeholderNFTFacet") as StakeholderNFTFacet__factory;
+      const StakeholderNFTFacetFactory = (await ethers.getContractFactory("StakeholderNFTFacet")) as StakeholderNFTFacet__factory;
       stakeholderNFTFacet = await StakeholderNFTFacetFactory.deploy();
       await stakeholderNFTFacet.waitForDeployment();
       console.log("StakeholderNFTFacet deployed to:", await stakeholderNFTFacet.getAddress());
 
       // Deploy AccessControlFacet
-      const AccessControlFacetFactory = await ethers.getContractFactory("AccessControlFacet") as AccessControlFacet__factory;
+      const AccessControlFacetFactory = (await ethers.getContractFactory("AccessControlFacet")) as AccessControlFacet__factory;
       accessControlFacet = await AccessControlFacetFactory.deploy();
       await accessControlFacet.waitForDeployment();
       console.log("AccessControlFacet deployed to:", await accessControlFacet.getAddress());
 
       // Deploy PrivateStockFacet
-      const PrivateStockFacetFactory = await ethers.getContractFactory("PrivateStockFacet") as PrivateStockFacet__factory;
+      const PrivateStockFacetFactory = (await ethers.getContractFactory("PrivateStockFacet")) as PrivateStockFacet__factory;
       privateStockFacet = await PrivateStockFacetFactory.deploy();
       await privateStockFacet.waitForDeployment();
       console.log("PrivateStockFacet deployed to:", await privateStockFacet.getAddress());
@@ -182,7 +169,7 @@ describe("Factory Deployment with All Facets", function () {
       console.log("\nCreating reference diamond...");
 
       // Create reference diamond with deployer as owner
-      const CapTableFactory = await ethers.getContractFactory("CapTable") as CapTable__factory;
+      const CapTableFactory = (await ethers.getContractFactory("CapTable")) as CapTable__factory;
       referenceDiamond = await CapTableFactory.deploy(signers.deployer.address, await diamondCutFacet.getAddress());
       await referenceDiamond.waitForDeployment();
       console.log("Reference diamond created at:", await referenceDiamond.getAddress());
@@ -197,16 +184,16 @@ describe("Factory Deployment with All Facets", function () {
             diamondLoupeFacet.interface.getFunction("facetFunctionSelectors").selector,
             diamondLoupeFacet.interface.getFunction("facetAddresses").selector,
             diamondLoupeFacet.interface.getFunction("facetAddress").selector,
-            diamondLoupeFacet.interface.getFunction("supportsInterface").selector
-          ]
+            diamondLoupeFacet.interface.getFunction("supportsInterface").selector,
+          ],
         },
         {
           facetAddress: await issuerFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             issuerFacet.interface.getFunction("initializeIssuer").selector,
-            issuerFacet.interface.getFunction("adjustIssuerAuthorizedShares").selector
-          ]
+            issuerFacet.interface.getFunction("adjustIssuerAuthorizedShares").selector,
+          ],
         },
         {
           facetAddress: await stakeholderFacet.getAddress(),
@@ -214,16 +201,16 @@ describe("Factory Deployment with All Facets", function () {
           functionSelectors: [
             stakeholderFacet.interface.getFunction("createStakeholder").selector,
             stakeholderFacet.interface.getFunction("getStakeholderPositions").selector,
-            stakeholderFacet.interface.getFunction("linkStakeholderAddress").selector
-          ]
+            stakeholderFacet.interface.getFunction("linkStakeholderAddress").selector,
+          ],
         },
         {
           facetAddress: await stockClassFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             stockClassFacet.interface.getFunction("createStockClass").selector,
-            stockClassFacet.interface.getFunction("adjustAuthorizedShares").selector
-          ]
+            stockClassFacet.interface.getFunction("adjustAuthorizedShares").selector,
+          ],
         },
         {
           facetAddress: await stockFacet.getAddress(),
@@ -233,16 +220,16 @@ describe("Factory Deployment with All Facets", function () {
             stockFacet.interface.getFunction("getStockPosition").selector,
             stockFacet.interface.getFunction("transferStock").selector,
             stockFacet.interface.getFunction("getStakeholderSecurities").selector,
-            stockFacet.interface.getFunction("cancelStock").selector
-          ]
+            stockFacet.interface.getFunction("cancelStock").selector,
+          ],
         },
         {
           facetAddress: await convertiblesFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             convertiblesFacet.interface.getFunction("issueConvertible").selector,
-            convertiblesFacet.interface.getFunction("getConvertiblePosition").selector
-          ]
+            convertiblesFacet.interface.getFunction("getConvertiblePosition").selector,
+          ],
         },
         {
           facetAddress: await equityCompensationFacet.getAddress(),
@@ -250,32 +237,32 @@ describe("Factory Deployment with All Facets", function () {
           functionSelectors: [
             equityCompensationFacet.interface.getFunction("issueEquityCompensation").selector,
             equityCompensationFacet.interface.getFunction("getPosition").selector,
-            equityCompensationFacet.interface.getFunction("exerciseEquityCompensation").selector
-          ]
+            equityCompensationFacet.interface.getFunction("exerciseEquityCompensation").selector,
+          ],
         },
         {
           facetAddress: await stockPlanFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             stockPlanFacet.interface.getFunction("createStockPlan").selector,
-            stockPlanFacet.interface.getFunction("adjustStockPlanPool").selector
-          ]
+            stockPlanFacet.interface.getFunction("adjustStockPlanPool").selector,
+          ],
         },
         {
           facetAddress: await warrantFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             warrantFacet.interface.getFunction("issueWarrant").selector,
-            warrantFacet.interface.getFunction("getWarrantPosition").selector
-          ]
+            warrantFacet.interface.getFunction("getWarrantPosition").selector,
+          ],
         },
         {
           facetAddress: await stakeholderNFTFacet.getAddress(),
           action: 0, // Add
           functionSelectors: [
             stakeholderNFTFacet.interface.getFunction("mint").selector,
-            stakeholderNFTFacet.interface.getFunction("tokenURI").selector
-          ]
+            stakeholderNFTFacet.interface.getFunction("tokenURI").selector,
+          ],
         },
         {
           facetAddress: await accessControlFacet.getAddress(),
@@ -288,8 +275,8 @@ describe("Factory Deployment with All Facets", function () {
             accessControlFacet.interface.getFunction("transferAdmin").selector,
             accessControlFacet.interface.getFunction("acceptAdmin").selector,
             accessControlFacet.interface.getFunction("getAdmin").selector,
-            accessControlFacet.interface.getFunction("getPendingAdmin").selector
-          ]
+            accessControlFacet.interface.getFunction("getPendingAdmin").selector,
+          ],
         },
         {
           facetAddress: await privateStockFacet.getAddress(),
@@ -298,10 +285,11 @@ describe("Factory Deployment with All Facets", function () {
             privateStockFacet.interface.getFunction("initialize").selector,
             privateStockFacet.interface.getFunction("issuePrivateStocks").selector,
             privateStockFacet.interface.getFunction("getRoundTotalAmount").selector,
+            privateStockFacet.interface.getFunction("getRoundPreMoneyValuation").selector,
             privateStockFacet.interface.getFunction("getPrivateStockPosition").selector,
-            privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector
-          ]
-        }
+            privateStockFacet.interface.getFunction("getPrivateStakeholderSecurities").selector,
+          ],
+        },
       ];
 
       console.log("Performing diamond cuts...");
@@ -341,7 +329,7 @@ describe("Factory Deployment with All Facets", function () {
         await warrantFacet.getAddress(),
         await stakeholderNFTFacet.getAddress(),
         await accessControlFacet.getAddress(),
-        await privateStockFacet.getAddress()
+        await privateStockFacet.getAddress(),
       ];
 
       for (const facet of facets) {
@@ -351,7 +339,7 @@ describe("Factory Deployment with All Facets", function () {
 
       // Verify specific function selectors for key facets
       const privateStockFacetAddress = await privateStockFacet.getAddress();
-      const privateStockFacetInfo = facets.find(f => f.facetAddress === privateStockFacetAddress);
+      const privateStockFacetInfo = facets.find((f) => f.facetAddress === privateStockFacetAddress);
       expect(privateStockFacetInfo).to.not.be.undefined;
       expect(privateStockFacetInfo!.functionSelectors.length).to.be.greaterThan(0);
     });
@@ -361,7 +349,7 @@ describe("Factory Deployment with All Facets", function () {
     it("should deploy CapTableFactory with reference diamond", async function () {
       console.log("\nDeploying CapTableFactory...");
 
-      const CapTableFactoryFactory = await ethers.getContractFactory("CapTableFactory") as CapTableFactory__factory;
+      const CapTableFactoryFactory = (await ethers.getContractFactory("CapTableFactory")) as CapTableFactory__factory;
       capTableFactory = await CapTableFactoryFactory.deploy(await referenceDiamond.getAddress());
       await capTableFactory.waitForDeployment();
 
@@ -426,7 +414,7 @@ describe("Factory Deployment with All Facets", function () {
       expect(facets.length).to.be.greaterThan(0);
 
       // Verify key facets are present
-      const facetAddresses = facets.map(f => f.facetAddress);
+      const facetAddresses = facets.map((f) => f.facetAddress);
       expect(facetAddresses).to.include(await accessControlFacet.getAddress());
       expect(facetAddresses).to.include(await issuerFacet.getAddress());
       expect(facetAddresses).to.include(await privateStockFacet.getAddress());
