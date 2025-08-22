@@ -94,9 +94,9 @@ export function RoundCard({
     if (role === 'FOUNDER') return isCompanyOwner; // Only company owners can decrypt round data
     if (role === 'INVESTOR') {
       return (
-        round?.investors.some(
-          investor =>
-            investor.address.toLowerCase() === walletAddress.toLowerCase()
+        safeInvestments.some(
+          investment =>
+            investment.investor.address.toLowerCase() === walletAddress.toLowerCase()
         ) || false
       );
     }
@@ -187,19 +187,28 @@ export function RoundCard({
     return null;
   }
 
+  // Debug logging to understand data structure
+  console.log('Round data:', round);
+  console.log('Round investments:', round.investments);
+  console.log('Round type:', typeof round.investments);
+  console.log('Is array:', Array.isArray(round.investments));
+
+  // Ensure we have a valid investments array
+  const safeInvestments = Array.isArray(round.investments) ? round.investments : [];
+
   const handleDecryptAllPermitted = () => {
     if (!round) return;
 
-    const securityIds = round.investors
+    const securityIds = safeInvestments
       .filter(
-        investor => investor.securityId && canDecryptInvestor(investor.address)
+        investment => investment.investor.securityId && canDecryptInvestor(investment.investor.address)
       )
-      .map(investor => investor.securityId!);
-    const investorAddresses = round.investors
+      .map(investment => investment.investor.securityId!);
+    const investorAddresses = safeInvestments
       .filter(
-        investor => investor.securityId && canDecryptInvestor(investor.address)
+        investment => investment.investor.securityId && canDecryptInvestor(investment.investor.address)
       )
-      .map(investor => investor.address);
+      .map(investment => investment.investor.address);
 
     if (securityIds.length > 0) {
       decryptAllPermitted(securityIds, investorAddresses);
@@ -245,9 +254,9 @@ export function RoundCard({
                 value={
                   getRoundDecryptedData(round.round_id)
                     ? fmtMoney(
-                        getRoundDecryptedData(round.round_id)!
-                          .postMoneyValuation
-                      )
+                      getRoundDecryptedData(round.round_id)!
+                        .postMoneyValuation
+                    )
                     : '$0'
                 }
                 decrypted={isRoundDecrypted(round.round_id)}
@@ -266,8 +275,8 @@ export function RoundCard({
                 value={
                   getRoundDecryptedData(round.round_id)
                     ? fmtMoney(
-                        getRoundDecryptedData(round.round_id)!.totalAmount
-                      )
+                      getRoundDecryptedData(round.round_id)!.totalAmount
+                    )
                     : '$0'
                 }
                 decrypted={isRoundDecrypted(round.round_id)}
@@ -320,31 +329,31 @@ export function RoundCard({
               </tr>
             </thead>
             <tbody>
-              {round.investors
-                .map((investor, index) => {
-                  // Skip investors without securityId
-                  if (!investor.securityId) {
+              {safeInvestments
+                .map((investment, index) => {
+                  // Skip investments without securityId
+                  if (!investment.investor.securityId) {
                     return null;
                   }
 
-                  const securityId = investor.securityId;
+                  const securityId = investment.investor.securityId;
                   const decryptedData = getDecryptedData(securityId);
                   const isSecurityDecrypted = isDecrypted(securityId);
                   const isSecurityLoading = isDecryptionLoading(securityId);
-                  const hasAccess = canDecryptInvestor(investor.address);
+                  const hasAccess = canDecryptInvestor(investment.investor.address);
 
                   return (
                     <tr
-                      key={investor.securityId || `investor-${index}`}
+                      key={investment.investor.securityId || `investment-${index}`}
                       className="border-b border-zinc-100 hover:bg-zinc-50/50"
                     >
                       <Td>
                         <div className="flex flex-col">
                           <span className="font-medium">
-                            {investor.name || 'Unknown Investor'}
+                            {investment.investor.name || 'Unknown Investor'}
                           </span>
                           <span className="text-xs text-zinc-500 font-mono">
-                            {shortAddr(investor.address)}
+                            {shortAddr(investment.investor.address)}
                           </span>
                         </div>
                       </Td>

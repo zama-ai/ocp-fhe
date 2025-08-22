@@ -46,7 +46,7 @@ export async function POST(
   try {
     const { companyId } = await params;
     const body = await request.json();
-    const { address, name } = body;
+    const { address, name, shareAmount, sharePrice } = body;
 
     if (!address) {
       return NextResponse.json(
@@ -62,10 +62,26 @@ export async function POST(
       );
     }
 
+    if (typeof shareAmount !== 'number' || shareAmount <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Valid share amount is required' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof sharePrice !== 'number' || sharePrice <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Valid share price is required' },
+        { status: 400 }
+      );
+    }
+
     const investor = { address, name };
     const company = await companyService.addInvestorToLastRound(
       companyId,
-      investor
+      investor,
+      shareAmount,
+      sharePrice
     );
 
     return NextResponse.json({ success: true, data: company });

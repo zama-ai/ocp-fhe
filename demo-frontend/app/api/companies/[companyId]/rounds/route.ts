@@ -47,7 +47,7 @@ export async function POST(
   try {
     const { companyId } = await params;
     const body = await request.json();
-    const { type, date, round_id, preMoneyValuation, investors } = body;
+    const { type, date, round_id, preMoneyValuation, investments } = body;
 
     // Validation
     if (!type || !date || !round_id) {
@@ -86,11 +86,11 @@ export async function POST(
       );
     }
 
-    // Validate investors if provided
-    if (investors && Array.isArray(investors)) {
-      for (let i = 0; i < investors.length; i++) {
-        const investor = investors[i];
-        if (!investor.address || !isAddress(investor.address)) {
+    // Validate investments if provided
+    if (investments && Array.isArray(investments)) {
+      for (let i = 0; i < investments.length; i++) {
+        const investment = investments[i];
+        if (!investment.investor || !investment.investor.address || !isAddress(investment.investor.address)) {
           return NextResponse.json(
             {
               success: false,
@@ -99,8 +99,26 @@ export async function POST(
             { status: 400 }
           );
         }
+        if (typeof investment.shareAmount !== 'number' || investment.shareAmount <= 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Invalid share amount at index ${i}. Must be a positive number`,
+            },
+            { status: 400 }
+          );
+        }
+        if (typeof investment.sharePrice !== 'number' || investment.sharePrice <= 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Invalid share price at index ${i}. Must be a positive number`,
+            },
+            { status: 400 }
+          );
+        }
         // Validate security ID if provided (should be a hex string)
-        if (investor.securityId && typeof investor.securityId !== 'string') {
+        if (investment.investor.securityId && typeof investment.investor.securityId !== 'string') {
           return NextResponse.json(
             {
               success: false,
@@ -117,7 +135,7 @@ export async function POST(
       date,
       round_id,
       preMoneyValuation,
-      investors: investors || [],
+      investments: investments || [],
     };
 
     const company = await companyService.addRound(companyId, roundData);

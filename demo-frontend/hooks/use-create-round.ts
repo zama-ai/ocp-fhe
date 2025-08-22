@@ -249,11 +249,15 @@ export function useCreateRound(companyId: string, contractAddress: string) {
       throw new Error('Cannot save to database at this step');
     }
 
-    // Prepare API payload with security IDs for database storage
-    const apiInvestors = encryptedData.map(investor => ({
-      address: investor.address,
-      name: investor.name,
-      securityId: investor.id, // Include the security ID for database storage
+    // Prepare API payload with investments including share amounts and prices
+    const apiInvestments = encryptedData.map(investor => ({
+      shareAmount: investor.shares,
+      sharePrice: investor.pricePerShare,
+      investor: {
+        address: investor.address,
+        name: investor.name,
+        securityId: investor.id, // Include the security ID for database storage
+      },
     }));
 
     await saveRoundMutation.mutateAsync({
@@ -261,7 +265,7 @@ export function useCreateRound(companyId: string, contractAddress: string) {
       date: roundDate,
       round_id: roundId,
       preMoneyValuation: preMoneyValuation,
-      investors: apiInvestors,
+      investments: apiInvestments,
     });
   };
 

@@ -4,12 +4,18 @@ export interface Investor {
   securityId?: string; // The on-chain security ID for this investment
 }
 
+export interface Investment {
+  shareAmount: number; // Number of shares in this investment
+  sharePrice: number; // Price per share in the smallest unit (e.g., wei)
+  investor: Investor; // Investor information
+}
+
 export interface Round {
   id: string;
   round_id: string; // Unique bytes16 identifier for on-chain tracking
   type: string;
   date: string;
-  investors: Investor[]; // Investors in this specific round
+  investments: Investment[]; // Investments in this specific round with share amounts and prices
   preMoneyValuation: number; // Pre-money valuation for this round
   createdAt: string;
 }
@@ -41,5 +47,5 @@ export interface RoundCreateData {
   date: string;
   round_id: string; // Unique bytes16 identifier for on-chain tracking
   preMoneyValuation: number; // Pre-money valuation for this round
-  investors?: Investor[];
+  investments?: Investment[];
 }

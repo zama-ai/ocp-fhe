@@ -1,5 +1,5 @@
 import redis, { KEY_PREFIXES, generateKey } from '../redis';
-import { Company, CompanyCreateData, RoundCreateData } from '../types/company';
+import { Company, CompanyCreateData, RoundCreateData, Investment } from '../types/company';
 
 export class CompanyService {
   /**
@@ -64,6 +64,7 @@ export class CompanyService {
       const companies = await Promise.all(
         companyKeys.map(async (key: string) => {
           const companyId = key.split(':')[1];
+          console.log('companyId', companyId);
           return await this.getCompanyById(companyId);
         })
       );
@@ -177,16 +178,62 @@ export class CompanyService {
         rounds: (() => {
           try {
             if (Array.isArray(companyData.rounds)) {
-              return companyData.rounds;
+              // Convert any rounds with investors to investments structure
+              return companyData.rounds.map((round: any) => {
+                if (round.investments) {
+                  return round; // Already in new format
+                }
+                // Migrate from old format
+                if (round.investors && Array.isArray(round.investors)) {
+                  return {
+                    ...round,
+                    investments: round.investors.map((investor: any) => ({
+                      shareAmount: 0, // Default value for migrated data
+                      sharePrice: 0, // Default value for migrated data
+                      investor,
+                    })),
+                    investors: undefined, // Remove old field
+                  };
+                }
+                // If neither investments nor investors exist, initialize with empty array
+                return {
+                  ...round,
+                  investments: [],
+                };
+              });
             }
             if (
               typeof companyData.rounds === 'string' &&
               companyData.rounds !== ''
             ) {
-              return JSON.parse(companyData.rounds);
+              const parsedRounds = JSON.parse(companyData.rounds);
+              // Convert any rounds with investors to investments structure
+              return parsedRounds.map((round: any) => {
+                if (round.investments) {
+                  return round; // Already in new format
+                }
+                // Migrate from old format
+                if (round.investors && Array.isArray(round.investors)) {
+                  return {
+                    ...round,
+                    investments: round.investors.map((investor: any) => ({
+                      shareAmount: 0, // Default value for migrated data
+                      sharePrice: 0, // Default value for migrated data
+                      investor,
+                    })),
+                    investors: undefined, // Remove old field
+                  };
+                }
+                // If neither investments nor investors exist, initialize with empty array
+                return {
+                  ...round,
+                  investments: [],
+                };
+              });
             }
             return [];
-          } catch {
+          } catch (error) {
+            console.error('Error fetching company by ID:', error);
             return [];
           }
         })(),
@@ -232,7 +279,7 @@ export class CompanyService {
         round_id: roundData.round_id,
         type: roundData.type,
         date: roundData.date,
-        investors: roundData.investors || [],
+        investments: roundData.investments || [],
         preMoneyValuation: roundData.preMoneyValuation,
         createdAt: new Date().toISOString(),
       };
@@ -243,7 +290,7 @@ export class CompanyService {
       const existingInvestors = company.investors || [];
       const newInvestors = [...existingInvestors];
 
-      if (roundData.investors) {
+      if (roundData.investments) {
         // Store round-specific investment security IDs
         const roundInvestmentsKey = generateKey(
           KEY_PREFIXES.ROUND_INVESTMENTS,
@@ -251,24 +298,24 @@ export class CompanyService {
         );
         const securityIds: string[] = [];
 
-        roundData.investors.forEach(investor => {
+        roundData.investments.forEach(investment => {
           const exists = newInvestors.some(
-            existing => existing.address === investor.address
+            existing => existing.address === investment.investor.address
           );
           if (!exists) {
-            newInvestors.push(investor);
+            newInvestors.push(investment.investor);
 
             // Index company by investor for lookup
             const investorKey = generateKey(
               KEY_PREFIXES.COMPANY_BY_INVESTOR,
-              investor.address
+              investment.investor.address
             );
             redis.sadd(investorKey, companyId).catch(console.error);
           }
 
           // Collect security IDs for this round
-          if (investor.securityId) {
-            securityIds.push(investor.securityId);
+          if (investment.investor.securityId) {
+            securityIds.push(investment.investor.securityId);
           }
         });
 
@@ -296,7 +343,9 @@ export class CompanyService {
    */
   async addInvestorToLastRound(
     companyId: string,
-    investor: { address: string; name?: string }
+    investor: { address: string; name?: string },
+    shareAmount: number,
+    sharePrice: number
   ): Promise<Company> {
     try {
       const company = await this.getCompanyById(companyId);
@@ -306,7 +355,12 @@ export class CompanyService {
         throw new Error('No rounds exist for this company');
       }
 
-      company.rounds[company.rounds.length - 1].investors.push(investor);
+      company.rounds[company.rounds.length - 1].investments.push({
+        investor: investor,
+        shareAmount: shareAmount,
+        sharePrice: sharePrice,
+      });
+
       company.investors.push(investor);
       const companyKey = generateKey(KEY_PREFIXES.COMPANY, companyId);
       company.updatedAt = new Date().toISOString();

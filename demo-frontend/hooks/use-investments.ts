@@ -22,31 +22,33 @@ async function fetchInvestorRounds(
   data.data.forEach((company: Company) => {
     // Filter rounds where the investor participated
     const investorRounds = company.rounds.filter(round =>
-      round.investors.some(
-        investor =>
-          investor.address.toLowerCase() === investorAddress.toLowerCase()
+      round.investments.some(
+        investment =>
+          investment.investor.address.toLowerCase() === investorAddress.toLowerCase()
       )
     );
 
     // Transform each round into an InvestmentRound
     investorRounds.forEach(round => {
       // Find the investor's data in this round
-      const investorData = round.investors.find(
-        investor =>
-          investor.address.toLowerCase() === investorAddress.toLowerCase()
+      const investmentData = round.investments.find(
+        investment =>
+          investment.investor.address.toLowerCase() === investorAddress.toLowerCase()
       );
 
-      investmentRounds.push({
-        id: round.id,
-        companyId: company.id,
-        companyName: company.name,
-        roundType: round.type,
-        date: round.date,
-        createdAt: round.createdAt,
-        investorAddress: investorAddress,
-        investorName: investorData?.name,
-        securityId: investorData?.securityId,
-      });
+      if (investmentData) {
+        investmentRounds.push({
+          id: round.id,
+          companyId: company.id,
+          companyName: company.name,
+          roundType: round.type,
+          date: round.date,
+          createdAt: round.createdAt,
+          investorAddress: investorAddress,
+          investorName: investmentData.investor.name,
+          securityId: investmentData.investor.securityId,
+        });
+      }
     });
   });
 
