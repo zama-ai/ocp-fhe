@@ -50,7 +50,8 @@ export function OwnershipTable({
       : false;
 
   // Treasury data is only accessible to founders who own the company
-  const canAccessTreasury = role === 'FOUNDER' && isCompanyFounder;
+  const canAccessTreasury =
+    (role === 'FOUNDER' && isCompanyFounder) || role === 'ADMIN';
 
   if (!company) {
     return null;
