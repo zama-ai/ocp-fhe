@@ -1,5 +1,11 @@
 import redis, { KEY_PREFIXES, generateKey } from '../redis';
-import { Company, CompanyCreateData, RoundCreateData, Investment } from '../types/company';
+import {
+  Company,
+  CompanyCreateData,
+  RoundCreateData,
+  Investment,
+  Round,
+} from '../types/company';
 
 export class CompanyService {
   /**
@@ -179,21 +185,9 @@ export class CompanyService {
           try {
             if (Array.isArray(companyData.rounds)) {
               // Convert any rounds with investors to investments structure
-              return companyData.rounds.map((round: any) => {
+              return companyData.rounds.map((round: Round) => {
                 if (round.investments) {
                   return round; // Already in new format
-                }
-                // Migrate from old format
-                if (round.investors && Array.isArray(round.investors)) {
-                  return {
-                    ...round,
-                    investments: round.investors.map((investor: any) => ({
-                      shareAmount: 0, // Default value for migrated data
-                      sharePrice: 0, // Default value for migrated data
-                      investor,
-                    })),
-                    investors: undefined, // Remove old field
-                  };
                 }
                 // If neither investments nor investors exist, initialize with empty array
                 return {
@@ -208,21 +202,9 @@ export class CompanyService {
             ) {
               const parsedRounds = JSON.parse(companyData.rounds);
               // Convert any rounds with investors to investments structure
-              return parsedRounds.map((round: any) => {
+              return parsedRounds.map((round: Round) => {
                 if (round.investments) {
                   return round; // Already in new format
-                }
-                // Migrate from old format
-                if (round.investors && Array.isArray(round.investors)) {
-                  return {
-                    ...round,
-                    investments: round.investors.map((investor: any) => ({
-                      shareAmount: 0, // Default value for migrated data
-                      sharePrice: 0, // Default value for migrated data
-                      investor,
-                    })),
-                    investors: undefined, // Remove old field
-                  };
                 }
                 // If neither investments nor investors exist, initialize with empty array
                 return {
