@@ -26,6 +26,13 @@ const DynamicRoundCard = dynamic(
   }
 );
 
+const DynamicOwnershipTable = dynamic(
+  () => import('@/components/ownership-table').then(mod => mod.OwnershipTable),
+  {
+    ssr: false,
+  }
+);
+
 export default function Page({
   params,
 }: {
@@ -144,34 +151,49 @@ export default function Page({
               </div>
             </div>
           </div>
-        ) : sortedRounds.length > 0 ? (
-          // Show actual round data
+        ) : company ? (
+          // Show company data with ownership table and rounds
           <div className="space-y-8">
-            {sortedRounds.map((round: Round) => (
-              <DynamicRoundCard
-                key={round.id}
-                round={round}
-                companyAddress={company?.contractAddress || companyId}
-                isCompanyOwner={isCompanyOwner}
-              />
-            ))}
-          </div>
-        ) : (
-          // Empty state
-          <div className="text-center py-12">
-            <p className="text-zinc-600">No rounds found for this company.</p>
-            {hasFounderPrivileges && (
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4 flex items-center gap-2 mx-auto"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4" />
-                Create First Round
-              </Button>
+            {/* Ownership Table */}
+            <DynamicOwnershipTable
+              company={company}
+              companyAddress={company.contractAddress || companyId}
+            />
+
+            {/* Rounds Section */}
+            {sortedRounds.length > 0 ? (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-zinc-900">
+                  Investment Rounds
+                </h2>
+                {sortedRounds.map((round: Round) => (
+                  <DynamicRoundCard
+                    key={round.id}
+                    round={round}
+                    companyAddress={company?.contractAddress || companyId}
+                    isCompanyOwner={isCompanyOwner}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-zinc-600">
+                  No rounds found for this company.
+                </p>
+                {hasFounderPrivileges && (
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
+                    className="mt-4 flex items-center gap-2 mx-auto"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create First Round
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Legend */}
         {!isLoading && !error && sortedRounds.length > 0 && (

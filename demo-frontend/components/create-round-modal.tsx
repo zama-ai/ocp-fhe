@@ -14,6 +14,10 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAddress } from 'viem';
 import { useCreateRound, InvestorFormData } from '@/hooks/use-create-round';
+import { useCompany } from '@/hooks/use-company';
+
+// Treasury shares constant (founder's initial shares)
+const TREASURY_SHARES = 10_000;
 
 interface CreateRoundModalProps {
   open: boolean;
@@ -51,10 +55,73 @@ export function CreateRoundModal({
     canProceed,
   } = useCreateRound(companyId, contractAddress);
 
+  // Fetch company data to get total shares issued
+  const {
+    data: company,
+    isLoading: isLoadingCompany,
+    error: companyError,
+  } = useCompany(companyId);
+
+  // Calculate total shares issued including founder's treasury shares and all previous rounds
+  const calculateTotalSharesIssued = (): number => {
+    if (!company || !company.rounds) return TREASURY_SHARES;
+
+    const investorShares = company.rounds.reduce((total, round) => {
+      return (
+        total +
+        round.investments.reduce((roundTotal, investment) => {
+          return roundTotal + investment.shareAmount;
+        }, 0)
+      );
+    }, 0);
+
+    return TREASURY_SHARES + investorShares;
+  };
+
+  // Calculate fixed price per share based on total shares and pre-money valuation
+  const calculateFixedPricePerShare = (): number => {
+    const totalShares = calculateTotalSharesIssued();
+    const preMoneyValue = parseFloat(preMoneyValuation) || 0;
+
+    if (totalShares === 0 || preMoneyValue === 0) return 0;
+
+    return preMoneyValue / totalShares;
+  };
+
+  // Calculate rounded price per share (integer) for on-chain storage
+  const getRoundedPricePerShare = (): number => {
+    const exactPrice = calculateFixedPricePerShare();
+    return Math.round(exactPrice);
+  };
+
+  // Check if rounding occurred
+  const isPriceRounded = (): boolean => {
+    const exactPrice = calculateFixedPricePerShare();
+    const roundedPrice = getRoundedPricePerShare();
+    return exactPrice > 0 && Math.abs(exactPrice - roundedPrice) > 0.001;
+  };
+
+  // Effect to update all investors' price per share when pre-money valuation changes
+  useEffect(() => {
+    const roundedPrice = getRoundedPricePerShare();
+    if (roundedPrice > 0) {
+      const roundedPriceString = roundedPrice.toString();
+      setInvestors(prevInvestors =>
+        prevInvestors.map(investor => ({
+          ...investor,
+          pricePerShare: roundedPriceString,
+        }))
+      );
+    }
+  }, [preMoneyValuation, company]);
+
   const addInvestor = () => {
+    const roundedPrice = getRoundedPricePerShare();
+    const roundedPriceString = roundedPrice > 0 ? roundedPrice.toString() : '';
+
     setInvestors([
       ...investors,
-      { name: '', address: '', shares: '', pricePerShare: '' },
+      { name: '', address: '', shares: '', pricePerShare: roundedPriceString },
     ]);
   };
 
@@ -111,6 +178,10 @@ export function CreateRoundModal({
     if (!roundDate) return 'Round date is required';
     if (!preMoneyValuation || parseFloat(preMoneyValuation) <= 0)
       return 'Pre-money valuation must be greater than 0';
+
+    // Check if company data is loaded and if there are previous rounds
+    if (isLoadingCompany) return 'Loading company data. Please wait...';
+    if (companyError) return 'Error loading company data. Please try again.';
 
     for (let i = 0; i < investors.length; i++) {
       const investor = investors[i];
@@ -253,6 +324,81 @@ export function CreateRoundModal({
                 required
               />
             </div>
+
+            {/* Calculation Information */}
+            {isLoadingCompany ? (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                <span className="text-sm text-blue-700">
+                  Loading company data...
+                </span>
+              </div>
+            ) : companyError ? (
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-sm text-red-700">
+                  Error loading company data. Price per share cannot be
+                  calculated.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-blue-900">
+                      Founder Shares (Treasury):
+                    </span>
+                    <span className="text-sm font-mono text-blue-700">
+                      {TREASURY_SHARES.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-blue-900">
+                      Previous Investment Shares:
+                    </span>
+                    <span className="text-sm font-mono text-blue-700">
+                      {(
+                        calculateTotalSharesIssued() - TREASURY_SHARES
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center border-t pt-2">
+                    <span className="text-sm font-semibold text-blue-900">
+                      Total Outstanding Shares:
+                    </span>
+                    <span className="text-sm font-mono text-blue-700 font-semibold">
+                      {calculateTotalSharesIssued().toLocaleString()}
+                    </span>
+                  </div>
+                  {preMoneyValuation && parseFloat(preMoneyValuation) > 0 ? (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-blue-900">
+                          Calculated Price per Share:
+                        </span>
+                        <span className="text-sm font-mono text-blue-700 font-semibold">
+                          ${getRoundedPricePerShare()}
+                        </span>
+                      </div>
+                      {isPriceRounded() && (
+                        <div className="p-2 bg-amber-50 rounded border border-amber-200">
+                          <p className="text-sm text-amber-700">
+                            Exact share price would be $
+                            {calculateFixedPricePerShare().toFixed(2)}. Rounded
+                            to ${getRoundedPricePerShare()} (required for
+                            on-chain storage). This may slightly change
+                            post-money totals.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-zinc-600">
+                      Enter pre-money valuation to calculate price per share
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Investors Section */}
@@ -340,15 +486,9 @@ export function CreateRoundModal({
                           min="0"
                           step="0.01"
                           value={investor.pricePerShare}
-                          onChange={e =>
-                            updateInvestor(
-                              index,
-                              'pricePerShare',
-                              e.target.value
-                            )
-                          }
-                          className="h-10"
-                          required
+                          readOnly
+                          className="h-10 bg-zinc-50 text-zinc-600 cursor-not-allowed"
+                          title="Price per share is automatically calculated based on pre-money valuation and total shares issued"
                         />
                       </div>
                       <div className="w-28 flex items-center h-10">
