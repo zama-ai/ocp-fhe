@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { companyService } from '@/lib/services/companyService';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     companyId: string;
     roundId: string;
-  };
+  }>;
 }
 
-export async function PATCH(
+export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
-    const { companyId, roundId } = params;
+    const { companyId, roundId } = await params;
     const body = await request.json();
     const { isPubliclyVisible, founderAddress } = body;
 

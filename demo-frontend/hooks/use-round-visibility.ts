@@ -34,7 +34,7 @@ export function useRoundVisibility(): UseRoundVisibilityResult {
       const response = await fetch(
         `/api/companies/${companyId}/rounds/${roundId}/visibility`,
         {
-          method: 'PATCH',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
