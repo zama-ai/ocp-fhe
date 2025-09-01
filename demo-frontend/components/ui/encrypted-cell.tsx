@@ -9,6 +9,7 @@ interface EncryptedCellProps {
   onDecrypt: () => void;
   onHide: () => void;
   canDecrypt: boolean;
+  isPubliclyVisible?: boolean;
 }
 
 export function EncryptedCell({
@@ -19,7 +20,20 @@ export function EncryptedCell({
   onDecrypt,
   onHide,
   canDecrypt,
+  isPubliclyVisible = false,
 }: EncryptedCellProps) {
+  // If publicly visible, show the value directly without encryption UI
+  if (isPubliclyVisible) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-mono">{value}</span>
+        <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+          Public
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
       {!decrypted ? (

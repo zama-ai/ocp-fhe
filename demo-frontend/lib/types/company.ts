@@ -18,6 +18,7 @@ export interface Round {
   investments: Investment[]; // Investments in this specific round with share amounts and prices
   preMoneyValuation: number; // Pre-money valuation for this round
   createdAt: string;
+  isPubliclyVisible?: boolean; // Whether round metrics should be publicly visible
 }
 
 export interface Company {

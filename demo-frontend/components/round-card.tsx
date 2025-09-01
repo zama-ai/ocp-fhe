@@ -1,8 +1,15 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LockIcon, EyeIcon, PiggyBankIcon } from 'lucide-react';
+import {
+  LockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  PiggyBankIcon,
+  Loader2Icon,
+} from 'lucide-react';
 import { useDecryptSecurity } from '@/hooks/use-decrypt-security';
 import { useDecryptRound } from '@/hooks/use-decrypt-round';
+import { useRoundVisibility } from '@/hooks/use-round-visibility';
 import { EncryptedCell } from '@/components/ui/encrypted-cell';
 import { Round } from '@/lib/types/company';
 import { useAccount } from '@/hooks/wagmi-viem-proxy/use-account';
@@ -68,6 +75,8 @@ export function RoundCard({
     clearRoundDecrypted,
   } = useDecryptRound(companyAddress);
 
+  const { updateVisibility, isUpdating } = useRoundVisibility();
+
   // Helper function to determine if user can decrypt investor's data
   const canDecryptInvestor = (investorAddress: string): boolean => {
     if (!walletAddress) return false;
@@ -96,7 +105,8 @@ export function RoundCard({
       return (
         safeInvestments.some(
           investment =>
-            investment.investor.address.toLowerCase() === walletAddress.toLowerCase()
+            investment.investor.address.toLowerCase() ===
+            walletAddress.toLowerCase()
         ) || false
       );
     }
@@ -194,19 +204,25 @@ export function RoundCard({
   console.log('Is array:', Array.isArray(round.investments));
 
   // Ensure we have a valid investments array
-  const safeInvestments = Array.isArray(round.investments) ? round.investments : [];
+  const safeInvestments = Array.isArray(round.investments)
+    ? round.investments
+    : [];
 
   const handleDecryptAllPermitted = () => {
     if (!round) return;
 
     const securityIds = safeInvestments
       .filter(
-        investment => investment.investor.securityId && canDecryptInvestor(investment.investor.address)
+        investment =>
+          investment.investor.securityId &&
+          canDecryptInvestor(investment.investor.address)
       )
       .map(investment => investment.investor.securityId!);
     const investorAddresses = safeInvestments
       .filter(
-        investment => investment.investor.securityId && canDecryptInvestor(investment.investor.address)
+        investment =>
+          investment.investor.securityId &&
+          canDecryptInvestor(investment.investor.address)
       )
       .map(investment => investment.investor.address);
 
@@ -219,6 +235,43 @@ export function RoundCard({
     clearDecrypted();
     clearRoundDecrypted();
   };
+
+  const handleToggleVisibility = async () => {
+    if (!round) return;
+
+    try {
+      await updateVisibility({
+        companyId: companyAddress,
+        roundId: round.id,
+        isPubliclyVisible: !round.isPubliclyVisible,
+      });
+    } catch (error) {
+      console.error('Failed to toggle visibility:', error);
+    }
+  };
+
+  // Check if user can toggle visibility (only founders who own the company)
+  const canToggleVisibility = role === 'FOUNDER' && isCompanyOwner;
+
+  // Calculate public values for display when round is publicly visible
+  const getPublicRoundValues = () => {
+    if (!round.isPubliclyVisible) return null;
+
+    // Calculate total amount invested from investments
+    const totalAmount = safeInvestments.reduce((sum, investment) => {
+      return sum + investment.shareAmount * investment.sharePrice;
+    }, 0);
+
+    // Post-money valuation = pre-money + total investment
+    const postMoneyValuation = round.preMoneyValuation + totalAmount;
+
+    return {
+      totalAmount,
+      postMoneyValuation,
+    };
+  };
+
+  const publicValues = getPublicRoundValues();
 
   return (
     <>
@@ -241,49 +294,82 @@ export function RoundCard({
 
         {/* Round Metrics */}
         <div className="px-4 py-3 bg-zinc-50/50 border-b border-zinc-200">
-          <h3 className="text-sm font-medium text-zinc-700 mb-3">
-            Round Metrics
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-zinc-700">Round Metrics</h3>
+            {canToggleVisibility && (
+              <button
+                onClick={handleToggleVisibility}
+                disabled={isUpdating}
+                className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={
+                  round.isPubliclyVisible
+                    ? 'Make round metrics private'
+                    : 'Make round metrics publicly visible'
+                }
+              >
+                {isUpdating ? (
+                  <Loader2Icon className="h-3 w-3 animate-spin" />
+                ) : round.isPubliclyVisible ? (
+                  <EyeOffIcon className="h-3 w-3" />
+                ) : (
+                  <EyeIcon className="h-3 w-3" />
+                )}
+                {isUpdating
+                  ? 'Updating...'
+                  : round.isPubliclyVisible
+                    ? 'Make Private'
+                    : 'Make Public'}
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-zinc-200">
               <span className="text-sm font-medium text-zinc-600">
-                Post-Money Valuation <Badge>🔒</Badge>
+                Post-Money Valuation{' '}
+                {!round.isPubliclyVisible && <Badge>🔒</Badge>}
               </span>
               <EncryptedCell
                 label="Post-Money Valuation"
                 value={
-                  getRoundDecryptedData(round.round_id)
-                    ? fmtMoney(
-                      getRoundDecryptedData(round.round_id)!
-                        .postMoneyValuation
-                    )
-                    : '$0'
+                  publicValues
+                    ? fmtMoney(publicValues.postMoneyValuation)
+                    : getRoundDecryptedData(round.round_id)
+                      ? fmtMoney(
+                          getRoundDecryptedData(round.round_id)!
+                            .postMoneyValuation
+                        )
+                      : '$0'
                 }
                 decrypted={isRoundDecrypted(round.round_id)}
                 loading={isRoundLoading(round.round_id)}
                 onDecrypt={() => decryptRoundData(round.round_id)}
                 onHide={() => clearRoundDecrypted(round.round_id)}
                 canDecrypt={canDecryptRound()}
+                isPubliclyVisible={round.isPubliclyVisible}
               />
             </div>
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-zinc-200">
               <span className="text-sm font-medium text-zinc-600">
-                Total Amount Invested <Badge>🔒</Badge>
+                Total Amount Invested{' '}
+                {!round.isPubliclyVisible && <Badge>🔒</Badge>}
               </span>
               <EncryptedCell
                 label="Total Amount Invested"
                 value={
-                  getRoundDecryptedData(round.round_id)
-                    ? fmtMoney(
-                      getRoundDecryptedData(round.round_id)!.totalAmount
-                    )
-                    : '$0'
+                  publicValues
+                    ? fmtMoney(publicValues.totalAmount)
+                    : getRoundDecryptedData(round.round_id)
+                      ? fmtMoney(
+                          getRoundDecryptedData(round.round_id)!.totalAmount
+                        )
+                      : '$0'
                 }
                 decrypted={isRoundDecrypted(round.round_id)}
                 loading={isRoundLoading(round.round_id)}
                 onDecrypt={() => decryptRoundData(round.round_id)}
                 onHide={() => clearRoundDecrypted(round.round_id)}
                 canDecrypt={canDecryptRound()}
+                isPubliclyVisible={round.isPubliclyVisible}
               />
             </div>
           </div>
@@ -340,11 +426,15 @@ export function RoundCard({
                   const decryptedData = getDecryptedData(securityId);
                   const isSecurityDecrypted = isDecrypted(securityId);
                   const isSecurityLoading = isDecryptionLoading(securityId);
-                  const hasAccess = canDecryptInvestor(investment.investor.address);
+                  const hasAccess = canDecryptInvestor(
+                    investment.investor.address
+                  );
 
                   return (
                     <tr
-                      key={investment.investor.securityId || `investment-${index}`}
+                      key={
+                        investment.investor.securityId || `investment-${index}`
+                      }
                       className="border-b border-zinc-100 hover:bg-zinc-50/50"
                     >
                       <Td>

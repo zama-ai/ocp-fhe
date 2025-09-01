@@ -35,11 +35,13 @@ export function useOwnershipCalculation(
   // Create investors with access control (no decryption needed)
   const investorsWithAccess = useMemo((): OwnershipWithAccess[] => {
     return ownership.investors.map(investor => {
-      const canAccess = canDecryptInvestor(
-        investor.address,
-        walletAddress,
-        role
-      );
+      let canAccess = canDecryptInvestor(investor.address, walletAddress, role);
+      if (
+        role === 'FOUNDER' &&
+        company?.founder.toLowerCase() != walletAddress?.toLowerCase()
+      ) {
+        canAccess = false;
+      }
 
       return {
         ...investor,

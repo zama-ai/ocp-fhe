@@ -382,6 +382,43 @@ export class CompanyService {
       throw new Error('Failed to fetch round security IDs');
     }
   }
+
+  /**
+   * 10. Update round visibility
+   */
+  async updateRoundVisibility(
+    companyId: string,
+    roundId: string,
+    isPubliclyVisible: boolean
+  ): Promise<Company> {
+    try {
+      const company = await this.getCompanyById(companyId);
+      if (!company) throw new Error('Company not found');
+
+      // Find and update the specific round
+      const roundIndex = company.rounds.findIndex(
+        round => round.id === roundId
+      );
+      if (roundIndex === -1) {
+        throw new Error('Round not found');
+      }
+
+      // Update the round's visibility
+      company.rounds[roundIndex].isPubliclyVisible = isPubliclyVisible;
+
+      // Save updated company data
+      const companyKey = generateKey(KEY_PREFIXES.COMPANY, companyId);
+      await redis.hset(companyKey, {
+        rounds: JSON.stringify(company.rounds),
+        updatedAt: new Date().toISOString(),
+      });
+
+      return (await this.getCompanyById(companyId)) as Company;
+    } catch (error) {
+      console.error('Error updating round visibility:', error);
+      throw new Error('Failed to update round visibility');
+    }
+  }
 }
 
 export const companyService = new CompanyService();

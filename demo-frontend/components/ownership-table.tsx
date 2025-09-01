@@ -53,6 +53,13 @@ export function OwnershipTable({
   const canAccessTreasury =
     (role === 'FOUNDER' && isCompanyFounder) || role === 'ADMIN';
 
+  console.log(
+    'isCompanyFounder',
+    isCompanyFounder,
+    'canAccessTreasury',
+    canAccessTreasury
+  );
+
   if (!company) {
     return null;
   }
